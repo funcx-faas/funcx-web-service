@@ -1,5 +1,0 @@
-2019-04-01 20:56:02.409 worker_log:38 Rank:0 [INFO]  Worker 0 started
-2019-04-01 20:56:02.411 worker_log:47 Rank:0 [INFO]  Connecting to tcp://localhost:50607 for registration
-2019-04-01 20:56:02.412 worker_log:54 Rank:0 [INFO]  Registered with manager successful
-2019-04-01 20:56:02.413 worker_log:59 Rank:0 [INFO]  Connecting to tcp://localhost:50055
-2019-04-01 20:56:02.413 worker_log:60 Rank:0 [INFO]  Container will exit after single task: False

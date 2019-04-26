@@ -7,28 +7,19 @@ import json
 import time
 
 
-from .utils import _get_user, _create_task, _log_request
+from .utils import _get_user, _create_task, _log_request, _register_site
 from flask import Blueprint, jsonify, request, abort
 from config import _get_db_connection, cooley_config
 from parsl.app.app import python_app
 
+from utils.zmq_server import ZMQServer
+
 # Flask
 api = Blueprint("api", __name__)
 
+zmq_server = ZMQServer()
 
-parsl.load(cooley_config)
-
-@python_app
-def execute_task(obj):
-    """
-    Example python app. Run the command.
-
-    :param obj:
-    :return:
-    """
-    return "Hello world!"
-
-# def async_request(input_obj):
+#def async_request(input_obj):
     # print('sending data to zmq')
     # zmq_server.request(input_obj)
 
@@ -37,7 +28,7 @@ def execute_task(obj):
 def execute():
 
     print("MADE IT TO EXECUTE")
-    #user_id, user_name, short_name = _get_user(request.headers)
+    user_id, user_name, short_name = _get_user(request.headers)
 
     #if request.headers is not None:
         #user_id, user_name, short_name = 1, "skluzacek@uchicago.edu", "skluzacek"
@@ -66,12 +57,14 @@ def execute():
     print('looking for async')
     try:
         print('checking async')
-        is_async = post_req["async"]
+        # is_async = post_req["async"]
     except KeyError:
-        is_async = False
-#         return jsonify({"status": "Error", "message": "Missing 'async' argument set to 'True' or 'False'."})
-    print('async: {}'.format(is_async))
+        print("THERE's an error...")
+        # is_async = False
+	#         return jsonify({"status": "Error", "message": "Missing 'async' argument set to 'True' or 'False'."})
+    # print('async: {}'.format(is_async))
     try:
+        print(post_req)
         if 'cmd' in post_req:
             cmd = post_req["cmd"]
         elif 'command' in post_req:
@@ -119,11 +112,11 @@ def execute():
             response = task_uuid
         else:
             print("INIT TASK EXECUTION")
-            res = execute_task(obj)
-            print(res)
-            print("FINISHED TASK EXECUTION")
-            print(res.done())
-            # res = zmq_server.request(pickle.dumps(obj))
+            #res = execute_task(obj)
+            #print(res)
+            #print("FINISHED TASK EXECUTION")
+            #print(res.done())
+            res = zmq_server.request(pickle.dumps(obj))
             response = pickle.loads(res.result())
         request_end = time.time()
 
@@ -183,26 +176,26 @@ def status(task_uuid):
         return json.dumps({'InternalError': e})
 
 
-# @api.route("/register_site", methods=['POST'])
-# def register_site():
-#     """
-#     Register the site. Add this site to the database and associate it with this user.
-#
-#     :return: port to connect to.
-#     """
-#     user_id, user_name, short_name = _get_user(cur, conn, request.headers)
-#     if not user_name:
-#         abort(400, description="Error: You must be logged in to perform this function.")
-#     sitename = None
-#     description = None
-#     try:
-#         sitename = request.json["sitename"]
-#         description = request.json["description"]
-#     except Exception as e:
-#         print(e)
-#     print(sitename)
-#     _register_site(cur, conn, user_id, sitename, description)
-#     return jsonify({'port': 50001})
+@api.route("/register_endpoint", methods=['POST'])
+def register_site():
+    """
+    Register the site. Add this site to the database and associate it with this user.
+
+    :return: port to connect to.
+    """
+    user_id, user_name, short_name = _get_user(request.headers)
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+    sitename = None
+    description = None
+    try:
+        sitename = request.json["endpoint_name"]
+        description = request.json["description"]
+    except Exception as e:
+        print(e)
+    print(sitename)
+    _register_site(user_id, sitename, description)
+    return jsonify({'port': 50001})
 
 
 # threads = []

@@ -1,11 +1,11 @@
 source activate funcx
 
 NAME="FuncX"
-FLASKDIR=/home/ubuntu/aps-pilot/aps_pilot
-SOCKFILE=/home/ubuntu/aps-pilot/aps_pilot/funcx.sock
+FLASKDIR=/home/ubuntu/funcx-web-service/
+SOCKFILE=/home/ubuntu/funcx-web-service/funcx.sock
 USER=ubuntu
 GROUP=ubuntu
-NUM_WORKERS=1
+NUM_WORKERS=3
 echo "Starting $NAME"
 
 # Create the run directory if it doesn't exist
