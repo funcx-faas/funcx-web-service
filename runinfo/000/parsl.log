@@ -1,0 +1,97 @@
+2019-04-01 20:55:59.970 parsl.dataflow.dflow:78 [DEBUG]  Starting DataFlowKernel with config
+Config(
+    app_cache=True, 
+    checkpoint_files=None, 
+    checkpoint_mode=None, 
+    checkpoint_period=None, 
+    data_management_max_threads=10, 
+    executors=[HighThroughputExecutor(
+        address='127.0.0.1', 
+        container_image='/home/ubuntu/sing-run/sing-run.simg', 
+        cores_per_worker=1, 
+        heartbeat_period=30, 
+        heartbeat_threshold=120, 
+        interchange_port_range=(55000, 56000), 
+        label='htex_local', 
+        launch_cmd='process_worker_pool.py {debug} {max_workers} -c {cores_per_worker} --poll {poll_period} --task_url={task_url} --result_url={result_url} --logdir={logdir} --hb_period={heartbeat_period} --hb_threshold={heartbeat_threshold} --mode={worker_mode} --container_image={container_image} ', 
+        managed=True, 
+        max_workers=1, 
+        poll_period=10, 
+        provider=LocalProvider(
+            channel=LocalChannel(
+                envs={}, 
+                script_dir=None, 
+                userhome='/home/ubuntu/aps-pilot/aps_pilot'
+            ), 
+            cmd_timeout=30, 
+            init_blocks=1, 
+            launcher=SingleNodeLauncher(), 
+            max_blocks=1, 
+            min_blocks=0, 
+            move_files=None, 
+            nodes_per_block=1, 
+            parallelism=1, 
+            walltime='00:15:00', 
+            worker_init=''
+        ), 
+        storage_access=[], 
+        suppress_failure=False, 
+        worker_debug=True, 
+        worker_mode='singularity_reuse', 
+        worker_port_range=(54000, 55000), 
+        worker_ports=None, 
+        working_dir=None
+    )], 
+    lazy_errors=True, 
+    monitoring=None, 
+    retries=0, 
+    run_dir='runinfo', 
+    strategy=None, 
+    usage_tracking=False
+)
+2019-04-01 20:55:59.980 parsl.dataflow.dflow:79 [INFO]  Parsl version: 0.7.2-d1b4039d-clean
+2019-04-01 20:55:59.981 parsl.dataflow.usage_tracking.usage:126 [DEBUG]  Tracking status: False
+2019-04-01 20:55:59.981 parsl.dataflow.usage_tracking.usage:127 [DEBUG]  Testing mode   : False
+2019-04-01 20:55:59.981 parsl.dataflow.dflow:101 [INFO]  Run id is: 723918d4-4b1b-47fa-bfbb-faadc9b85346
+2019-04-01 20:56:00.112 parsl.dataflow.memoization:52 [INFO]  App caching initialized
+2019-04-01 20:56:00.114 parsl.executors.high_throughput.executor:409 [DEBUG]  Starting queue management thread
+2019-04-01 20:56:00.114 parsl.executors.high_throughput.executor:291 [DEBUG]  [MTHREAD] queue management worker starting
+2019-04-01 20:56:00.114 parsl.executors.high_throughput.executor:413 [DEBUG]  Started queue management thread
+2019-04-01 20:56:00.128 parsl.executors.high_throughput.executor:250 [DEBUG]  Created management thread: <Thread(Thread-1, started daemon 139779841042176)>
+2019-04-01 20:56:00.128 parsl.executors.high_throughput.executor:224 [DEBUG]  Launch command: process_worker_pool.py --debug --max_workers=1 -c 1 --poll 10 --task_url=tcp://127.0.0.1:54041 --result_url=tcp://127.0.0.1:54826 --logdir=/home/ubuntu/aps-pilot/aps_pilot/runinfo/000/htex_local --hb_period=30 --hb_threshold=120 --mode=singularity_reuse --container_image=/home/ubuntu/sing-run/sing-run.simg 
+2019-04-01 20:56:00.128 parsl.executors.high_throughput.executor:227 [DEBUG]  Starting HighThroughputExecutor with provider:
+LocalProvider(
+    channel=LocalChannel(
+        envs={}, 
+        script_dir='/home/ubuntu/aps-pilot/aps_pilot/runinfo/000/submit_scripts', 
+        userhome='/home/ubuntu/aps-pilot/aps_pilot'
+    ), 
+    cmd_timeout=30, 
+    init_blocks=1, 
+    launcher=SingleNodeLauncher(), 
+    max_blocks=1, 
+    min_blocks=0, 
+    move_files=None, 
+    nodes_per_block=1, 
+    parallelism=1, 
+    walltime='00:15:00', 
+    worker_init=''
+)
+2019-04-01 20:56:00.140 parsl.executors.high_throughput.executor:500 [DEBUG]  Launched block 0:11711
+2019-04-01 20:56:00.141 parsl.dataflow.strategy:125 [DEBUG]  Scaling strategy: None
+2019-04-01 20:56:02.415 parsl.executors.high_throughput.executor:329 [WARNING]  Executor shutting down due to version mismatch in interchange
+2019-04-01 20:56:02.415 parsl.executors.high_throughput.executor:331 [ERROR]  Exception: b'4151d4c57b77'
+NoneType: None
+2019-04-01 20:56:02.416 parsl.executors.high_throughput.executor:363 [INFO]  [MTHREAD] queue management worker finished
+2019-04-01 20:56:04.268 parsl.dataflow.dflow:670 [INFO]  Task 0 submitted for App execute_task, waiting on tasks []
+2019-04-01 20:56:04.268 parsl.dataflow.dflow:680 [DEBUG]  Task 0 set to pending state with AppFuture: <AppFuture at 0x7f210743ff60 state=pending>
+2019-04-01 20:56:09.221 parsl.dataflow.dflow:805 [INFO]  DFK cleanup initiated
+2019-04-01 20:56:09.221 parsl.dataflow.dflow:716 [INFO]  Summary of tasks in DFK:
+2019-04-01 20:56:09.221 parsl.dataflow.dflow:747 [INFO]  Tasks in state States.pending: 0
+2019-04-01 20:56:09.221 parsl.dataflow.dflow:754 [INFO]  End of summary
+2019-04-01 20:56:09.222 parsl.dataflow.dflow:829 [INFO]  Terminating flow_control and strategy threads
+2019-04-01 20:56:09.222 parsl.providers.local.local:231 [DEBUG]  Terminating job/proc_id: 11711
+2019-04-01 20:56:09.227 parsl.executors.high_throughput.executor:548 [INFO]  Attempting HighThroughputExecutor shutdown
+2019-04-01 20:56:09.227 parsl.executors.high_throughput.executor:552 [INFO]  Finished HighThroughputExecutor shutdown attempt
+2019-04-01 20:56:09.227 parsl.data_provider.data_manager:99 [DEBUG]  Done with executor shutdown
+2019-04-01 20:56:09.227 parsl.dataflow.dflow:861 [INFO]  DFK cleanup complete

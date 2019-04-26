@@ -1,0 +1,52 @@
+2019-04-01 20:56:00.900 parsl:542 Rank:0 [INFO]  Python version: 3.6.7 |Anaconda, Inc.| (default, Oct 23 2018, 19:16:44) 
+[GCC 7.3.0]
+2019-04-01 20:56:00.900 parsl:543 Rank:0 [INFO]  Debug logging: True
+2019-04-01 20:56:00.900 parsl:544 Rank:0 [INFO]  Log dir: /home/ubuntu/aps-pilot/aps_pilot/runinfo/000/htex_local
+2019-04-01 20:56:00.900 parsl:545 Rank:0 [INFO]  Manager ID: 4151d4c57b77
+2019-04-01 20:56:00.900 parsl:546 Rank:0 [INFO]  cores_per_worker: 1
+2019-04-01 20:56:00.900 parsl:547 Rank:0 [INFO]  task_url: tcp://127.0.0.1:54041
+2019-04-01 20:56:00.900 parsl:548 Rank:0 [INFO]  result_url: tcp://127.0.0.1:54826
+2019-04-01 20:56:00.900 parsl:549 Rank:0 [INFO]  max_workers: 1
+2019-04-01 20:56:00.900 parsl:550 Rank:0 [INFO]  poll_period: 10
+2019-04-01 20:56:00.900 parsl:551 Rank:0 [INFO]  mode: singularity_reuse
+2019-04-01 20:56:00.900 parsl:552 Rank:0 [INFO]  container_image: /home/ubuntu/sing-run/sing-run.simg
+2019-04-01 20:56:00.900 parsl:100 Rank:0 [INFO]  Manager started
+2019-04-01 20:56:00.901 parsl:116 Rank:0 [INFO]  Manager connected
+2019-04-01 20:56:00.901 parsl:126 Rank:0 [INFO]  Manager will spawn 1 workers
+2019-04-01 20:56:00.903 parsl:359 Rank:0 [DEBUG]  Singularity reuse launch cmd: singularity run /home/ubuntu/sing-run/sing-run.simg /usr/local/bin/funcx_worker.py --worker_id 0 --pool_id 4151d4c57b77 --task_url tcp://localhost:50055 --reg_url tcp://localhost:50607 --logdir /home/ubuntu/aps-pilot/aps_pilot/runinfo/000/htex_local 
+2019-04-01 20:56:02.412 parsl:401 Rank:0 [INFO]  Received registration message from worker: 0
+2019-04-01 20:56:02.412 parsl:404 Rank:0 [DEBUG]  Manager synced with workers
+2019-04-01 20:56:02.413 parsl:172 Rank:0 [INFO]  [TASK PULL THREAD] starting
+2019-04-01 20:56:02.413 parsl:179 Rank:0 [DEBUG]  Sending registration message: b'{"parsl_v": "0.7.2", "python_v": "3.6.7", "os": "Linux", "hname": "ip-172-31-78-145", "dir": "/home/ubuntu/aps-pilot/aps_pilot"}'
+2019-04-01 20:56:02.416 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.417 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:02.417 parsl:270 Rank:0 [DEBUG]  [RESULT_PUSH_THREAD] Starting thread
+2019-04-01 20:56:02.417 parsl:413 Rank:0 [INFO]  Loop start
+2019-04-01 20:56:02.417 parsl:273 Rank:0 [DEBUG]  [RESULT_PUSH_THREAD] push poll period: 0.01
+2019-04-01 20:56:02.427 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:02.427 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.427 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:02.447 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:02.447 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.447 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:02.488 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:02.488 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.488 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:02.568 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:02.569 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.569 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:02.729 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:02.729 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:02.730 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:03.050 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:03.050 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:03.050 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:03.691 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:03.692 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:03.692 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:04.973 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:04.973 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:04.973 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1
+2019-04-01 20:56:07.536 parsl:247 Rank:0 [DEBUG]  [TASK_PULL_THREAD] No incoming tasks
+2019-04-01 20:56:07.536 parsl:194 Rank:0 [DEBUG]  [TASK_PULL_THREAD] ready workers:1, pending tasks:0
+2019-04-01 20:56:07.536 parsl:201 Rank:0 [DEBUG]  [TASK_PULL_THREAD] Requesting tasks: 1

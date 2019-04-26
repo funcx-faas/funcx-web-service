@@ -1,0 +1,142 @@
+
+from .utils import _get_user, _create_task, _log_request
+from parsl.executors.threads import ThreadPoolExecutor
+from flask import Blueprint, jsonify, request, abort
+from .parsl_apps import execute_task
+from parsl.config import Config
+import psycopg2.extras
+import config
+import boto3
+import parsl
+import uuid
+import json
+
+
+# Postgres
+db = config.connection_string
+conn = psycopg2.connect(db)
+cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+# Flask
+api = Blueprint("api", __name__)
+
+# Parsl
+config = Config(
+    executors=[ThreadPoolExecutor()],
+    lazy_errors=True
+)
+
+parsl.load(config)
+
+
+@api.route('/test_parsl', methods=['GET'])
+def test_parsl():
+
+    x = execute_task("hello")
+    return x.result()
+
+
+@api.route('/execute', methods=['POST'])
+def execute():
+
+    print("Executing task")
+
+    user_id, user_name, short_name = _get_user(cur, conn, request.headers)
+
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+
+    # Retrieve user-submitted BASH command and path to data.
+    # TODO: Try request.json (no eval)
+    post_req = eval((json.loads(request.data))["data"])
+
+
+    try:
+        is_async = post_req["async"]
+    except:
+        return jsonify({status:"Type Error: Please set 'async' to 'True' or 'False'. "})
+    cmd = post_req["cmd"]
+    print(post_req)
+    print(cmd)
+
+
+    template = None
+    if 'template' in post_req:
+        print("Template is here")
+        template = post_req["template"]
+        print(template)
+    task_uuid = uuid.uuid4()
+
+    if template:
+        print("MADEIT HERE")
+        cmd = cmd.format(**template)
+        print(cmd)
+    # TODO: Send task to queue (parsl).
+
+    execute_task(str(cmd))
+    # Add request and task to database
+    task_res = _create_task(cur, conn, user_id, task_uuid, is_async)
+    _log_request(cur, conn, user_id, post_req, task_res, 'EXECUTE', 'CMD')
+
+    print("Task Submission Status: {}".format(str(task_res)))
+
+    # Return task_submission response.
+    return jsonify(task_res)
+
+
+###################
+# Other endpoints #
+###################
+
+@api.route("/<task_uuid>/status", methods=['GET'])
+def status(task_uuid):
+    """
+    Check the status of a task.
+
+    :param task_uuid:
+    :return:
+    """
+
+    user_id, user_name, short_name = _get_user(cur, conn, request.headers)
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+
+    try:
+        exec_arn = None
+        status = None
+        cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
+        rows = cur.fetchall()
+        print(rows)
+        for r in rows:
+            print(r)
+            # exec_arn = r['arn']
+            status = r['status']
+        res = {'status': status}
+
+        if exec_arn:
+
+            # ########################### #
+            # TODO: Replace this with speaking to PARSL exectuors.
+            # ########################### #
+
+            # Check sfn for status
+            sfn_client = boto3.client('stepfunctions')
+            response = sfn_client.describe_execution(executionArn=exec_arn)
+            print(response)
+            status = response['status']
+            print(status)
+            res['status'] = status
+            if 'output' in response:
+                output = response['output']
+                res['output'] = output
+            # #############################
+
+            query = "UPDATE tasks set status = '%s' where uuid = '%s'" % (status, task_uuid)
+            print(query)
+            cur.execute(query)
+            conn.commit()
+        print("Status Response: {}".format(str(res)))
+        return json.dumps(res)
+    except Exception as e:
+        print(e)
+        return json.dumps({'InternalError': e})
