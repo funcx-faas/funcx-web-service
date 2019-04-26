@@ -1,5 +1,4 @@
 from flask import (Flask, request, flash, redirect, session, url_for)
-from automate_api.automate_api import automate_api
 
 from api.api import api
 
@@ -10,7 +9,6 @@ app = Flask(__name__)
 
 # Include the API blueprint
 app.register_blueprint(api, url_prefix="/api/v1")
-# app.register_blueprint(automate_api, url_prefix="/globus_automate/v1/action")
 
 
 @app.route("/")
