@@ -4,6 +4,8 @@ from api.api import api
 
 from config import SECRET_KEY, _load_funcx_client
 
+import logging
+
 app = Flask(__name__)
 
 
@@ -13,7 +15,7 @@ app.register_blueprint(api, url_prefix="/api/v1")
 
 @app.route("/")
 def hello():
-    print("FuncX")
+    app.logger.debug("FuncX")
     return "Funcx"
 
 
@@ -56,7 +58,7 @@ def callback():
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
         id_token = tokens.decode_id_token(client)
-        print(id_token)
+        app.logger.debug(id_token)
         session.update(
             tokens=tokens.by_resource_server,
             is_authenticated=True
@@ -109,8 +111,8 @@ def start_broker():
         broker = ZMQBroker()
         broker.start("*", 50000)
     except Exception as e:
-        print("Broker failed. %s" % e)
-        print("Continuing without a broker.")
+        app.logger.debug("Broker failed. %s" % e)
+        app.logger.debug("Continuing without a broker.")
 
 
 app.secret_key = SECRET_KEY
@@ -118,4 +120,9 @@ app.config['SESSION_TYPE'] = 'filesystem'
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)
-
+else:
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+    handler = logging.StreamHandler()
+    app.logger.addHandler(handler)

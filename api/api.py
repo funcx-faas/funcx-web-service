@@ -8,7 +8,7 @@ import time
 
 
 from .utils import _get_user, _create_task, _log_request, _register_site
-from flask import Blueprint, jsonify, request, abort
+from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, cooley_config
 from parsl.app.app import python_app
 
@@ -27,7 +27,7 @@ zmq_server = ZMQServer()
 @api.route('/execute', methods=['POST'])
 def execute():
 
-    print("MADE IT TO EXECUTE")
+    app.logger.debug("MADE IT TO EXECUTE")
     user_id, user_name, short_name = _get_user(request.headers)
 
     #if request.headers is not None:
@@ -37,24 +37,21 @@ def execute():
 
     # Retrieve user-submitted BASH command and path to data.
     try:
-        print(request.json)
+        app.logger.debug(request.json)
 
         post_req = ""
         if "data" in (request.json).keys():
-            print('1')
             post_req = request.json["data"]
         else:
-            print('2')
             post_req = json.loads(request.json)
     except Exception as e:
-        print(e)
+        app.logger.error(e)
     try:
         post_req = json.loads(request.json)
     except:
         pass
 
     print("POST_REQUEST:" + str(post_req))
-    print('looking for async')
     try:
         print('checking async')
         # is_async = post_req["async"]
@@ -153,11 +150,6 @@ def status(task_uuid):
 
     conn, cur = _get_db_connection()
 
-    #if request.headers is not None:
-        #user_id, user_name, short_name = 1, "skluzacek@uchicago.edu", "skluzacek"
-    # if not user_name:
-    #    abort(400, description="Error: You must be logged in to perform this function.")
-
     try:
         task_status = None
         cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
@@ -193,7 +185,7 @@ def register_site():
         description = request.json["description"]
     except Exception as e:
         print(e)
-    print(sitename)
+    app.logger.debug(sitename)
     _register_site(user_id, sitename, description)
     return jsonify({'port': 50001})
 

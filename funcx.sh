@@ -19,5 +19,7 @@ exec gunicorn app:app -b 0.0.0.0:8080 \
   --workers $NUM_WORKERS \
   --user=$USER --group=$GROUP \
   --bind=unix:$SOCKFILE \
+  --log-level DEBUG \
+  --log-file /home/ubuntu/funcx-web-service/funcx.log \
   --timeout 600
 
