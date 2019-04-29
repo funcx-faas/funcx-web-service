@@ -7,7 +7,7 @@ import json
 import time
 
 
-from .utils import _get_user, _create_task, _log_request, _register_site
+from .utils import _get_user, _create_task, _log_request, _register_site, _get_zmq_servers
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, cooley_config
 from parsl.app.app import python_app
@@ -18,6 +18,8 @@ from utils.zmq_server import ZMQServer
 api = Blueprint("api", __name__)
 
 zmq_server = ZMQServer()
+
+zmq_servers = _get_zmq_servers()
 
 #def async_request(input_obj):
     # print('sending data to zmq')
@@ -184,10 +186,10 @@ def register_site():
         sitename = request.json["endpoint_name"]
         description = request.json["description"]
     except Exception as e:
-        print(e)
+        app.logger.error(e)
     app.logger.debug(sitename)
-    _register_site(user_id, sitename, description)
-    return jsonify({'port': 50001})
+    port_num = _register_site(user_id, sitename, description)
+    return jsonify({'port': int(port_num)})
 
 
 # threads = []

@@ -2,7 +2,7 @@ import numpy as np
 import json
 
 from config import _load_funcx_client, _get_db_connection
-from flask import request
+from flask import request, current_app as app
 
 
 ############
@@ -26,7 +26,7 @@ def _create_task(user_id, task_uuid, is_async):
         cur.execute(query)
         conn.commit()
     except Exception as e:
-        print(e)
+        app.logger.error(e)
 
     res = {"status": start_status, "task_id": str(task_uuid)}
     return res
@@ -40,7 +40,7 @@ def _update_task(task_uuid, new_status):
         conn.commit()
 
     except Exception as e:
-        print(e)
+        app.logger.error(e)
 
 
 def _log_request(user_id, input_data, response_data, endpoint, exec_type):
@@ -61,7 +61,7 @@ def _log_request(user_id, input_data, response_data, endpoint, exec_type):
         cur.execute(query)
         conn.commit()
     except Exception as e:
-        print(e)
+        app.logger.error(e)
 
 
 def _decode_result(tmp_res_lst):
@@ -86,6 +86,26 @@ def _decode_result(tmp_res_lst):
     return response_list
 
 
+def _get_zmq_servers()
+    """
+    Return a dict of ZMQ servers and their ports to route jobs.
+
+    :return: dict, {port:zmqserver}
+    """
+    conn, cur = _get_db_connection()
+    zmq_servers = {}
+    try:
+        query = "select * from sites where status = 'ONLINE'"
+        cur.execute(query)
+        rows = cur.fetchall()
+        for r in rows:
+            port = r['port']
+            #wrapper = ZMQWrapper(port)
+            #zmq_servers.update({port: wrapper})
+    except Exception as e:
+        app.logger.error(e)
+    return zmq_servers
+
 def _register_site(user_id, sitename, description):
     """
     Register the site in the database.
@@ -95,8 +115,9 @@ def _register_site(user_id, sitename, description):
     :param user_id:
     :param sitename:
     :param description:
-    :return:
+    :return: Port number
     """
+    port_num = 50001
     try:
         conn, cur = _get_db_connection()
         query = """INSERT INTO sites (user_id, name, description) values """ \
@@ -105,7 +126,8 @@ def _register_site(user_id, sitename, description):
         cur.execute(query)
         conn.commit()
     except Exception as e:
-        print(e)
+        app.logger.error(e)
+    return port_num
 
 
 ########
@@ -122,15 +144,15 @@ def _introspect_token(headers):
     user_name = None
     if 'Authorization' in headers:
         token = request.headers.get('Authorization')
-        print(token)
+        app.logger.debug(token)
         token = token.split(" ")[1]
         try:
             client = _load_funcx_client()
             auth_detail = client.oauth2_token_introspect(token)
-            print(auth_detail)
+            app.logger.debug(auth_detail)
             user_name = auth_detail['username']
         except Exception as e:
-            print('Auth error:', e)
+            app.logger.error('Auth error:', e)
     return user_name
 
 
@@ -146,7 +168,7 @@ def _get_user(headers):
     short_name = None
     user_id = None
 
-    print('Authorizing user: {}'.format(user_name))
+    app.logger.debug('Authorizing user: {}'.format(user_name))
     if not user_name:
         return None, None, None
 
@@ -168,7 +190,7 @@ def _get_user(headers):
             conn.commit()
             user_id = cur.fetchone()[0]
     except Exception as e:
-        print(e)
+        app.logger.error(e)
     return user_id, user_name, short_name
 
 
