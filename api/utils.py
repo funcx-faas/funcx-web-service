@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import uuid
 
 from config import _load_funcx_client, _get_db_connection
 from flask import request, current_app as app
@@ -86,7 +87,7 @@ def _decode_result(tmp_res_lst):
     return response_list
 
 
-def _get_zmq_servers()
+def _get_zmq_servers():
     """
     Return a dict of ZMQ servers and their ports to route jobs.
 
@@ -106,28 +107,100 @@ def _get_zmq_servers()
         app.logger.error(e)
     return zmq_servers
 
-def _register_site(user_id, sitename, description):
+
+def _register_function(user_id, function_name, description, function_code):
     """
     Register the site in the database.
 
     :param cur:
     :param conn:
     :param user_id:
-    :param sitename:
+    :param endpoint_name:
     :param description:
-    :return: Port number
+    :return: uuid
     """
-    port_num = 50001
+
     try:
         conn, cur = _get_db_connection()
-        query = """INSERT INTO sites (user_id, name, description) values """ \
-                """('{}', '{}', '{}');"""\
-            .format(user_id, sitename, description)
+#        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name)
+#        if endpoint_uuid:
+#            return endpoint_uuid
+        function_uuid = str(uuid.uuid4())
+        query = """INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, function_code) values """ \
+                """('{}', '{}', '{}', '{}', '{}', '{}');"""\
+            .format(user_id, '', description, 'REGISTERED', function_name, function_uuid, function_code)
         cur.execute(query)
         conn.commit()
     except Exception as e:
         app.logger.error(e)
-    return port_num
+    return function_uuid
+
+def _register_site(user_id, endpoint_name, description):
+    """
+    Register the site in the database.
+
+    :param cur:
+    :param conn:
+    :param user_id:
+    :param endpoint_name:
+    :param description:
+    :return: uuid
+    """
+
+    try:
+        conn, cur = _get_db_connection()
+        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name)
+        if endpoint_uuid:
+            return endpoint_uuid
+        endpoint_uuid = str(uuid.uuid4())
+        query = """INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) values """ \
+                """('{}', '{}', '{}', '{}', '{}', '{}');"""\
+            .format(user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid)
+        cur.execute(query)
+        conn.commit()
+    except Exception as e:
+        app.logger.error(e)
+    return endpoint_uuid
+
+
+def _resolve_endpoint(user_id, endpoint_name):
+    """
+    Get the endpoint uuid from database
+    """
+
+    try:
+        conn, cur = _get_db_connection()
+        query = "select * from sites where status = 'OFFLINE' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(endpoint_name, user_id)
+        cur.execute(query)
+        r = cur.fetchone()
+        endpoint_uuid = r['endpoint_uuid']
+    except Exception as e:
+        app.logger.error(e)
+    return endpoint_uuid
+
+
+def _resolve_function(user_id, function_name):
+    """
+    Get the function uuid from database
+    """
+
+#    func = """
+#def hello():
+#    print('hello')
+#
+#hello()
+#"""
+#    return func
+
+    try:
+        conn, cur = _get_db_connection()
+        query = "select * from functions where function_name = '{}' and user_id = {} order by id DESC limit 1".format(function_name, user_id)
+        cur.execute(query)
+        r = cur.fetchone()
+        function_code = r['endpoint_code']
+    except Exception as e:
+        app.logger.error(e)
+    return function_code
 
 
 ########
@@ -192,6 +265,4 @@ def _get_user(headers):
     except Exception as e:
         app.logger.error(e)
     return user_id, user_name, short_name
-
-
 

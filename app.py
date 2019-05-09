@@ -126,3 +126,4 @@ else:
     app.logger.setLevel(gunicorn_logger.level)
     handler = logging.StreamHandler()
     app.logger.addHandler(handler)
+

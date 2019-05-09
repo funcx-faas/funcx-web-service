@@ -1,6 +1,6 @@
 source activate funcx
 
-NAME="FuncX"
+NAME="funcX"
 FLASKDIR=/home/ubuntu/funcx-web-service/
 SOCKFILE=/home/ubuntu/funcx-web-service/funcx.sock
 USER=ubuntu

@@ -30,4 +30,21 @@ class ZMQBroker():
 
             if socks.get(backend) == zmq.POLLIN:
                 message = backend.recv_multipart()
+                print(message)
                 frontend.send_multipart(message)
+
+def start_broker():
+    """
+    Start the ZMQ broker. This allows multiple workers to submit requests.
+    """
+    try:
+        broker = ZMQBroker()
+        broker.start("*", 50000)
+    except Exception as e:
+        print("Broker failed. %s" % e)
+        print("Continuing without a broker.")
+
+if __name__ == "__main__":
+    # Start the broker
+    start_broker()
+    print('done')
