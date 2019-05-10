@@ -36,16 +36,16 @@ def execute():
 
     app.logger.debug("MADE IT TO EXECUTE")
     user_id, user_name, short_name = _get_user(request.headers)
-    function = None
-    endpoint = None
-    endpoint_id = None
     try:
         app.logger.debug(request.json)
 
         post_req = ""
         post_req = request.json
         endpoint = post_req['endpoint']
-        function = post_req['func']
+        function_name = post_req['func']
+        input_data = post_req['data']
+        func_code, func_entry = _resolve_function(user_id, function_name)
+        print("func_code: {}".format(func_code))
         endpoint_id = _resolve_endpoint(user_id, endpoint)
         print("endpoint id {}".format(endpoint_id))
     except Exception as e:
@@ -84,8 +84,9 @@ def execute():
         exec_flag = 1
         # Future proofing for other exec types
 
-        func_code = _resolve_function(user_id, 'abc')
-        data = {"function": func_code}
+        event = {'data': input_data, 'funcx': 'hello'}
+
+        data = {"function": func_code, "entry_point": func_entry, 'event': event}
         # Set the exec site
         site = "local"
         obj = (exec_flag, task_uuid, data)

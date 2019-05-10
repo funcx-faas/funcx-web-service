@@ -125,5 +125,8 @@ else:
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
     handler = logging.StreamHandler()
+    format_string = "%(asctime)s %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
+    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
     app.logger.addHandler(handler)
 

@@ -127,7 +127,7 @@ def _register_function(user_id, function_name, description, function_code):
 #            return endpoint_uuid
         function_uuid = str(uuid.uuid4())
         query = """INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, function_code) values """ \
-                """('{}', '{}', '{}', '{}', '{}', '{}');"""\
+                """('{}', '{}', '{}', '{}', '{}', '{}', '{}');"""\
             .format(user_id, '', description, 'REGISTERED', function_name, function_uuid, function_code)
         cur.execute(query)
         conn.commit()
@@ -184,23 +184,19 @@ def _resolve_function(user_id, function_name):
     Get the function uuid from database
     """
 
-#    func = """
-#def hello():
-#    print('hello')
-#
-#hello()
-#"""
-#    return func
-
+    function_code = None
+    function_entry = None
     try:
         conn, cur = _get_db_connection()
         query = "select * from functions where function_name = '{}' and user_id = {} order by id DESC limit 1".format(function_name, user_id)
         cur.execute(query)
         r = cur.fetchone()
-        function_code = r['endpoint_code']
+        function_code = r['function_code']
+        function_entry = r['entry_point']
+
     except Exception as e:
         app.logger.error(e)
-    return function_code
+    return (function_code, function_entry)
 
 
 ########

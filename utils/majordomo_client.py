@@ -16,7 +16,7 @@ class ZMQClient(object):
     client = None
     poller = None
     timeout = 2500
-    retries = 3
+    retries = 1
     verbose = False
 
     def __init__(self, broker, verbose=False):
