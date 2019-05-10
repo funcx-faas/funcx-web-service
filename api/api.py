@@ -193,17 +193,15 @@ def register_function():
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
-    function_name = None
-    description = None
-    function_code = None
     try:
         function_name = request.json["function_name"]
+        entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
     except Exception as e:
         app.logger.error(e)
     app.logger.debug(function_name)
-    function_uuid = _register_function(user_id, function_name, description, function_code)
+    function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
     return jsonify({'function_name': function_name})
 
 

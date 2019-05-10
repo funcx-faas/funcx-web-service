@@ -108,7 +108,7 @@ def _get_zmq_servers():
     return zmq_servers
 
 
-def _register_function(user_id, function_name, description, function_code):
+def _register_function(user_id, function_name, description, function_code, entry_point):
     """
     Register the site in the database.
 
@@ -116,19 +116,17 @@ def _register_function(user_id, function_name, description, function_code):
     :param conn:
     :param user_id:
     :param endpoint_name:
-    :param description:
+    :param function_code:
+    :param entry_point:
     :return: uuid
     """
 
     try:
         conn, cur = _get_db_connection()
-#        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name)
-#        if endpoint_uuid:
-#            return endpoint_uuid
         function_uuid = str(uuid.uuid4())
-        query = """INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, function_code) values """ \
-                """('{}', '{}', '{}', '{}', '{}', '{}', '{}');"""\
-            .format(user_id, '', description, 'REGISTERED', function_name, function_uuid, function_code)
+        query = """INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, function_code, entry_point) values """ \
+                """('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');"""\
+            .format(user_id, '', description, 'REGISTERED', function_name, function_uuid, function_code, entry_point)
         cur.execute(query)
         conn.commit()
     except Exception as e:
@@ -168,6 +166,7 @@ def _resolve_endpoint(user_id, endpoint_name):
     Get the endpoint uuid from database
     """
 
+    endpoint_uuid = None
     try:
         conn, cur = _get_db_connection()
         query = "select * from sites where status = 'OFFLINE' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(endpoint_name, user_id)
