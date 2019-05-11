@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, Blueprint
 from flask_wtf import Form
 from wtforms import TextField, TextAreaField, validators, SelectField, SubmitField
 
@@ -17,6 +17,9 @@ default_func = """def hello_world(): \n    return \"Hello!\""""
     2. List Functions.
     3. Submit (RUN) Functions.
 """
+
+gui = Blueprint("gui", __name__)
+
 
 
 class PythonForm(Form):
@@ -55,5 +58,5 @@ def register_function():
 # @app.route('/run', methods=['GET', 'POST'])
 # def run_function():
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     app.run(debug=True)
