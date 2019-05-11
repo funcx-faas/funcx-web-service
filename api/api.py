@@ -1,7 +1,6 @@
+
 import psycopg2.extras
-import threading
 import pickle
-import parsl
 import uuid
 import json
 import time
@@ -10,9 +9,7 @@ from .utils import (_get_user, _create_task, _log_request,
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
                     _resolve_function)
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection, cooley_config
-from parsl.app.app import python_app
-
+from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
 
 # Flask
@@ -20,9 +17,10 @@ api = Blueprint("api", __name__)
 
 zmq_client = ZMQClient("tcp://localhost:50001")
 
-#def async_request(input_obj):
-    # print('sending data to zmq')
-    # zmq_server.request(input_obj)
+# def async_request(input_obj):
+#     print('sending data to zmq')
+#     zmq_server.request(input_obj)
+
 
 @api.route('/test/')
 def test_me():
@@ -30,6 +28,7 @@ def test_me():
     x = _resolve_endpoint(3, 'zz')
     app.logger.debug(x)
     return x
+
 
 @api.route('/execute', methods=['POST'])
 def execute():
@@ -64,7 +63,6 @@ def execute():
     print('overriding async')
     is_async = False
 
-
     template = None
     #if 'template' in post_req:
     #    template = post_req["template"]
@@ -94,18 +92,14 @@ def execute():
         request_start = time.time()
         if is_async:
             print('starting thread to serve request')
-            try:
-                processThread = threading.Thread(target=async_request, args=(pickle.dumps(obj),))
-                processThread.start()
-            except Exception as e:
-                print('threading error: {}'.format(e))
-            response = task_uuid
+            # try:
+            #     processThread = threading.Thread(target=async_request, args=(pickle.dumps(obj),))
+            #     processThread.start()
+            # except Exception as e:
+            #     print('threading error: {}'.format(e))
+            # response = task_uuid
         else:
-            print("INIT TASK EXECUTION")
-            #res = execute_task(obj)
-            #print(res)
-            #print("FINISHED TASK EXECUTION")
-            #print(res.done())
+            print("Putting on execution queue")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
             print(res)

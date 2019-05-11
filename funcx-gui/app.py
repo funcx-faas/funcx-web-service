@@ -33,6 +33,8 @@ def login():
 
 # TOOD: Move this into login endpoint w/ some HTML. :)
 fx_client = FuncXClient()
+
+
 @app.route('/register-function', methods=['POST', 'GET'])
 def register_function():
     form = PythonForm()
@@ -50,7 +52,8 @@ def register_function():
     return render_template('register.html', form=form)
 
 
-if __name__ == '__main__':
-    # TODO: Move this to a login endpoint.
+# @app.route('/run', methods=['GET', 'POST'])
+# def run_function():
 
+if __name__ == '__main__':
     app.run(debug=True)
