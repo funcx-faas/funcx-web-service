@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+import pickle
 from binascii import hexlify
 
 import zmq
@@ -8,6 +9,11 @@ import zmq
 # local
 import MDP
 from zhelpers import dump
+
+# update db site status
+sys.path.append('..')
+import config
+
 
 class Service(object):
     """a single Service"""
@@ -114,7 +120,6 @@ class MajorDomoBroker(object):
     def process_client(self, sender, msg):
         """Process a request coming from a client."""
         assert len(msg) >= 2 # Service name + body
-        print("received msg {} from client".format(msg))
         service = msg.pop(0)
         # Set reply return address to client sender
         msg = [sender,b''] + msg
@@ -142,6 +147,8 @@ class MajorDomoBroker(object):
                 # Attach worker to service and mark as idle
                 worker.service = self.require_service(service)
                 self.worker_waiting(worker)
+                logging.info("updating {} to ONLINE".format(pickle.loads(worker.service.name)))
+                _update_endpoint('ONLINE', pickle.loads(worker.service.name))
 
         elif (MDP.W_REPLY == command):
             if (worker_ready):
@@ -170,6 +177,8 @@ class MajorDomoBroker(object):
     def delete_worker(self, worker, disconnect):
         """Deletes worker from all data structures, and deletes worker."""
         assert worker is not None
+        logging.info("updating {} to OFFLINE".format(pickle.loads(worker.service.name)))
+        _update_endpoint('OFFLINE', pickle.loads(worker.service.name))
         if disconnect:
             self.send_to_worker(worker, MDP.W_DISCONNECT, None, None)
 
@@ -266,7 +275,6 @@ class MajorDomoBroker(object):
 
         If message is provided, sends that message.
         """
-        print("received {}".format(msg))
         if msg is None:
             msg = []
         elif not isinstance(msg, list):
@@ -281,6 +289,17 @@ class MajorDomoBroker(object):
             logging.info("I: sending %r to worker", command)
             dump(msg)
         self.socket.send_multipart(msg)
+
+
+def _update_endpoint(new_status, endpoint_uuid):
+    try:
+        conn, cur = config._get_db_connection()
+        query = """UPDATE sites SET status = '{}' WHERE endpoint_uuid = '{}';""".format(new_status, str(endpoint_uuid))
+        cur.execute(query)
+        conn.commit()
+    except Exception as e:
+        logging.error(e)
+
 
 def main():
     """create and start new broker"""

@@ -169,7 +169,7 @@ def _resolve_endpoint(user_id, endpoint_name):
     endpoint_uuid = None
     try:
         conn, cur = _get_db_connection()
-        query = "select * from sites where status = 'OFFLINE' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(endpoint_name, user_id)
+        query = "select * from sites where status = 'ONLINE' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(endpoint_name, user_id)
         cur.execute(query)
         r = cur.fetchone()
         endpoint_uuid = r['endpoint_uuid']

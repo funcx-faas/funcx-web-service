@@ -46,6 +46,8 @@ def execute():
         func_code, func_entry = _resolve_function(user_id, function_name)
         print("func_code: {}".format(func_code))
         endpoint_id = _resolve_endpoint(user_id, endpoint)
+        if endpoint_id is None:
+            return jsonify({"status": "ERROR", "message": str("Invalid endpoint")})
         print("endpoint id {}".format(endpoint_id))
     except Exception as e:
         app.logger.error(e)
