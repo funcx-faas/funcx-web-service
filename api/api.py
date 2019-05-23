@@ -4,6 +4,7 @@ import pickle
 import uuid
 import json
 import time
+import statistics
 
 from .utils import (_get_user, _create_task, _log_request, 
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
@@ -12,20 +13,32 @@ from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
 
+
+
 # Flask
 api = Blueprint("api", __name__)
 
 zmq_client = ZMQClient("tcp://localhost:50001")
+
 
 # def async_request(input_obj):
 #     print('sending data to zmq')
 #     zmq_server.request(input_obj)
 
 
+user_cache = {}
+function_cache = {}
+endpoint_cache = {}
+
+caching = True
+
+net_webservice_times = []
+request_times = []
+
 @api.route('/test/')
 def test_me():
 
-    x = _resolve_endpoint(3, 'zz')
+    x = _resolve_endpoint(3, 'zz', status='ONLINE')
     app.logger.debug(x)
     return x
 
@@ -33,28 +46,76 @@ def test_me():
 @api.route('/execute', methods=['POST'])
 def execute():
 
+
+
+    t0 = time.time()
     app.logger.debug("MADE IT TO EXECUTE")
-    user_id, user_name, short_name = _get_user(request.headers)
+    
+    # Check to see if user in cache. OTHERWISE go get her!
+    # Note: if user==cat, ZZ will likely want to eliminate it.
+    
+    user_id = 2
+    user_name = "skluzacek@uchicago.edu"
+    short_name = "skluzacek_uchicago"
+
+    #user_name = _introspect_token(request.headers)
+    #print("User name: {}".format(user_name))
+
+    #if caching and user_name in cache:
+    #    print("Getting user_id FROM CACHE")
+    #    user_id, short_name = user_cache[user_name]
+
+    #else:
+    #    print("NOT IN CACHE -- fetching user from DB")
+        # TODO: Need to parse user_id from headers first...
+        
+    #    user_id, user_name, short_name = _get_user(request.headers)
+    #    if caching:
+    #        user_cache[user_name] = (user_id, short_name)
+
+    t1 = time.time()
+
+    # print("Time to get user: {}".format(t1-t0))
+
     try:
-        app.logger.debug(request.json)
+        # app.logger.debug(request.json)
 
         post_req = ""
         post_req = request.json
         endpoint = post_req['endpoint']
         function_name = post_req['func']
         input_data = post_req['data']
-        func_code, func_entry = _resolve_function(user_id, function_name)
-        print("func_code: {}".format(func_code))
-        endpoint_id = _resolve_endpoint(user_id, endpoint)
+        
+        # Check to see if function in cache. OTHERWISE go get it. 
+        # TODO: Cache flushing -- do LRU or something.
+        # TODO: Move this to the RESOLVE function (not here).
+        if caching and function_name in function_cache:
+            # print("GETTING Func FROM CACHE!")
+            func_code, func_entry = function_cache[function_name]
+        else:
+            # print("NOT IN CACHE -- Fetch from DB")
+            func_code, func_entry = _resolve_function(user_id, function_name)
+            
+            # Now put it INTO the cache! 
+            if caching:
+                function_cache[function_name] = (func_code, func_entry)
+
+
+        # print("func_code: {}".format(func_code))
+        endpoint_id = _resolve_endpoint(user_id, endpoint, status='ONLINE')
         if endpoint_id is None:
             return jsonify({"status": "ERROR", "message": str("Invalid endpoint")})
-        print("endpoint id {}".format(endpoint_id))
+        # print("endpoint id {}".format(endpoint_id))
     except Exception as e:
         app.logger.error(e)
 
+    t2 = time.time()
+    # print("Time to resolve endpoint and func: {}".format(t2-t1))
+
     app.logger.debug("POST_REQUEST:" + str(post_req))
     try:
-        print('checking async')
+        pass
+        # print('checking async')
         # is_async = post_req["async"]
     except KeyError:
         print("THERE's an error...")
@@ -62,7 +123,7 @@ def execute():
 	#         return jsonify({"status": "Error", "message": "Missing 'async' argument set to 'True' or 'False'."})
     # print('async: {}'.format(is_async))
 
-    print('overriding async')
+    # print('overriding async')
     is_async = False
 
     template = None
@@ -90,10 +151,11 @@ def execute():
         # Set the exec site
         site = "local"
         obj = (exec_flag, task_uuid, data)
-        print("Running command: {}".format(obj))
+        # print("Running command: {}".format(obj))
         request_start = time.time()
         if is_async:
-            print('starting thread to serve request')
+            pass
+            # print('starting thread to serve request')
             # try:
             #     processThread = threading.Thread(target=async_request, args=(pickle.dumps(obj),))
             #     processThread.start()
@@ -101,10 +163,10 @@ def execute():
             #     print('threading error: {}'.format(e))
             # response = task_uuid
         else:
-            print("Putting on execution queue")
+            # print("Putting on execution queue")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
-            print(res)
+            # print(res)
             # response = pickle.loads(res.result())
         request_end = time.time()
 
@@ -122,9 +184,20 @@ def execute():
         print(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
 
-    print("Task Submission Status: {}".format(str(task_res)))
+    # print("Task Submission Status: {}".format(str(task_res)))
 
     # Return task_submission response.
+    t3 = time.time()
+
+    net_webservice_times.append((t3-t0)-(request_end-request_start))
+    request_times.append(request_end - request_start)
+        
+    if True is True:
+
+        # print("Web Service RoundTrip: {}".format(t3-t0))
+        print("Request Time: {}".format(statistics.mean(net_webservice_times)))
+        print("Net Web Service Latency: {}".format(statistics.mean(request_times)))
+    # counter += 1
     return jsonify(res)
 
 

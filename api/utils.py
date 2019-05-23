@@ -147,7 +147,7 @@ def _register_site(user_id, endpoint_name, description):
 
     try:
         conn, cur = _get_db_connection()
-        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name, status='OFFLINE')
+        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name)
         if endpoint_uuid:
             return endpoint_uuid
         endpoint_uuid = str(uuid.uuid4())
@@ -161,15 +161,18 @@ def _register_site(user_id, endpoint_name, description):
     return endpoint_uuid
 
 
-def _resolve_endpoint(user_id, endpoint_name, status='ONLINE'):
+def _resolve_endpoint(user_id, endpoint_name, status=None):
     """
     Get the endpoint uuid from database
     """
 
     endpoint_uuid = None
     try:
-        conn, cur = _get_db_connection()
-        query = "select * from sites where status = '{}' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(status, endpoint_name, user_id)
+        conn, cur = _get_db_connection() 
+        query = "select * from sites where endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(endpoint_name, user_id)
+        if status:
+            query = "select * from sites where status = '{}' and endpoint_name = '{}' and user_id = {} order by id DESC limit 1".format(status, endpoint_name, user_id)
+        # print(query)
         cur.execute(query)
         r = cur.fetchone()
         endpoint_uuid = r['endpoint_uuid']
