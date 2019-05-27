@@ -33,9 +33,15 @@ endpoint_cache = {}
 caching = True
 
 
-def async_funcx(task_uuid):
+def async_funcx(task_uuid, endpoint_id, obj):
     
-    _update_task(task_uuid, "COMPLETED")
+    _update_task(task_uuid, "RUNNING")
+    task_status = "PENDING"
+    res = zmq_client.send(endpoint_id, obj)
+    time.sleep(10)
+    
+    _update_task(task_uuid, "SUCCESSFUL")
+
 
 @api.route('/test/')
 def test_me():
@@ -145,7 +151,7 @@ def execute():
         if is_async:
             print("Processing async request...")
             task_status = "PENDING"
-            thd = threading.Thread(target=zmq_client.send, args=(endpoint_id, obj))
+            thd = threading.Thread(target=async_funcx, args=(task_uuid, endpoint_id, obj))
             res = task_uuid
             thd.start()
         else:
@@ -153,6 +159,7 @@ def execute():
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
             task_status = "SUCCESSFUL"
+            _update_task(task_uuid, task_status)
 
     # Minor TODO: Add specific errors as to why command failed.
     except Exception as e:
@@ -162,13 +169,11 @@ def execute():
     # Add request and update task to database
     try:
         print("Logging request")
-        _update_task(task_uuid, task_status)
         _log_request(user_id, post_req, task_res, 'EXECUTE', 'CMD')
 
     except psycopg2.Error as e:
         print(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
-
     return jsonify(res)
 
 
