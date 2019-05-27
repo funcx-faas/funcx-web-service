@@ -6,14 +6,14 @@ import json
 import time
 import statistics
 
-from .utils import (_get_user, _create_task, _log_request, 
+from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
                     _resolve_function)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
 
-
+import threading
 
 # Flask
 api = Blueprint("api", __name__)
@@ -32,8 +32,10 @@ endpoint_cache = {}
 
 caching = True
 
-net_webservice_times = []
-request_times = []
+
+def async_funcx(task_uuid):
+    
+    _update_task(task_uuid, "COMPLETED")
 
 @api.route('/test/')
 def test_me():
@@ -45,10 +47,7 @@ def test_me():
 
 @api.route('/execute', methods=['POST'])
 def execute():
-
-
-
-    t0 = time.time()
+    
     app.logger.debug("MADE IT TO EXECUTE")
     
     # Check to see if user in cache. OTHERWISE go get her!
@@ -77,17 +76,17 @@ def execute():
 
     t1 = time.time()
 
-    # print("Time to get user: {}".format(t1-t0))
 
     try:
-        # app.logger.debug(request.json)
-
-        post_req = ""
         post_req = request.json
+        print(type(post_req))
+        print(post_req.keys())
+
         endpoint = post_req['endpoint']
         function_name = post_req['func']
+        is_async = post_req['is_async']
         input_data = post_req['data']
-        
+
         # Check to see if function in cache. OTHERWISE go get it. 
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
@@ -103,35 +102,19 @@ def execute():
                 function_cache[function_name] = (func_code, func_entry)
 
 
-        # print("func_code: {}".format(func_code))
         endpoint_id = _resolve_endpoint(user_id, endpoint, status='ONLINE')
         if endpoint_id is None:
             return jsonify({"status": "ERROR", "message": str("Invalid endpoint")})
-        # print("endpoint id {}".format(endpoint_id))
     except Exception as e:
         app.logger.error(e)
 
-    t2 = time.time()
-    # print("Time to resolve endpoint and func: {}".format(t2-t1))
-
     app.logger.debug("POST_REQUEST:" + str(post_req))
-    try:
-        pass
-        # print('checking async')
-        # is_async = post_req["async"]
-    except KeyError:
-        print("THERE's an error...")
-        # is_async = False
-	#         return jsonify({"status": "Error", "message": "Missing 'async' argument set to 'True' or 'False'."})
-    # print('async: {}'.format(is_async))
-
-    # print('overriding async')
-    is_async = False
 
     template = None
     #if 'template' in post_req:
     #    template = post_req["template"]
     task_uuid = str(uuid.uuid4())
+    print(task_uuid)
 
     if 'action_id' in post_req:
         task_uuid = post_req['action_id']
@@ -153,24 +136,18 @@ def execute():
         # Set the exec site
         site = "local"
         obj = (exec_flag, task_uuid, data)
-        # print("Running command: {}".format(obj))
-        request_start = time.time()
+        
         if is_async:
-            pass
-            # print('starting thread to serve request')
-            # try:
-            #     processThread = threading.Thread(target=async_request, args=(pickle.dumps(obj),))
-            #     processThread.start()
-            # except Exception as e:
-            #     print('threading error: {}'.format(e))
-            # response = task_uuid
+            print("Processing async request...")
+            task_status = "PENDING"
+            thd = threading.Thread(target=zmq_client.send, args=(endpoint_id, obj))
+            res = task_uuid
+            thd.start()
         else:
-            # print("Putting on execution queue")
+            print("Processing sync request...")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
-            # print(res)
-            # response = pickle.loads(res.result())
-        request_end = time.time()
+            task_status = "SUCCESSFUL"
 
     # Minor TODO: Add specific errors as to why command failed.
     except Exception as e:
@@ -179,27 +156,14 @@ def execute():
 
     # Add request and task to database
     try:
-        task_res = _create_task(user_id, task_uuid, is_async)
+        print("Logging request")
+        task_res = _create_task(user_id, task_uuid, is_async, task_status)
         _log_request(user_id, post_req, task_res, 'EXECUTE', 'CMD')
 
     except psycopg2.Error as e:
         print(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
 
-    # print("Task Submission Status: {}".format(str(task_res)))
-
-    # Return task_submission response.
-    t3 = time.time()
-
-    net_webservice_times.append((t3-t0)-(request_end-request_start))
-    request_times.append(request_end - request_start)
-        
-    if len(net_webservice_times) > 10:
-
-        # print("Web Service RoundTrip: {}".format(t3-t0))
-        print("Request Time Mean/Stdev: {}/{}".format(statistics.mean(net_webservice_times), statistics.mean(net_webservice_times)))
-        print("Net Web Service Latency Mean/Stdev: {}/{}".format(statistics.mean(request_times), statistics.stdev(request_times)))
-    # counter += 1
     return jsonify(res)
 
 
@@ -275,16 +239,3 @@ def register_function():
     function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
     return jsonify({'function_name': function_name})
 
-
-
-# threads = []
-#
-# def multi_thread_launch(thread_id, task_id, cmd, is_async):
-#     # Create new threads
-#     thread2 = ParslThread(thread_id, task_id, cmd, is_async)
-#
-#     # Start new Threads
-#     thread2.start()
-#
-#     # Add threads to thread list
-#     threads.append(thread2)

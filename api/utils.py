@@ -9,7 +9,7 @@ from flask import request, current_app as app
 ############
 # Database #
 ############
-def _create_task(user_id, task_uuid, is_async):
+def _create_task(user_id, task_uuid, is_async, task_status):
     """
     Insert a task into the database.
 
@@ -18,18 +18,18 @@ def _create_task(user_id, task_uuid, is_async):
     :param task_uuid:
     :return:
     """
-    start_status = "PENDING"
+    # start_status = "PENDING"
 
     try:
         conn, cur = _get_db_connection()
         query = """INSERT INTO tasks (user_id, uuid, status, is_async) values ('{}', '{}', '{}', {});"""\
-                .format(user_id, str(task_uuid), start_status, bool(is_async))
+                .format(user_id, str(task_uuid), task_status, bool(is_async))
         cur.execute(query)
         conn.commit()
     except Exception as e:
         app.logger.error(e)
 
-    res = {"status": start_status, "task_id": str(task_uuid)}
+    res = {"status": task_status, "task_id": str(task_uuid)}
     return res
 
 
