@@ -8,7 +8,7 @@ import statistics
 
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
-                    _resolve_function)
+                    _resolve_function, _introspect_token)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
@@ -19,12 +19,6 @@ import threading
 api = Blueprint("api", __name__)
 
 zmq_client = ZMQClient("tcp://localhost:50001")
-
-
-# def async_request(input_obj):
-#     print('sending data to zmq')
-#     zmq_server.request(input_obj)
-
 
 user_cache = {}
 function_cache = {}
@@ -38,11 +32,10 @@ def async_funcx(task_uuid, endpoint_id, obj):
     _update_task(task_uuid, "RUNNING")
     task_status = "PENDING"
     res = zmq_client.send(endpoint_id, obj)
-    time.sleep(10)
-    
     _update_task(task_uuid, "SUCCESSFUL")
 
 
+# TODO: Clean this up. 
 @api.route('/test/')
 def test_me():
 
@@ -54,40 +47,26 @@ def test_me():
 @api.route('/execute', methods=['POST'])
 def execute():
     
-    app.logger.debug("MADE IT TO EXECUTE")
+    app.logger.debug("Executing function...")
     
     # Check to see if user in cache. OTHERWISE go get her!
     # Note: if user==cat, ZZ will likely want to eliminate it.
-    
-    user_id = 2
-    user_name = "skluzacek@uchicago.edu"
-    short_name = "skluzacek_uchicago"
-    #user_name = 'zhuozhao@uchicago.edu'
-    #short_name = 'zhuozhao_uchicago' 
 
-    #user_name = _introspect_token(request.headers)
-    #print("User name: {}".format(user_name))
+    user_name = _introspect_token(request.headers)
 
-    #if caching and user_name in cache:
-    #    print("Getting user_id FROM CACHE")
-    #    user_id, short_name = user_cache[user_name]
+    if caching and user_name in user_cache:
+        app.logger.debug("Getting user_id FROM CACHE")
+        user_id, short_name = user_cache[user_name]
 
-    #else:
-    #    print("NOT IN CACHE -- fetching user from DB")
-        # TODO: Need to parse user_id from headers first...
-        
-    #    user_id, user_name, short_name = _get_user(request.headers)
-    #    if caching:
-    #        user_cache[user_name] = (user_id, short_name)
-
-    t1 = time.time()
+    else:
+        app.logger.debug("User ID not in cache -- fetching from DB")
+        user_id, user_name, short_name = _get_user(request.headers)
+        if caching:
+            user_cache[user_name] = (user_id, short_name)
 
 
     try:
         post_req = request.json
-        print(type(post_req))
-        print(post_req.keys())
-
         endpoint = post_req['endpoint']
         function_name = post_req['func']
         is_async = post_req['is_async']
@@ -97,10 +76,10 @@ def execute():
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
         if caching and function_name in function_cache:
-            # print("GETTING Func FROM CACHE!")
+            app.logger.debug("Fetching function from function cache...")
             func_code, func_entry = function_cache[function_name]
         else:
-            # print("NOT IN CACHE -- Fetch from DB")
+            app.logger.debug("Function name not in cache -- fetching from DB...")
             func_code, func_entry = _resolve_function(user_id, function_name)
             
             # Now put it INTO the cache! 
@@ -116,11 +95,12 @@ def execute():
 
     app.logger.debug("POST_REQUEST:" + str(post_req))
 
+    # TODO: Do we still plan on doing template stuff? If not, we should remove. 
     template = None
     #if 'template' in post_req:
     #    template = post_req["template"]
     task_uuid = str(uuid.uuid4())
-    print(task_uuid)
+    app.logger.info("Task assigned UUID: ".format(task_uuid))
     
     # Create task entry in DB with status "PENDING"
     task_status = "PENDING"
@@ -149,13 +129,13 @@ def execute():
         obj = (exec_flag, task_uuid, data)
         
         if is_async:
-            print("Processing async request...")
+            app.logger.debug("Processing async request...")
             task_status = "PENDING"
             thd = threading.Thread(target=async_funcx, args=(task_uuid, endpoint_id, obj))
             res = task_uuid
             thd.start()
         else:
-            print("Processing sync request...")
+            app.logger.debug("Processing sync request...")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
             task_status = "SUCCESSFUL"
@@ -163,16 +143,16 @@ def execute():
 
     # Minor TODO: Add specific errors as to why command failed.
     except Exception as e:
-        print("Execution failed: {}".format(str(e)))
+        app.logger.error("Execution failed: {}".format(str(e)))
         return jsonify({"status": "ERROR", "message": str(e)})
 
     # Add request and update task to database
     try:
-        print("Logging request")
+        app.logger.debug("Logging request...")
         _log_request(user_id, post_req, task_res, 'EXECUTE', 'CMD')
 
     except psycopg2.Error as e:
-        print(e.pgerror)
+        app.logger.error(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
     return jsonify(res)
 
@@ -194,9 +174,9 @@ def status(task_uuid):
         task_status = None
         cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
         rows = cur.fetchall()
-        print(rows)
+        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
         for r in rows:
-            print(r)
+            app.logger.debug(r)
             task_status = r['status']
 
         res = {'status': task_status}
@@ -204,7 +184,7 @@ def status(task_uuid):
         return json.dumps(res)
 
     except Exception as e:
-        print(e)
+        app.logger.error(e)
         return json.dumps({'InternalError': e})
 
 
