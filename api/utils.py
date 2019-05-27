@@ -36,7 +36,7 @@ def _create_task(user_id, task_uuid, is_async, task_status):
 def _update_task(task_uuid, new_status):
     try:
         conn, cur = _get_db_connection()
-        query = """UPDATE tasks SET status = '{}' WHERE task_id = '{}';""".format(new_status, str(task_uuid))
+        query = """UPDATE tasks SET status = '{}' WHERE uuid = '{}';""".format(new_status, str(task_uuid))
         cur.execute(query)
         conn.commit()
 

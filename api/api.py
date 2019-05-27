@@ -115,6 +115,11 @@ def execute():
     #    template = post_req["template"]
     task_uuid = str(uuid.uuid4())
     print(task_uuid)
+    
+    # Create task entry in DB with status "PENDING"
+    task_status = "PENDING"
+    task_res = _create_task(user_id, task_uuid, is_async, task_status)
+
 
     if 'action_id' in post_req:
         task_uuid = post_req['action_id']
@@ -154,10 +159,10 @@ def execute():
         print("Execution failed: {}".format(str(e)))
         return jsonify({"status": "ERROR", "message": str(e)})
 
-    # Add request and task to database
+    # Add request and update task to database
     try:
         print("Logging request")
-        task_res = _create_task(user_id, task_uuid, is_async, task_status)
+        _update_task(task_uuid, task_status)
         _log_request(user_id, post_req, task_res, 'EXECUTE', 'CMD')
 
     except psycopg2.Error as e:
