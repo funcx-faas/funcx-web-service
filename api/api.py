@@ -57,6 +57,8 @@ def execute():
     user_id = 2
     user_name = "skluzacek@uchicago.edu"
     short_name = "skluzacek_uchicago"
+    #user_name = 'zhuozhao@uchicago.edu'
+    #short_name = 'zhuozhao_uchicago' 
 
     #user_name = _introspect_token(request.headers)
     #print("User name: {}".format(user_name))
@@ -192,11 +194,11 @@ def execute():
     net_webservice_times.append((t3-t0)-(request_end-request_start))
     request_times.append(request_end - request_start)
         
-    if True is True:
+    if len(net_webservice_times) > 10:
 
         # print("Web Service RoundTrip: {}".format(t3-t0))
-        print("Request Time: {}".format(statistics.mean(net_webservice_times)))
-        print("Net Web Service Latency: {}".format(statistics.mean(request_times)))
+        print("Request Time Mean/Stdev: {}/{}".format(statistics.mean(net_webservice_times), statistics.mean(net_webservice_times)))
+        print("Net Web Service Latency Mean/Stdev: {}/{}".format(statistics.mean(request_times), statistics.stdev(request_times)))
     # counter += 1
     return jsonify(res)
 

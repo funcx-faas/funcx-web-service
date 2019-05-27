@@ -3,6 +3,8 @@ import logging
 import zmq
 import sys
 from utils import MDP
+#import MDP
+#from zhelpers import dump
 from utils.zhelpers import dump
 import pickle
 
@@ -99,9 +101,10 @@ def main():
     import time
     import random
     start = time.time()
-    while count < 10000:
-        service = "echo{}".format(random.randint(0, 4))
+    while count < 100:
+        service = "echo{}".format(random.randint(0, 0))
         request = "Hello world to service {}".format(service)
+        request *= 100
         try:
             reply = client.send(service, request)
             # print(pickle.loads(reply))

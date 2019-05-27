@@ -91,6 +91,7 @@ class MajorDomoBroker(object):
                 break # Interrupted
             if items:
                 msg = self.socket.recv_multipart()
+                #print("received msg {}".format(msg))
                 if self.verbose:
                     logging.info("I: received message:")
                     dump(msg)
