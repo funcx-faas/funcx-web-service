@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import uuid
+import base64
 
 from config import _load_funcx_client, _get_db_connection
 from flask import request, current_app as app
@@ -43,14 +44,23 @@ def _update_task(task_uuid, new_status, result=None):
     """
     try:
         conn, cur = _get_db_connection()
-        query = f"""UPDATE tasks SET status = '{new_status}' and modified_at = 'NOW()' WHERE uuid = '{str(
+        query = f"""UPDATE tasks SET status = '{new_status}', modified_at = 'NOW()' WHERE uuid = '{str(
             task_uuid)}';"""
         cur.execute(query)
 
         # Add in a result if it is set
         if result:
+            #print(result)
+            #result = base64.b64encode(result)
+            #result = base64.b64encode(result)
+            # result = result.decode('utf-8')
+            c = base64.b64encode(result)
+            result = c.decode('utf-8')
+            #e = base64.b64decode(d.encode())
+
             query = f"""insert into results (task_id, result) values ('{str(task_uuid)}', '{str(result)}');"""
-            cur.execute(query)
+            #query = ("INSERT INTO results (task_id, result) VALUES (%s, %s);")
+            cur.execute(query, (task_uuid, result))
         conn.commit()
 
     except Exception as e:

@@ -5,6 +5,7 @@ import uuid
 import json
 import time
 import statistics
+import base64
 
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
@@ -187,6 +188,40 @@ def status(task_uuid):
 
         res = {'status': task_status}
         print("Status Response: {}".format(str(res)))
+        return json.dumps(res)
+
+    except Exception as e:
+        app.logger.error(e)
+        return json.dumps({'InternalError': e})
+
+
+@api.route("/<task_uuid>/result", methods=['GET'])
+def result(task_uuid):
+    """
+    Check the result of a task.
+
+    :param task_uuid:
+    :return:
+    """
+
+    user_id, user_name, short_name = _get_user(request.headers)
+
+    conn, cur = _get_db_connection()
+
+    try:
+        result = None
+        cur.execute("SELECT result FROM results WHERE task_id = '%s'" % task_uuid)
+        rows = cur.fetchall()
+        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
+        for r in rows:
+            app.logger.debug(r)
+            result = r['result']
+            print("Getting result")
+            # result = base64.b64decode(result.encode())
+            print(result)
+        #res = {'result': base64.b64decode(result.encode())}
+        res = {'result': result}
+        print("Result Response: {}".format(str(res)))
         return json.dumps(res)
 
     except Exception as e:
