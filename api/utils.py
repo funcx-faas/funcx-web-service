@@ -22,8 +22,8 @@ def _create_task(user_id, task_uuid, is_async, task_status):
 
     try:
         conn, cur = _get_db_connection()
-        query = """INSERT INTO tasks (user_id, uuid, status, is_async) values ('{}', '{}', '{}', {});"""\
-                .format(user_id, str(task_uuid), task_status, bool(is_async))
+        query = f"""INSERT INTO tasks (user_id, uuid, status, is_async) values ('{user_id}', '{str(
+            task_uuid)}', '{task_status}', {bool(is_async)});"""
         cur.execute(query)
         conn.commit()
     except Exception as e:
@@ -33,11 +33,24 @@ def _create_task(user_id, task_uuid, is_async, task_status):
     return res
 
 
-def _update_task(task_uuid, new_status):
+def _update_task(task_uuid, new_status, result=None):
+    """
+    Update a task in the database.
+
+    :param task_uuid:
+    :param new_status:
+    :return:
+    """
     try:
         conn, cur = _get_db_connection()
-        query = """UPDATE tasks SET status = '{}' WHERE uuid = '{}';""".format(new_status, str(task_uuid))
+        query = f"""UPDATE tasks SET status = '{new_status}' and modified_at = 'NOW()' WHERE uuid = '{str(
+            task_uuid)}';"""
         cur.execute(query)
+
+        # Add in a result if it is set
+        if result:
+            query = f"""insert into results (task_id, result) values ('{str(task_uuid)}', '{str(result)}');"""
+            cur.execute(query)
         conn.commit()
 
     except Exception as e:

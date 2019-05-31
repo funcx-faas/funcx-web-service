@@ -28,11 +28,17 @@ caching = True
 
 
 def async_funcx(task_uuid, endpoint_id, obj):
-    
+    """
+    Run the function async and update the database.
+
+    :param task_uuid:
+    :param endpoint_id:
+    :param obj:
+    :return:
+    """
     _update_task(task_uuid, "RUNNING")
-    task_status = "PENDING"
     res = zmq_client.send(endpoint_id, obj)
-    _update_task(task_uuid, "SUCCESSFUL")
+    _update_task(task_uuid, "SUCCESSFUL", result=res)
 
 
 # TODO: Clean this up. 
