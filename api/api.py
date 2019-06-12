@@ -217,10 +217,8 @@ def result(task_uuid):
             app.logger.debug(r)
             result = r['result']
             print("Getting result")
-            # result = base64.b64decode(result.encode())
             print(result)
-        #res = {'result': base64.b64decode(result.encode())}
-        res = {'result': result}
+        res = {'result': pickle.loads(base64.b64decode(result.encode()))}
         print("Result Response: {}".format(str(res)))
         return json.dumps(res)
 
