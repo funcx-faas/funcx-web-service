@@ -214,12 +214,9 @@ def result(task_uuid):
         rows = cur.fetchall()
         app.logger.debug("Num rows w/ matching UUID: ".format(rows))
         for r in rows:
-            app.logger.debug(r)
             result = r['result']
-            print("Getting result")
-            print(result)
         res = {'result': pickle.loads(base64.b64decode(result.encode()))}
-        print("Result Response: {}".format(str(res)))
+        app.logger.debugt("Result Response: {}".format(str(res)))
         return json.dumps(res)
 
     except Exception as e:
