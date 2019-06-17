@@ -95,7 +95,7 @@ class MajorDomoBroker(object):
                 if self.verbose:
                     logging.info("I: received message:")
                     dump(msg)
-
+                print("Received msg {}".format(msg))
                 sender = msg.pop(0)
                 empty = msg.pop(0)
                 assert empty == b''
@@ -135,6 +135,8 @@ class MajorDomoBroker(object):
         command = msg.pop(0)
 
         worker_ready = hexlify(sender) in self.workers
+        print("worker is {}".format(hexlify(sender)))
+        print("the work list {}".format(self.workers))
 
         worker = self.require_worker(sender)
 
@@ -172,6 +174,7 @@ class MajorDomoBroker(object):
         elif (MDP.W_DISCONNECT == command):
             self.delete_worker(worker, False)
         else:
+            print("Invalid message")
             logging.error("E: invalid message:")
             dump(msg)
 

@@ -223,6 +223,28 @@ def _resolve_function(user_id, function_name):
         app.logger.error(e)
     return (function_code, function_entry)
 
+def _get_container(user_id, container_id, container_type):
+    """Retrieve the container information.
+
+    Parameters
+    ----------
+    user_id : int
+        The user's ID in the database
+    container_id : str
+        The container id to look up
+    container_type : str
+        The container type requested (Docker, Singualrity, Shifter)
+
+    Returns
+    -------
+    list
+        A dictionary describing the container details
+    """
+
+    container = {'details': {'name': 'test', 'location': 'abc123'}, 'configuration': {'memory': 1, 'cpu': 1, 'replicas': 1}}
+
+    return container
+
 
 ########
 # Auth #

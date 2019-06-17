@@ -9,7 +9,7 @@ import base64
 
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
-                    _resolve_function, _introspect_token)
+                    _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
@@ -222,6 +222,57 @@ def result(task_uuid):
     except Exception as e:
         app.logger.error(e)
         return json.dumps({'InternalError': e})
+
+@api.route("/containers/<container_id>/<container_type>", methods=['GET'])
+def get_container(container_id, container_type):
+    """Get the details of a container.
+
+    Parameters
+    ----------
+    container_id : str
+        The id of the container
+    container_type : str
+        The type of containers to return: Docker, Singularity, Shifter, etc.
+
+    Returns
+    -------
+    dict
+        A dictionary of container details
+    """
+    print("hitting this endpoint...")
+    user_id, user_name, short_name = _get_user(request.headers)
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+    app.logger.debug(f"Getting container details: {container_id}")
+    container = _get_containers(user_id, container_id, container_type)
+    print(container)
+    return jsonify({'container': container})
+
+
+@api.route("/get_containers", methods=['POST'])
+def get_containers():
+    """Get the details of a container.
+
+    Parameters
+    ----------
+    container_id : str
+        The id of the container
+    container_type : str
+        The type of containers to return: Docker, Singularity, Shifter, etc.
+
+    Returns
+    -------
+    dict
+        A dictionary of container details
+    """
+    print("hitting this endpoint...")
+    user_id, user_name, short_name = _get_user(request.headers)
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+    app.logger.debug(f"Getting containers for endpoint")
+    container = _get_containers(user_id, container_id, container_type)
+    print(container)
+    return jsonify({'container': container})
 
 
 @api.route("/register_endpoint", methods=['POST'])
