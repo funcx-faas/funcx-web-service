@@ -244,7 +244,7 @@ def get_container(container_id, container_type):
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
-    container = _get_containers(user_id, container_id, container_type)
+    container = _get_container(user_id, container_id, container_type)
     print(container)
     return jsonify({'container': container})
 

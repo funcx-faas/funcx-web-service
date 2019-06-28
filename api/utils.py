@@ -44,9 +44,9 @@ def _update_task(task_uuid, new_status, result=None):
     """
     try:
         conn, cur = _get_db_connection()
-        query = f"""UPDATE tasks SET status = '{new_status}', modified_at = 'NOW()' WHERE uuid = '{str(
+        query = """UPDATE tasks SET status = '{new_status}', modified_at = 'NOW()' WHERE uuid = '{str(
             task_uuid)}';"""
-        cur.execute(query)
+        cur.execute(query, (new_status, task_uuid))
 
         # Add in a result if it is set
         if result:
@@ -58,8 +58,7 @@ def _update_task(task_uuid, new_status, result=None):
             result = c.decode('utf-8')
             #e = base64.b64decode(d.encode())
 
-            query = f"""insert into results (task_id, result) values ('{str(task_uuid)}', '{str(result)}');"""
-            #query = ("INSERT INTO results (task_id, result) VALUES (%s, %s);")
+            query = """insert into results (task_id, result) values ('{task_uuid}', '{result}');"""
             cur.execute(query, (task_uuid, result))
         conn.commit()
 
@@ -80,9 +79,9 @@ def _log_request(user_id, input_data, response_data, endpoint, exec_type):
     try:
         conn, cur = _get_db_connection()
         query = """INSERT INTO requests (user_id, endpoint, input_data, response_data) values """ \
-                """('{}', '{}', '{}', '{}');"""\
+                """('{user_id}', '{endpoint}', '{}', '{}');"""
             .format(user_id, endpoint, json.dumps(input_data), json.dumps(response_data))
-        cur.execute(query)
+        cur.execute(query, ()
         conn.commit()
     except Exception as e:
         app.logger.error(e)
@@ -241,7 +240,16 @@ def _get_container(user_id, container_id, container_type):
         A dictionary describing the container details
     """
 
-    container = {'details': {'name': 'test', 'location': 'abc123'}, 'configuration': {'memory': 1, 'cpu': 1, 'replicas': 1}}
+    container = {}
+    try:
+        conn, cur = _get_db_connection()
+        query = "select * from container_images where container_id={} and type='{}'".format(container_id, container_type)
+        cur.execute(query)
+        container = cur.fetchone()
+        print(container)
+    except Exception as e:
+        app.logger.error(e)
+    # container = {'details': {'name': 'test', 'location': 'abc123'}, 'configuration': {'memory': 1, 'cpu': 1, 'replicas': 1}}
 
     return container
 
