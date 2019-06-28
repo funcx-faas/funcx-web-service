@@ -1,4 +1,3 @@
-
 import psycopg2.extras
 import pickle
 import uuid
@@ -8,7 +7,7 @@ import statistics
 import base64
 
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
-                    _register_site, _register_function,  _get_zmq_servers, _resolve_endpoint,
+                    _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
@@ -29,35 +28,33 @@ caching = True
 
 
 def async_funcx(task_uuid, endpoint_id, obj):
-    """
-    Run the function async and update the database.
+    """Run the function async and update the database.
 
-    :param task_uuid:
-    :param endpoint_id:
-    :param obj:
-    :return:
+    Parameters
+    ----------
+        task_uuid : str
+            name of the endpoint
+        endpoint_id : string
+            str describing the site
+        obj : tuple
+            object to pass to the zmq client
     """
+
     _update_task(task_uuid, "RUNNING")
     res = zmq_client.send(endpoint_id, obj)
     _update_task(task_uuid, "SUCCESSFUL", result=res)
 
 
-# TODO: Clean this up. 
-@api.route('/test/')
-def test_me():
-
-    x = _resolve_endpoint(3, 'zz', status='ONLINE')
-    app.logger.debug(x)
-    return x
-
-
 @api.route('/execute', methods=['POST'])
 def execute():
-    
+    """Execute the specified function
+
+    Returns
+    -------
+    json
+        The task document
+    """
     app.logger.debug("Executing function...")
-    
-    # Check to see if user in cache. OTHERWISE go get her!
-    # Note: if user==cat, ZZ will likely want to eliminate it.
 
     user_name = _introspect_token(request.headers)
 
@@ -70,7 +67,6 @@ def execute():
         user_id, user_name, short_name = _get_user(request.headers)
         if caching:
             user_cache[user_name] = (user_id, short_name)
-
 
     try:
         post_req = request.json
@@ -93,19 +89,12 @@ def execute():
             if caching:
                 function_cache[function_name] = (func_code, func_entry)
 
-
         endpoint_id = _resolve_endpoint(user_id, endpoint, status='ONLINE')
         if endpoint_id is None:
             return jsonify({"status": "ERROR", "message": str("Invalid endpoint")})
     except Exception as e:
         app.logger.error(e)
 
-    app.logger.debug("POST_REQUEST:" + str(post_req))
-
-    # TODO: Do we still plan on doing template stuff? If not, we should remove. 
-    template = None
-    #if 'template' in post_req:
-    #    template = post_req["template"]
     task_uuid = str(uuid.uuid4())
     app.logger.info("Task assigned UUID: ".format(task_uuid))
     
@@ -113,14 +102,8 @@ def execute():
     task_status = "PENDING"
     task_res = _create_task(user_id, task_uuid, is_async, task_status)
 
-
     if 'action_id' in post_req:
         task_uuid = post_req['action_id']
-
-    cmd = 'echo'
-    if template:
-        cmd = cmd.format(**template)
-
     try:
         # Spin off thread to communicate with Parsl service.
         # multi_thread_launch("parsl-thread", str(task_uuid), cmd, is_async)
@@ -128,7 +111,7 @@ def execute():
         exec_flag = 1
         # Future proofing for other exec types
 
-        event = {'data': input_data, 'funcx': 'hello'}
+        event = {'data': input_data, 'context': {}}
 
         data = {"function": func_code, "entry_point": func_entry, 'event': event}
         # Set the exec site
@@ -166,11 +149,17 @@ def execute():
 
 @api.route("/<task_uuid>/status", methods=['GET'])
 def status(task_uuid):
-    """
-    Check the status of a task.
+    """Check the status of a task.
 
-    :param task_uuid:
-    :return:
+    Parameters
+    ----------
+    task_uuid : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
     """
 
     user_id, user_name, short_name = _get_user(request.headers)
@@ -197,11 +186,17 @@ def status(task_uuid):
 
 @api.route("/<task_uuid>/result", methods=['GET'])
 def result(task_uuid):
-    """
-    Check the result of a task.
+    """Check the result of a task.
 
-    :param task_uuid:
-    :return:
+    Parameters
+    ----------
+    task_uuid : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The result of the task
     """
 
     user_id, user_name, short_name = _get_user(request.headers)
@@ -222,6 +217,7 @@ def result(task_uuid):
     except Exception as e:
         app.logger.error(e)
         return json.dumps({'InternalError': e})
+
 
 @api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 def get_container(container_id, container_type):
@@ -244,43 +240,19 @@ def get_container(container_id, container_type):
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
-    container = _get_containers(user_id, container_id, container_type)
-    print(container)
-    return jsonify({'container': container})
-
-
-@api.route("/get_containers", methods=['POST'])
-def get_containers():
-    """Get the details of a container.
-
-    Parameters
-    ----------
-    container_id : str
-        The id of the container
-    container_type : str
-        The type of containers to return: Docker, Singularity, Shifter, etc.
-
-    Returns
-    -------
-    dict
-        A dictionary of container details
-    """
-    print("hitting this endpoint...")
-    user_id, user_name, short_name = _get_user(request.headers)
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-    app.logger.debug(f"Getting containers for endpoint")
-    container = _get_containers(user_id, container_id, container_type)
+    container = _get_container(user_id, container_id, container_type)
     print(container)
     return jsonify({'container': container})
 
 
 @api.route("/register_endpoint", methods=['POST'])
 def register_site():
-    """
-    Register the site. Add this site to the database and associate it with this user.
+    """Register the site. Add this site to the database and associate it with this user.
 
-    :return: port to connect to.
+    Returns
+    -------
+    json
+        A dict containing the endpoint_uuid
     """
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
@@ -299,8 +271,12 @@ def register_site():
 
 @api.route("/register_function", methods=['POST'])
 def register_function():
-    """
-    Register the function. 
+    """Register the function.
+
+    Returns
+    -------
+    json
+        Dict containing the function name
     """
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:

@@ -98,7 +98,9 @@ class MajorDomoBroker(object):
                 print("Received msg {}".format(msg))
                 sender = msg.pop(0)
                 empty = msg.pop(0)
-                assert empty == b''
+                # assert empty == b''
+                if empty != b'':
+                   continue
                 header = msg.pop(0)
 
                 if (MDP.C_CLIENT == header):
