@@ -35,6 +35,7 @@ def _create_task(user_id, task_uuid, is_async, task_status):
         cur.execute(query, (user_id, task_uuid, task_status, bool(is_async)))
         conn.commit()
     except Exception as e:
+        print(e)
         app.logger.error(e)
 
     res = {"status": task_status, "task_id": str(task_uuid)}
@@ -68,6 +69,7 @@ def _update_task(task_uuid, new_status, result=None):
         conn.commit()
 
     except Exception as e:
+        print(e)
         app.logger.error(e)
 
 
@@ -94,6 +96,7 @@ def _log_request(user_id, input_data, response_data, endpoint, exec_type):
         cur.execute(query, (user_id, endpoint, json.dumps(input_data), json.dumps(response_data)))
         conn.commit()
     except Exception as e:
+        print(e)
         app.logger.error(e)
 
 
@@ -146,7 +149,6 @@ def _register_function(user_id, function_name, description, function_code, entry
     str
         The uuid of the function
     """
-
     try:
         conn, cur = _get_db_connection()
         function_uuid = str(uuid.uuid4())
@@ -156,6 +158,7 @@ def _register_function(user_id, function_name, description, function_code, entry
                             function_uuid, function_code, entry_point))
         conn.commit()
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return function_uuid
 
@@ -191,6 +194,7 @@ def _register_site(user_id, endpoint_name, description, project=None):
         cur.execute(query, (user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid))
         conn.commit()
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return endpoint_uuid
 
@@ -226,6 +230,7 @@ def _resolve_endpoint(user_id, endpoint_name, status=None):
         r = cur.fetchone()
         endpoint_uuid = r['endpoint_uuid']
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return endpoint_uuid
 
@@ -257,8 +262,8 @@ def _resolve_function(user_id, function_name):
         r = cur.fetchone()
         function_code = r['function_code']
         function_entry = r['entry_point']
-
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return function_code, function_entry
 
@@ -287,8 +292,8 @@ def _get_container(user_id, container_id, container_type):
         query = "select * from container_images where container_id=%s and type=%s"
         cur.execute(query, (container_id, container_type))
         container = cur.fetchone()
-        print(container)
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return container
 
@@ -322,6 +327,7 @@ def _introspect_token(headers):
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
         except Exception as e:
+            print(e)
             app.logger.error('Auth error:', e)
     return user_name
 
@@ -345,6 +351,7 @@ def _get_user(headers):
     """
 
     user_name = _introspect_token(headers)
+    globus_name = user_name
     short_name = None
     user_id = None
 
@@ -355,7 +362,7 @@ def _get_user(headers):
     # Now check if it is in the database.
     try:
         conn, cur = _get_db_connection()
-        cur.execute("SELECT * from users where username = %s", user_name)
+        cur.execute("SELECT * from users where username = %s", (user_name,))
         rows = cur.fetchall()
         if len(rows) > 0:
             for r in rows:
@@ -364,10 +371,11 @@ def _get_user(headers):
         else:
             short_name = "{name}_{org}".format(name=user_name.split("@")[0], org=user_name.split("@")[1].split(".")[0])
             cmd = "INSERT into users (username, globus_identity, namespace) values (%s, %s, %s) RETURNING id"
-            cur.execute(cmd, (user_name, user_name, short_name))
+            cur.execute(cmd, (user_name, globus_name, short_name))
             conn.commit()
             user_id = cur.fetchone()[0]
     except Exception as e:
+        print(e)
         app.logger.error(e)
     return user_id, user_name, short_name
 
