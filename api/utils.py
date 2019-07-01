@@ -163,7 +163,7 @@ def _register_function(user_id, function_name, description, function_code, entry
     return function_uuid
 
 
-def _register_site(user_id, endpoint_name, description, project=None):
+def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, project=None):
     """Register the site in the database.
 
     Parameters
@@ -171,9 +171,11 @@ def _register_site(user_id, endpoint_name, description, project=None):
     user_id : str
         The uuid of the user
     endpoint_name : str
-        The name of the function
+        The name of the endpoint
     description : str
         A description of the endpoint
+    endpoint_uuid : str
+        The uuid of the endpoint (if it exists)
     project : str
         The project the endpoint belongs to (if any)
 
@@ -185,9 +187,11 @@ def _register_site(user_id, endpoint_name, description, project=None):
 
     try:
         conn, cur = _get_db_connection()
-        endpoint_uuid = _resolve_endpoint(user_id, endpoint_name)
         if endpoint_uuid:
-            return endpoint_uuid
+            # Make sure it exists
+            res_endpoint_uuid = _resolve_endpoint(user_id, endpoint_uuid)
+            if res_endpoint_uuid:
+                return res_endpoint_uuid
         endpoint_uuid = str(uuid.uuid4())
         query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
                 "values (%s, %s, %s, %s, %s, %s)"
@@ -199,15 +203,15 @@ def _register_site(user_id, endpoint_name, description, project=None):
     return endpoint_uuid
 
 
-def _resolve_endpoint(user_id, endpoint_name, status=None):
+def _resolve_endpoint(user_id, endpoint_uuid, status=None):
     """Get the endpoint uuid from database
 
     Parameters
     ----------
     user_id : str
         The uuid of the user
-    endpoint_name : str
-        The name of the function
+    endpoint_uuid : str
+        The uuid of the function
     status : str
         The status of the endpoint
 
@@ -217,16 +221,15 @@ def _resolve_endpoint(user_id, endpoint_name, status=None):
         The uuid of the endpoint
     """
 
-    endpoint_uuid = None
     try:
         conn, cur = _get_db_connection() 
         if status:
-            query = "select * from sites where status = %s and endpoint_name = %s and user_id = %s " \
+            query = "select * from sites where status = %s and endpoint_uuid = %s and user_id = %s " \
                     "order by id DESC limit 1"
-            cur.execute(query, (status, endpoint_name, user_id))
+            cur.execute(query, (status, endpoint_uuid, user_id))
         else:
-            query = "select * from sites where endpoint_name = %s and user_id = %s order by id DESC limit 1"
-            cur.execute(query, (endpoint_name, user_id))
+            query = "select * from sites where endpoint_uuid = %s and user_id = %s order by id DESC limit 1"
+            cur.execute(query, (endpoint_uuid, user_id))
         r = cur.fetchone()
         endpoint_uuid = r['endpoint_uuid']
     except Exception as e:
@@ -235,15 +238,15 @@ def _resolve_endpoint(user_id, endpoint_name, status=None):
     return endpoint_uuid
 
 
-def _resolve_function(user_id, function_name):
+def _resolve_function(user_id, function_uuid):
     """Get the function uuid from database
 
     Parameters
     ----------
     user_id : str
         The uuid of the user
-    function_name : str
-        The name of the function
+    function_uuid : str
+        The uuid of the function
 
     Returns
     -------
@@ -257,8 +260,8 @@ def _resolve_function(user_id, function_name):
     function_entry = None
     try:
         conn, cur = _get_db_connection()
-        query = "select * from functions where function_name = %s and user_id = %s order by id DESC limit 1"
-        cur.execute(query, (function_name, user_id))
+        query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
+        cur.execute(query, (function_uuid, user_id))
         r = cur.fetchone()
         function_code = r['function_code']
         function_entry = r['entry_point']

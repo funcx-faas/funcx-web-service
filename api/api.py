@@ -71,23 +71,23 @@ def execute():
     try:
         post_req = request.json
         endpoint = post_req['endpoint']
-        function_name = post_req['func']
+        function_uuid = post_req['func']
         is_async = post_req['is_async']
         input_data = post_req['data']
 
         # Check to see if function in cache. OTHERWISE go get it. 
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
-        if caching and function_name in function_cache:
+        if caching and function_uuid in function_cache:
             app.logger.debug("Fetching function from function cache...")
-            func_code, func_entry = function_cache[function_name]
+            func_code, func_entry = function_cache[function_uuid]
         else:
             app.logger.debug("Function name not in cache -- fetching from DB...")
-            func_code, func_entry = _resolve_function(user_id, function_name)
+            func_code, func_entry = _resolve_function(user_id, function_uuid)
             
             # Now put it INTO the cache! 
             if caching:
-                function_cache[function_name] = (func_code, func_entry)
+                function_cache[function_uuid] = (func_code, func_entry)
 
         endpoint_id = _resolve_endpoint(user_id, endpoint, status='ONLINE')
         if endpoint_id is None:
@@ -199,6 +199,8 @@ def result(task_uuid):
         The result of the task
     """
 
+    # TODO merge this with status and return a details branch when a result exists.
+
     user_id, user_name, short_name = _get_user(request.headers)
 
     conn, cur = _get_db_connection()
@@ -235,7 +237,6 @@ def get_container(container_id, container_type):
     dict
         A dictionary of container details
     """
-    print("hitting this endpoint...")
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
@@ -252,7 +253,7 @@ def register_site():
     Returns
     -------
     json
-        A dict containing the endpoint_uuid
+        A dict containing the endpoint details
     """
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
@@ -264,8 +265,12 @@ def register_site():
         description = request.json["description"]
     except Exception as e:
         app.logger.error(e)
+
+    if 'endpoint_uuid' in request.json:
+        endpoint_uuid = request.json["endpoint_uuid"]
+
     app.logger.debug(endpoint_name)
-    endpoint_uuid = _register_site(user_id, endpoint_name, description)
+    endpoint_uuid = _register_site(user_id, endpoint_name, endpoint_uuid, description)
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 
@@ -276,7 +281,7 @@ def register_function():
     Returns
     -------
     json
-        Dict containing the function name
+        Dict containing the function details
     """
     user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
@@ -290,5 +295,5 @@ def register_function():
         app.logger.error(e)
     app.logger.debug(function_name)
     function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
-    return jsonify({'function_name': function_name})
+    return jsonify({'function_uuid': function_uuid})
 
