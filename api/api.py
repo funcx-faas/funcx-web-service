@@ -260,6 +260,8 @@ def register_site():
         abort(400, description="Error: You must be logged in to perform this function.")
     endpoint_name = None
     description = None
+    endpoint_uuid = None
+
     try:
         endpoint_name = request.json["endpoint_name"]
         description = request.json["description"]
@@ -268,7 +270,7 @@ def register_site():
 
     if 'endpoint_uuid' in request.json:
         endpoint_uuid = request.json["endpoint_uuid"]
-
+    
     app.logger.debug(endpoint_name)
     endpoint_uuid = _register_site(user_id, endpoint_name, endpoint_uuid, description)
     return jsonify({'endpoint_uuid': endpoint_uuid})
