@@ -230,15 +230,17 @@ def status(task_uuid):
 
         res = {'status': task_status}
         details = None
+        time.sleep(5)
         if task_status == "SUCCEEDED":
             details = result(task_uuid)
         print("Status Response: {}".format(str(res)))        
+        time.sleep(5)
         now = datetime.now(tz=timezone.utc)
         #body = req["body"]
         # Generate an action_id for this instance of the action:
         default_release_after = timedelta(days=30)
         job = {
-            "details":details,
+            "details":str(details),
             "status": task_status,
             "action_id": task_uuid,
             # Default these to the principals of whoever is running this action:
