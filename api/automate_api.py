@@ -5,7 +5,8 @@ import json
 import time
 import statistics
 import base64
-
+from random import randint
+from datetime import timedelta, datetime
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
@@ -16,7 +17,7 @@ from utils.majordomo_client import ZMQClient
 import threading
 
 # Flask
-api = Blueprint("api", __name__)
+automate = Blueprint("automate", __name__)
 
 zmq_client = ZMQClient("tcp://localhost:50001")
 
@@ -45,8 +46,8 @@ def async_funcx(task_uuid, endpoint_id, obj):
     _update_task(task_uuid, "SUCCESSFUL", result=res)
 
 
-@api.route('/execute', methods=['POST'])
-def execute():
+@automate.route('/run', methods=['POST'])
+def run():
     """Execute the specified function
 
     Returns
@@ -54,6 +55,9 @@ def execute():
     json
         The task document
     """
+    now = datetime.now(tz=timezone.utc)
+    body = req["body"]
+    # Generate an action_id for this instance of the action:
     app.logger.debug("Executing function...")
 
     user_name = _introspect_token(request.headers)
@@ -99,11 +103,22 @@ def execute():
     app.logger.info("Task assigned UUID: ".format(task_uuid))
     
     # Create task entry in DB with status "PENDING"
-    task_status = "PENDING"
+    task_status = "ACTIVE"
     task_res = _create_task(user_id, task_uuid, is_async, task_status)
-
+    default_release_after = timedelta(days=30)
     if 'action_id' in post_req:
         task_uuid = post_req['action_id']
+    job = {
+        "status":task_status,
+        "action_id": task_uuid,
+        # Default these to the principals of whoever is running this action:
+        "manage_by": request.auth.identities,
+        "monitor_by": request.auth.identities,
+        "creator_id": request.auth.effective_identity,
+        "release_after": default_release_after,
+        "start_time":datetime.datetime.utcnow() 
+    }
+    
     try:
         # Spin off thread to communicate with Parsl service.
         # multi_thread_launch("parsl-thread", str(task_uuid), cmd, is_async)
@@ -120,7 +135,7 @@ def execute():
         
         if is_async:
             app.logger.debug("Processing async request...")
-            task_status = "PENDING"
+            task_status = "ACTIVE"
             thd = threading.Thread(target=async_funcx, args=(task_uuid, endpoint_id, obj))
             res = task_uuid
             thd.start()
@@ -144,10 +159,10 @@ def execute():
     except psycopg2.Error as e:
         app.logger.error(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
-    return jsonify(res)
+    return jsonify(job)
 
 
-@api.route("/<task_uuid>/status", methods=['GET'])
+@automate.route("/<task_uuid>/status", methods=['GET'])
 def status(task_uuid):
     """Check the status of a task.
 
@@ -177,14 +192,28 @@ def status(task_uuid):
 
         res = {'status': task_status}
         print("Status Response: {}".format(str(res)))
-        return json.dumps(res)
+        
+        now = datetime.now(tz=timezone.utc)
+        body = req["body"]
+        # Generate an action_id for this instance of the action:
+        default_release_after = timedelta(days=30)
+        job = {
+            "status": task_status,
+            "action_id": action_id,
+            # Default these to the principals of whoever is running this action:
+            "manage_by": request.auth.identities,
+            "monitor_by": request.auth.identities,
+            "creator_id": request.auth.effective_identity,
+            "release_after": default_release_after,
+        }
+        return json.dumps(job)
 
     except Exception as e:
         app.logger.error(e)
         return json.dumps({'InternalError': e})
 
 
-@api.route("/<task_uuid>/result", methods=['GET'])
+@automate.route("/<task_uuid>/result", methods=['GET'])
 def result(task_uuid):
     """Check the result of a task.
 
@@ -219,82 +248,4 @@ def result(task_uuid):
     except Exception as e:
         app.logger.error(e)
         return json.dumps({'InternalError': e})
-
-
-@api.route("/containers/<container_id>/<container_type>", methods=['GET'])
-def get_container(container_id, container_type):
-    """Get the details of a container.
-
-    Parameters
-    ----------
-    container_id : str
-        The id of the container
-    container_type : str
-        The type of containers to return: Docker, Singularity, Shifter, etc.
-
-    Returns
-    -------
-    dict
-        A dictionary of container details
-    """
-    user_id, user_name, short_name = _get_user(request.headers)
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-    app.logger.debug(f"Getting container details: {container_id}")
-    container = _get_container(user_id, container_id, container_type)
-    print(container)
-    return jsonify({'container': container})
-
-
-@api.route("/register_endpoint", methods=['POST'])
-def register_site():
-    """Register the site. Add this site to the database and associate it with this user.
-
-    Returns
-    -------
-    json
-        A dict containing the endpoint details
-    """
-    user_id, user_name, short_name = _get_user(request.headers)
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-    endpoint_name = None
-    description = None
-    endpoint_uuid = None
-    try:
-        endpoint_name = request.json["endpoint_name"]
-        description = request.json["description"]
-    except Exception as e:
-        app.logger.error(e)
-
-    if 'endpoint_uuid' in request.json:
-        endpoint_uuid = request.json["endpoint_uuid"]
-
-    app.logger.debug(endpoint_name)
-    endpoint_uuid = _register_site(user_id, endpoint_name, description, endpoint_uuid)
-    return jsonify({'endpoint_uuid': endpoint_uuid})
-
-
-@api.route("/register_function", methods=['POST'])
-def register_function():
-    """Register the function.
-
-    Returns
-    -------
-    json
-        Dict containing the function details
-    """
-    user_id, user_name, short_name = _get_user(request.headers)
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-    try:
-        function_name = request.json["function_name"]
-        entry_point = request.json["entry_point"]
-        description = request.json["description"]
-        function_code = request.json["function_code"]
-    except Exception as e:
-        app.logger.error(e)
-    app.logger.debug(function_name)
-    function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
-    return jsonify({'function_uuid': function_uuid})
 

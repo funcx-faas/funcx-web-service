@@ -188,6 +188,7 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
     try:
         conn, cur = _get_db_connection()
         if endpoint_uuid:
+
             # Make sure it exists
             res_endpoint_uuid = _resolve_endpoint(user_id, endpoint_uuid)
             if res_endpoint_uuid:
