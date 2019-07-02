@@ -6,14 +6,13 @@ import time
 import statistics
 import base64
 from random import randint
-from datetime import timedelta, datetime
+from datetime import timezone, timedelta, datetime
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection
 from utils.majordomo_client import ZMQClient
-
 import threading
 
 # Flask
@@ -43,7 +42,7 @@ def async_funcx(task_uuid, endpoint_id, obj):
 
     _update_task(task_uuid, "RUNNING")
     res = zmq_client.send(endpoint_id, obj)
-    _update_task(task_uuid, "SUCCESSFUL", result=res)
+    _update_task(task_uuid, "SUCCEEDED", result=res)
 
 
 @automate.route('/run', methods=['POST'])
@@ -56,7 +55,7 @@ def run():
         The task document
     """
     now = datetime.now(tz=timezone.utc)
-    body = req["body"]
+    #body = req["body"]
     # Generate an action_id for this instance of the action:
     app.logger.debug("Executing function...")
 
@@ -74,11 +73,13 @@ def run():
 
     try:
         post_req = request.json
+
+        print(post_req)
+        post_req = post_req['body']
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         is_async = post_req['is_async']
         input_data = post_req['data']
-
         # Check to see if function in cache. OTHERWISE go get it. 
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
@@ -101,7 +102,6 @@ def run():
 
     task_uuid = str(uuid.uuid4())
     app.logger.info("Task assigned UUID: ".format(task_uuid))
-    
     # Create task entry in DB with status "PENDING"
     task_status = "ACTIVE"
     task_res = _create_task(user_id, task_uuid, is_async, task_status)
@@ -112,13 +112,14 @@ def run():
         "status":task_status,
         "action_id": task_uuid,
         # Default these to the principals of whoever is running this action:
-        "manage_by": request.auth.identities,
-        "monitor_by": request.auth.identities,
-        "creator_id": request.auth.effective_identity,
-        "release_after": default_release_after,
-        "start_time":datetime.datetime.utcnow() 
+        #"manage_by": request.auth.identities,
+        #"monitor_by": request.auth.identities,
+        #"creator_id": request.auth.effective_identity,
+        "release_after": 'P30D',
+        "start_time":str(datetime.utcnow()) 
     }
-    
+    print('hi')
+    time.sleep(5)
     try:
         # Spin off thread to communicate with Parsl service.
         # multi_thread_launch("parsl-thread", str(task_uuid), cmd, is_async)
@@ -143,7 +144,7 @@ def run():
             app.logger.debug("Processing sync request...")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
-            task_status = "SUCCESSFUL"
+            task_status = "SUCCEEDED"
             _update_task(task_uuid, task_status)
 
     # Minor TODO: Add specific errors as to why command failed.
@@ -162,55 +163,6 @@ def run():
     return jsonify(job)
 
 
-@automate.route("/<task_uuid>/status", methods=['GET'])
-def status(task_uuid):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    task_uuid : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    user_id, user_name, short_name = _get_user(request.headers)
-
-    conn, cur = _get_db_connection()
-
-    try:
-        task_status = None
-        cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
-        rows = cur.fetchall()
-        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
-        for r in rows:
-            app.logger.debug(r)
-            task_status = r['status']
-
-        res = {'status': task_status}
-        print("Status Response: {}".format(str(res)))
-        
-        now = datetime.now(tz=timezone.utc)
-        body = req["body"]
-        # Generate an action_id for this instance of the action:
-        default_release_after = timedelta(days=30)
-        job = {
-            "status": task_status,
-            "action_id": action_id,
-            # Default these to the principals of whoever is running this action:
-            "manage_by": request.auth.identities,
-            "monitor_by": request.auth.identities,
-            "creator_id": request.auth.effective_identity,
-            "release_after": default_release_after,
-        }
-        return json.dumps(job)
-
-    except Exception as e:
-        app.logger.error(e)
-        return json.dumps({'InternalError': e})
 
 
 @automate.route("/<task_uuid>/result", methods=['GET'])
@@ -249,3 +201,55 @@ def result(task_uuid):
         app.logger.error(e)
         return json.dumps({'InternalError': e})
 
+@automate.route("/<task_uuid>/status", methods=['GET'])
+def status(task_uuid):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    task_uuid : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    user_id, user_name, short_name = _get_user(request.headers)
+
+    conn, cur = _get_db_connection()
+    try:
+        task_status = None
+        cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
+        rows = cur.fetchall()
+        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
+        for r in rows:
+            app.logger.debug(r)
+            task_status = r['status']
+
+        res = {'status': task_status}
+        details = None
+        if task_status == "SUCCEEDED":
+            details = result(task_uuid)
+        print("Status Response: {}".format(str(res)))        
+        now = datetime.now(tz=timezone.utc)
+        #body = req["body"]
+        # Generate an action_id for this instance of the action:
+        default_release_after = timedelta(days=30)
+        job = {
+            "details":details,
+            "status": task_status,
+            "action_id": task_uuid,
+            # Default these to the principals of whoever is running this action:
+            #"manage_by": request.auth.identities,
+            #"monitor_by": request.auth.identities,
+            #"creator_id": request.auth.effective_identity,
+            "release_after": 'P30D' #default_release_after,
+        }
+        print(str(job))
+        return json.dumps(job)
+
+    except Exception as e:
+        app.logger.error(e)
+        return json.dumps({'InternalError': e})
