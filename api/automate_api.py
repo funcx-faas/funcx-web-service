@@ -108,18 +108,6 @@ def run():
     default_release_after = timedelta(days=30)
     if 'action_id' in post_req:
         task_uuid = post_req['action_id']
-    job = {
-        "status":task_status,
-        "action_id": task_uuid,
-        # Default these to the principals of whoever is running this action:
-        #"manage_by": request.auth.identities,
-        #"monitor_by": request.auth.identities,
-        #"creator_id": request.auth.effective_identity,
-        "release_after": 'P30D',
-        "start_time":str(datetime.utcnow()) 
-    }
-    print('hi')
-    time.sleep(5)
     try:
         # Spin off thread to communicate with Parsl service.
         # multi_thread_launch("parsl-thread", str(task_uuid), cmd, is_async)
@@ -133,7 +121,7 @@ def run():
         # Set the exec site
         site = "local"
         obj = (exec_flag, task_uuid, data)
-        
+        details = None
         if is_async:
             app.logger.debug("Processing async request...")
             task_status = "ACTIVE"
@@ -144,6 +132,7 @@ def run():
             app.logger.debug("Processing sync request...")
             res = zmq_client.send(endpoint_id, obj)
             res = pickle.loads(res)
+            details = res
             task_status = "SUCCEEDED"
             _update_task(task_uuid, task_status)
 
@@ -160,6 +149,18 @@ def run():
     except psycopg2.Error as e:
         app.logger.error(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
+    job = {
+        "status":task_status,
+        "action_id": task_uuid,
+        "details":details,
+        # Default these to the principals of whoever is running this action:
+        #"manage_by": request.auth.identities,
+        #"monitor_by": request.auth.identities,
+        #"creator_id": request.auth.effective_identity,
+        "release_after": 'P30D',
+        "start_time":str(datetime.utcnow()) 
+    }
+    
     return jsonify(job)
 
 
@@ -194,7 +195,7 @@ def result(task_uuid):
         for r in rows:
             result = r['result']
         res = {'result': pickle.loads(base64.b64decode(result.encode()))}
-        app.logger.debugt("Result Response: {}".format(str(res)))
+        app.logger.debug("Result Response: {}".format(str(res)))
         return json.dumps(res)
 
     except Exception as e:
@@ -224,23 +225,29 @@ def status(task_uuid):
         cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
         rows = cur.fetchall()
         app.logger.debug("Num rows w/ matching UUID: ".format(rows))
+        
         for r in rows:
             app.logger.debug(r)
             task_status = r['status']
-
-        res = {'status': task_status}
-        details = None
-        time.sleep(5)
+        result = 'hi'
         if task_status == "SUCCEEDED":
-            details = result(task_uuid)
-        print("Status Response: {}".format(str(res)))        
-        time.sleep(5)
+            cur.execute("SELECT result FROM results WHERE task_id = '%s'" % task_uuid)
+            rows = cur.fetchall()
+            app.logger.debug("Num rows w/ matching UUID: ".format(rows))
+            for r in rows:
+                result = r['result']
+            print(str(result))
+            time.sleep(50)
+            result = pickle.loads(base64.b64decode(result.encode()))
+            app.logger.debug("Result Response: {}".format(str(result)))
+        res = {'status': task_status}
         now = datetime.now(tz=timezone.utc)
         #body = req["body"]
         # Generate an action_id for this instance of the action:
         default_release_after = timedelta(days=30)
+        time.sleep(100)
         job = {
-            "details":str(details),
+            "details":{'result': str(result)},
             "status": task_status,
             "action_id": task_uuid,
             # Default these to the principals of whoever is running this action:

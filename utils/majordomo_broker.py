@@ -95,7 +95,7 @@ class MajorDomoBroker(object):
                 if self.verbose:
                     logging.info("I: received message:")
                     dump(msg)
-                print("Received msg {}".format(msg))
+ #               print("Received msg {}".format(msg))
                 sender = msg.pop(0)
                 empty = msg.pop(0)
                 # assert empty == b''
@@ -137,8 +137,8 @@ class MajorDomoBroker(object):
         command = msg.pop(0)
 
         worker_ready = hexlify(sender) in self.workers
-        print("worker is {}".format(hexlify(sender)))
-        print("the work list {}".format(self.workers))
+#        print("worker is {}".format(hexlify(sender)))
+#        print("the work list {}".format(self.workers))
 
         worker = self.require_worker(sender)
 
@@ -190,7 +190,11 @@ class MajorDomoBroker(object):
 
         if worker.service is not None:
             worker.service.waiting.remove(worker)
-        self.workers.pop(worker.identity)
+        try:
+            self.workers.pop(worker.identity)
+        except Exception as e:
+            print("Caught the worker not existing", worker.identity)
+            print(e)
 
     def require_worker(self, address):
         """Finds the worker (creates if necessary)."""

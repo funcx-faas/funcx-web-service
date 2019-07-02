@@ -42,6 +42,7 @@ def async_funcx(task_uuid, endpoint_id, obj):
 
     _update_task(task_uuid, "RUNNING")
     res = zmq_client.send(endpoint_id, obj)
+    print("the result in async mode: {}".format(res))
     _update_task(task_uuid, "SUCCESSFUL", result=res)
 
 
@@ -168,14 +169,21 @@ def status(task_uuid):
 
     try:
         task_status = None
-        cur.execute("SELECT * from tasks where uuid = '%s'" % task_uuid)
+        cur.execute("select tasks.*, results.result from tasks, results where tasks.uuid = %s and tasks.uuid = results.task_id;", (task_uuid,))
         rows = cur.fetchall()
         app.logger.debug("Num rows w/ matching UUID: ".format(rows))
         for r in rows:
             app.logger.debug(r)
             task_status = r['status']
-
+            try:
+                task_result = r['result']
+            except:
+                pass
+        
         res = {'status': task_status}
+        if task_result:
+            res.update({'details': {'result': pickle.loads(base64.b64decode(task_result.encode()))}})
+
         print("Status Response: {}".format(str(res)))
         return json.dumps(res)
 
