@@ -84,13 +84,13 @@ def execute():
     return jsonify({'task_id': task_id})
 
 
-@api.route("/<task_uuid>/status", methods=['GET'])
-def status(task_uuid):
+@api.route("/<task_id>/status", methods=['GET'])
+def status(task_id):
     """Check the status of a task.
 
     Parameters
     ----------
-    task_uuid : str
+    task_id : str
         The task uuid to look up
 
     Returns
@@ -99,66 +99,37 @@ def status(task_uuid):
         The status of the task
     """
 
-    user_id, user_name, short_name = _get_user(request.headers)
+    token = None
+    if 'Authorization' in request.headers:
+        token = request.headers.get('Authorization')
+        token = token.split(" ")[1]
+    else:
+        abort(400, description="Error: You must be logged in to perform this function.")
 
-    conn, cur = _get_db_connection()
+    if caching and token in token_cache:
+        user_name = token_cache[token]
+    else:
+        # Perform an Auth call to get the user name
+        user_name = _introspect_token(request.headers)
+        token_cache.update({token: user_name})
 
-    try:
-        task_status = None
-        cur.execute("select tasks.*, results.result from tasks, results where tasks.uuid = %s and tasks.uuid = "
-                    "results.task_id;", (task_uuid,))
-        rows = cur.fetchall()
-        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
-        for r in rows:
-            app.logger.debug(r)
-            task_status = r['status']
-            try:
-                task_result = r['result']
-            except:
-                pass
-        
-        res = {'status': task_status}
-        if task_result:
-            res.update({'details': {'result': pickle.loads(base64.b64decode(task_result.encode()))}})
-
-        print("Status Response: {}".format(str(res)))
-        return json.dumps(res)
-
-    except Exception as e:
-        app.logger.error(e)
-        return json.dumps({'InternalError': e})
-
-
-@api.route("/<task_uuid>/result", methods=['GET'])
-def result(task_uuid):
-    """Check the result of a task.
-
-    Parameters
-    ----------
-    task_uuid : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The result of the task
-    """
-
-    # TODO merge this with status and return a details branch when a result exists.
-
-    user_id, user_name, short_name = _get_user(request.headers)
-
-    conn, cur = _get_db_connection()
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
 
     try:
-        result = None
-        cur.execute("SELECT result FROM results WHERE task_id = '%s'" % task_uuid)
-        rows = cur.fetchall()
-        app.logger.debug("Num rows w/ matching UUID: ".format(rows))
-        for r in rows:
-            result = r['result']
-        res = {'result': pickle.loads(base64.b64decode(result.encode()))}
-        app.logger.debugt("Result Response: {}".format(str(res)))
+        # Get a redis client
+        rc = _get_redis_client()
+
+        # Get the task from redis
+        task = json.loads(rc.get(task_id))
+
+        res = {'task_id': task_id}
+        if 'status' in task:
+            res.update({'status': task['status']})
+        if 'result' in task:
+            res.update({'details': {'result': task['result']}})
+
+        app.logger.debug("Status Response: {}".format(str(res)))
         return json.dumps(res)
 
     except Exception as e:

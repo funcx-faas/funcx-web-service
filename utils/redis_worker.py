@@ -103,3 +103,20 @@ def work():
     except psycopg2.Error as e:
         app.logger.error(e.pgerror)
         return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
+
+
+    # DB status:
+    cur.execute("select tasks.*, results.result from tasks, results where tasks.uuid = %s and tasks.uuid = "
+                "results.task_id;", (task_uuid,))
+    rows = cur.fetchall()
+    app.logger.debug("Num rows w/ matching UUID: ".format(rows))
+    for r in rows:
+        app.logger.debug(r)
+        task_status = r['status']
+        try:
+            task_result = r['result']
+        except:
+            pass
+
+        if task_result:
+            res.update({'details': {'result': pickle.loads(base64.b64decode(task_result.encode()))}})
