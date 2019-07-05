@@ -3,8 +3,6 @@ import pickle
 import uuid
 import json
 import time
-import statistics
-import base64
 
 from .utils import (_get_user, _create_task, _update_task, _log_request, 
                     _register_site, _register_function, _resolve_endpoint,
@@ -12,8 +10,6 @@ from .utils import (_get_user, _create_task, _update_task, _log_request,
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, _get_redis_client
 from utils.majordomo_client import ZMQClient
-
-import threading
 
 # Flask
 api = Blueprint("api", __name__)
@@ -41,11 +37,11 @@ def execute():
         abort(400, description="Error: You must be logged in to perform this function.")
 
     if caching and token in token_cache:
-        user_name = token_cache[token]
+        user_id, user_name, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_name = _introspect_token(request.headers)
-        token_cache.update({token: user_name})
+        user_id, user_name, short_name = _get_user(request.headers)
+        token_cache.update({token: (user_id, user_name, short_name)})
 
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
@@ -71,6 +67,7 @@ def execute():
                         'function_id': function_uuid,
                         'input_data': input_data,
                         'user_name': user_name,
+                        'user_id': user_id
                         'status': 'PENDING'}
 
         rc.set(task_id, json.dumps(task_payload))
@@ -124,10 +121,17 @@ def status(task_id):
         task = json.loads(rc.get(task_id))
 
         res = {'task_id': task_id}
+        details = {}
         if 'status' in task:
-            res.update({'status': task['status']})
+            res['status'] = task['status']
+
         if 'result' in task:
-            res.update({'details': {'result': task['result']}})
+            details['result'] = task['result']
+        if 'reason' in task:
+            details['reason'] = task['reason']
+
+        if details:
+            res.update({'details': details})
 
         app.logger.debug("Status Response: {}".format(str(res)))
         return json.dumps(res)

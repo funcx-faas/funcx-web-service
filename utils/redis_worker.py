@@ -1,122 +1,101 @@
-# A worker for redis
+import psycopg2.extras
+import threading
+import pickle
+import uuid
+import json
+import time
 
+from utils.majordomo_client import ZMQClient
+
+from config import _get_redis_client, _get_db_connection
 
 caching = True
 
 function_cache = {}
 endpoint_cache = {}
 
-def async_funcx(task_uuid, endpoint_id, obj):
-    """Run the function async and update the database.
+def worker(task_id, rc):
+    """Process the task and invoke the execution
 
     Parameters
     ----------
-        task_uuid : str
-            name of the endpoint
-        endpoint_id : string
-            str describing the site
-        obj : tuple
-            object to pass to the zmq client
+    task_id : str
+        The uuid of the task
+    rc : RedisClient
+        The client to interact with redis
     """
-
-    _update_task(task_uuid, "RUNNING")
-    res = zmq_client.send(endpoint_id, obj)
-    print("the result in async mode: {}".format(res))
-    _update_task(task_uuid, "SUCCESSFUL", result=res)
-
-
-def work():
-
-
-
-
-    # Get the user_id
-    if caching and user_name in user_cache:
-        app.logger.debug("Getting user_id FROM CACHE")
-        user_id, short_name = user_cache[user_name]
-
-    else:
-        app.logger.debug("User ID not in cache -- fetching from DB")
-        user_id, user_name, short_name = _get_user(request.headers)
-        if caching:
-            user_cache[user_name] = (user_id, short_name)
-
-    # Check to see if function in cache. OTHERWISE go get it.
-    # TODO: Cache flushing -- do LRU or something.
-    # TODO: Move this to the RESOLVE function (not here).
-    if caching and function_uuid in function_cache:
-        app.logger.debug("Fetching function from function cache...")
-        func_code, func_entry = function_cache[function_uuid]
-    else:
-        app.logger.debug("Function name not in cache -- fetching from DB...")
-        func_code, func_entry = _resolve_function(user_id, function_uuid)
-
-        # Now put it INTO the cache!
-        if caching:
-            function_cache[function_uuid] = (func_code, func_entry)
-
-    endpoint_id = _resolve_endpoint(user_id, endpoint, status='ONLINE')
-    if endpoint_id is None:
-        return jsonify({"status": "ERROR", "message": str("Invalid endpoint")})
-
-    # Create task entry in DB with status "PENDING"
-    task_status = "PENDING"
-    task_res = _create_task(user_id, task_uuid, is_async, task_status)
-
     try:
-        # Spin off thread to communicate with Parsl service.
-        # multi_thread_launch("parsl-thread", str(task_uuid), cmd, is_async)
+        # Get the task
+        task = json.loads(rc.get(task_id))
 
-        exec_flag = 1
-        # Future proofing for other exec types
+        # task {
+        # endpoint_id,
+        # function_id,
+        # input_data,
+        # user_name,
+        # user_id,
+        # status }
 
-        event = {'data': input_data, 'context': {}}
-
-        data = {"function": func_code, "entry_point": func_entry, 'event': event}
-        # Set the exec site
-        site = "local"
-        obj = (exec_flag, task_uuid, data)
-
-        if is_async:
-            app.logger.debug("Processing async request...")
-            task_status = "PENDING"
-            thd = threading.Thread(target=async_funcx, args=(task_uuid, endpoint_id, obj))
-            res = task_uuid
-            thd.start()
+        # Check to see if function in cache. OTHERWISE go get it.
+        # TODO: Cache flushing -- do LRU or something.
+        # TODO: Move this to the RESOLVE function (not here).
+        if caching and task['function_id'] in function_cache:
+            app.logger.debug("Fetching function from function cache...")
+            func_code, func_entry = function_cache[task['function_id']]
         else:
-            app.logger.debug("Processing sync request...")
-            res = zmq_client.send(endpoint_id, obj)
-            res = pickle.loads(res)
-            task_status = "SUCCESSFUL"
-            _update_task(task_uuid, task_status)
+            app.logger.debug("Function name not in cache -- fetching from DB...")
+            func_code, func_entry = _resolve_function(task['user_'], task['function_id'])
+
+            # Now put it INTO the cache!
+            if caching:
+                function_cache[task['function_id']] = (func_code, func_entry)
+
+        endpoint_id = _resolve_endpoint(task['user_id'], task['endpoint_id'], status='ONLINE')
+
+        if endpoint_id is None:
+            task['status'] = 'FAILED'
+            task['reason'] = "Unable to access endpoint"
+            rc.set(task_id, json.dumps(task))
+
+        # Wrap up an object to send to ZMQ
+        exec_flag = 1
+        event = {'data': task['input_data'], 'context': {}}
+        data = {"function": func_code, "entry_point": func_entry, 'event': event}
+        obj = (exec_flag, task_id, data)
+
+        # Send the request to ZMQ
+        res = zmq_client.send(endpoint_id, obj)
+        res = pickle.loads(res)
+
+        # Set the reply on redis
+        task['status'] = "SUCCEEDED"
+        task['result'] = res
 
     # Minor TODO: Add specific errors as to why command failed.
     except Exception as e:
         app.logger.error("Execution failed: {}".format(str(e)))
-        return jsonify({"status": "ERROR", "message": str(e)})
+        task['status'] = 'FAILED'
+        task['reason'] = str(e)
 
-    # Add request and update task to database
-    try:
-        app.logger.debug("Logging request...")
-        _log_request(user_id, post_req, task_res, 'EXECUTE', 'CMD')
-
-    except psycopg2.Error as e:
-        app.logger.error(e.pgerror)
-        return jsonify({'status': 'ERROR', 'message': str(e.pgerror)})
+    rc.set(task_id, json.dumps(task))
 
 
-    # DB status:
-    cur.execute("select tasks.*, results.result from tasks, results where tasks.uuid = %s and tasks.uuid = "
-                "results.task_id;", (task_uuid,))
-    rows = cur.fetchall()
-    app.logger.debug("Num rows w/ matching UUID: ".format(rows))
-    for r in rows:
-        app.logger.debug(r)
-        task_status = r['status']
+def main():
+    """Pull tasks from the redis queue and start threads to process them"""
+
+    while True:
         try:
-            task_result = r['result']
-        except:
-            pass
+            rc = _get_redis_client()
+            task_id = rc.blpop("task_list")
+            print(task_id)
+            # Put this into another list? Move it between lists?
 
-        if task_result:
-            res.update({'details': {'result': pickle.loads(base64.b64decode(task_result.encode()))}})
+            thd = threading.Thread(target=worker, args=(task_id, rc))
+            thd.start()
+
+        except Exception as e:
+            print(e)
+
+
+if __name__ == '__main__':
+    main()
