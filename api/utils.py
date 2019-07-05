@@ -1,7 +1,6 @@
 import json
 import uuid
 import base64
-import numpy as np
 
 from config import _load_funcx_client, _get_db_connection
 from flask import request, current_app as app

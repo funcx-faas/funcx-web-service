@@ -67,7 +67,7 @@ def execute():
                         'function_id': function_uuid,
                         'input_data': input_data,
                         'user_name': user_name,
-                        'user_id': user_id
+                        'user_id': user_id,
                         'status': 'PENDING'}
 
         rc.set(task_id, json.dumps(task_payload))
