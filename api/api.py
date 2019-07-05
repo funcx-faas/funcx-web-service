@@ -29,19 +29,23 @@ def execute():
     json
         The task document
     """
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description="Error: You must be logged in to perform this function.")
+#    token = None
+#    if 'Authorization' in request.headers:
+#        token = request.headers.get('Authorization')
+#        token = token.split(" ")[1]
+#    else:
+#        abort(400, description="Error: You must be logged in to perform this function.")
+#
+#    if caching and token in token_cache:
+#        user_id, user_name, short_name = token_cache[token]
+#    else:
+#        # Perform an Auth call to get the user name
+#        user_id, user_name, short_name = _get_user(request.headers)
+#        token_cache.update({token: (user_id, user_name, short_name)})
 
-    if caching and token in token_cache:
-        user_id, user_name, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_id, user_name, short_name = _get_user(request.headers)
-        token_cache.update({token: (user_id, user_name, short_name)})
+    user_id = 1
+    user_name = 'ryan@globusid.org'
+    short_name = 'ryan_globusid'
 
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
@@ -57,11 +61,11 @@ def execute():
         if 'action_id' in post_req:
             task_id = post_req['action_id']
 
-        app.logger.info("Task assigned UUID: ".format(task_id))
+        app.logger.info("Task assigned UUID: {}".format(task_id))
 
         # Get the redis connection
         rc = _get_redis_client()
-
+        
         # Add the job to redis
         task_payload = {'endpoint_id': endpoint,
                         'function_id': function_uuid,
@@ -69,7 +73,7 @@ def execute():
                         'user_name': user_name,
                         'user_id': user_id,
                         'status': 'PENDING'}
-
+        
         rc.set(task_id, json.dumps(task_payload))
 
         # Add the task to the redis queue
@@ -96,19 +100,25 @@ def status(task_id):
         The status of the task
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description="Error: You must be logged in to perform this function.")
+#    token = None
+#    if 'Authorization' in request.headers:
+#        token = request.headers.get('Authorization')
+#        token = token.split(" ")[1]
+#    else:
+#        abort(400, description="Error: You must be logged in to perform this function.")
+#
+#    if caching and token in token_cache:
+#        user_name = token_cache[token]
+#    else:
+#        # Perform an Auth call to get the user name
+#        user_name = _introspect_token(request.headers)
+#        token_cache.update({token: user_name})
 
-    if caching and token in token_cache:
-        user_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_name = _introspect_token(request.headers)
-        token_cache.update({token: user_name})
+
+    user_id = 1
+    user_name = 'ryan@globusid.org'
+    short_name = 'ryan_globusid'
+
 
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
