@@ -3,6 +3,8 @@
 
 caching = True
 
+function_cache = {}
+endpoint_cache = {}
 
 def async_funcx(task_uuid, endpoint_id, obj):
     """Run the function async and update the database.
@@ -25,6 +27,10 @@ def async_funcx(task_uuid, endpoint_id, obj):
 
 def work():
 
+
+
+
+    # Get the user_id
     if caching and user_name in user_cache:
         app.logger.debug("Getting user_id FROM CACHE")
         user_id, short_name = user_cache[user_name]

@@ -10,7 +10,7 @@ from .utils import (_get_user, _create_task, _update_task, _log_request,
                     _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection
+from config import _get_db_connection, _get_redis_client
 from utils.majordomo_client import ZMQClient
 
 import threading
@@ -20,44 +20,68 @@ api = Blueprint("api", __name__)
 
 zmq_client = ZMQClient("tcp://localhost:50001")
 
-user_cache = {}
-function_cache = {}
-endpoint_cache = {}
+token_cache = {}
+caching = True
 
 
 @api.route('/execute', methods=['POST'])
 def execute():
-    """Execute the specified function
+    """Puts a job in Redis and returns an id
 
     Returns
     -------
     json
         The task document
     """
-    app.logger.debug("Executing function...")
+    token = None
+    if 'Authorization' in request.headers:
+        token = request.headers.get('Authorization')
+        token = token.split(" ")[1]
+    else:
+        abort(400, description="Error: You must be logged in to perform this function.")
 
-    user_name = _introspect_token(request.headers)
+    if caching and token in token_cache:
+        user_name = token_cache[token]
+    else:
+        # Perform an Auth call to get the user name
+        user_name = _introspect_token(request.headers)
+        token_cache.update({token: user_name})
 
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
 
     try:
         post_req = request.json
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
-        is_async = post_req['is_async']
         input_data = post_req['data']
+
+        task_id = str(uuid.uuid4())
+
+        if 'action_id' in post_req:
+            task_id = post_req['action_id']
+
+        app.logger.info("Task assigned UUID: ".format(task_id))
+
+        # Get the redis connection
+        rc = _get_redis_client()
+
+        # Add the job to redis
+        task_payload = {'endpoint_id': endpoint,
+                        'function_id': function_uuid,
+                        'input_data': input_data,
+                        'user_name': user_name,
+                        'status': 'PENDING'}
+
+        rc.set(task_id, json.dumps(task_payload))
+
+        # Add the task to the redis queue
+        rc.rpush("task_list", task_id)
 
     except Exception as e:
         app.logger.error(e)
 
-    task_uuid = str(uuid.uuid4())
-    app.logger.info("Task assigned UUID: ".format(task_uuid))
-
-    if 'action_id' in post_req:
-        task_uuid = post_req['action_id']
-
-
-
-    return jsonify(res)
+    return jsonify({'task_id': task_id})
 
 
 @api.route("/<task_uuid>/status", methods=['GET'])
