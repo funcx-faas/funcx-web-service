@@ -109,7 +109,7 @@ def status(task_id):
         token_cache.update({token: user_name})
 
     if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description="Error: Could not find user. You must be logged in to perform this function.")
 
     try:
         # Get a redis client
