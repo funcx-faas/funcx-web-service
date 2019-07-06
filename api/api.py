@@ -9,12 +9,9 @@ from .utils import (_get_user, _create_task, _update_task, _log_request,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, _get_redis_client
-from utils.majordomo_client import ZMQClient
 
 # Flask
 api = Blueprint("api", __name__)
-
-zmq_client = ZMQClient("tcp://localhost:50001")
 
 token_cache = {}
 caching = True
