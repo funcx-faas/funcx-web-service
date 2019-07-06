@@ -36,17 +36,7 @@ def worker(task_id, rc):
     """
     try:
         # Get the task
-        task = rc.get(task_id)
-        print(task)
-        task = json.loads(task)
-
-        # task {
-        # endpoint_id,
-        # function_id,
-        # input_data,
-        # user_name,
-        # user_id,
-        # status }
+        task = json.loads(rc.get(task_id))
 
         # Check to see if function in cache. OTHERWISE go get it.
         # TODO: Cache flushing -- do LRU or something.
@@ -72,11 +62,9 @@ def worker(task_id, rc):
         event = {'data': task['input_data'], 'context': {}}
         data = {"function": func_code, "entry_point": func_entry, 'event': event}
         obj = (exec_flag, task_id, data)
-        print(obj)
         # Send the request to ZMQ
         res = zmq_client.send(endpoint_id, obj)
         res = pickle.loads(res)
-
         # Set the reply on redis
         task['status'] = "SUCCEEDED"
         task['result'] = res
@@ -85,9 +73,7 @@ def worker(task_id, rc):
     except Exception as e:
         task['status'] = 'FAILED'
         task['reason'] = str(e)
-
     print(task)
-
     rc.set(task_id, json.dumps(task))
 
 
@@ -97,12 +83,8 @@ def main():
     while True:
         try:
             rc = _get_redis_client()
-            print('listening for tasks')
             task_id = rc.blpop("task_list")[1]
-            print(type(task_id))
-            print(task_id)
             # Put this into another list? Move it between lists?
-            print('starting worker')
             thd = threading.Thread(target=worker, args=(task_id, rc))
             thd.start()
 
