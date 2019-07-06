@@ -103,31 +103,9 @@ def logout():
     # Redirect the user to the Globus Auth logout page
     return redirect(''.join(ga_logout_url))
 
-
-def start_broker():
-    """
-    Start the ZMQ broker. This allows multiple workers to submit requests.
-    """
-    try:
-        broker = ZMQBroker()
-        broker.start("*", 50000)
-    except Exception as e:
-        app.logger.debug("Broker failed. %s" % e)
-        app.logger.debug("Continuing without a broker.")
-
-
-app.secret_key = SECRET_KEY
-app.config['SESSION_TYPE'] = 'filesystem'
+#app.secret_key = SECRET_KEY
+#app.config['SESSION_TYPE'] = 'filesystem'
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
-else:
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-    handler = logging.StreamHandler()
-    format_string = "%(asctime)s %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
-    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
 
