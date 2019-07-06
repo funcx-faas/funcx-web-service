@@ -7,19 +7,19 @@ from flask import (Flask, request, flash, redirect, session, url_for)
 
 #import logging
 
-app = Flask(__name__)
+application = Flask(__name__)
 
 
 # Include the API blueprint
 #app.register_blueprint(api, url_prefix="/api/v1")
 #app.register_blueprint(automate, url_prefix="/automate")
 
-@app.route("/")
+@application.route("/")
 def hello():
-    app.logger.debug("FuncX")
+    #app.logger.debug("FuncX")
     return "Funcx"
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    application.run(debug=True, host="0.0.0.0")
 
