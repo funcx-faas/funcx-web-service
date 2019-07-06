@@ -31,7 +31,7 @@ def execute():
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description=f"Error: You must be logged in to perform this function. {token}")
 
     if caching and token in token_cache:
         user_id, user_name, short_name = token_cache[token]
@@ -40,12 +40,8 @@ def execute():
         user_id, user_name, short_name = _get_user(request.headers)
         token_cache.update({token: (user_id, user_name, short_name)})
 
-    user_id = 1
-    user_name = 'ryan@globusid.org'
-    short_name = 'ryan_globusid'
-
     if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description=f"Error: Could not find user. You must be logged in to perform this function. {token}")
 
     try:
         post_req = request.json
@@ -111,12 +107,6 @@ def status(task_id):
         # Perform an Auth call to get the user name
         user_name = _introspect_token(request.headers)
         token_cache.update({token: user_name})
-
-
-    user_id = 1
-    user_name = 'ryan@globusid.org'
-    short_name = 'ryan_globusid'
-
 
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
