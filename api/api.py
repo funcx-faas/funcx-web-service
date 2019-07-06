@@ -99,7 +99,7 @@ def status(task_id):
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description="Error: You must be logged in to perform this function. {request.headers}")
+        abort(400, description=f"Error: You must be logged in to perform this function. {request.headers}")
 
     if caching and token in token_cache:
         user_name = token_cache[token]
