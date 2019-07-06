@@ -31,7 +31,7 @@ def execute():
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description=f"Error: You must be logged in to perform this function. {token}")
+        abort(400, description=f"Error: You must be logged in to perform this function. {token} , {request.headers}")
 
     if caching and token in token_cache:
         user_id, user_name, short_name = token_cache[token]
