@@ -72,9 +72,10 @@ def execute():
                         'input_data': input_data,
                         'user_name': user_name,
                         'user_id': user_id,
+                        'created_at': time.time(),
                         'status': 'PENDING'}
         
-        rc.set(task_id, json.dumps(task_payload))
+        rc.set(f"task:{task_id}", json.dumps(task_payload))
 
         # Add the task to the redis queue
         rc.rpush("task_list", task_id)
@@ -128,7 +129,7 @@ def status(task_id):
         rc = _get_redis_client()
 
         # Get the task from redis
-        task = json.loads(rc.get(task_id))
+        task = json.loads(rc.get(f"task:{task_id}"))
 
         res = {'task_id': task_id}
         details = {}

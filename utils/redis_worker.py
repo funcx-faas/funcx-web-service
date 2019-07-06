@@ -17,6 +17,8 @@ from config import _get_redis_client, _get_db_connection
 
 from api.utils import _resolve_function, _resolve_endpoint
 
+from zmq.error import ZMQError
+
 zmq_client = ZMQClient("tcp://3.88.81.131:50001")
 
 caching = True
@@ -36,7 +38,7 @@ def worker(task_id, rc):
     """
     try:
         # Get the task
-        task = json.loads(rc.get(task_id))
+        task = json.loads(rc.get(f"task:{task_id}"))
 
         # Check to see if function in cache. OTHERWISE go get it.
         # TODO: Cache flushing -- do LRU or something.
@@ -55,7 +57,9 @@ def worker(task_id, rc):
         if endpoint_id is None:
             task['status'] = 'FAILED'
             task['reason'] = "Unable to access endpoint"
-            rc.set(task_id, json.dumps(task))
+            task['modified_at'] = time.time()
+            rc.set(f"task:{task_id}", json.dumps(task))
+            return
 
         # Wrap up an object to send to ZMQ
         exec_flag = 1
@@ -66,15 +70,28 @@ def worker(task_id, rc):
         res = zmq_client.send(endpoint_id, obj)
         res = pickle.loads(res)
         # Set the reply on redis
+        print(f"res: {res}")
         task['status'] = "SUCCEEDED"
         task['result'] = res
 
     # Minor TODO: Add specific errors as to why command failed.
+    except ZMQError as ze:
+        # Retry a task if this is what happened
+        print("Caught a ZMQ error")
+        if 'modified_at' in task:
+            print("failing due to retry")
+            # We have already retried this, so lets just fail
+            task['status'] = 'FAILED'
+            task['reason'] = str(ze)
+        else:
+            print("Trying again!")
+            rc.rpush("task_list", task_id)
     except Exception as e:
         task['status'] = 'FAILED'
         task['reason'] = str(e)
+    task['modified_at'] = time.time()
     print(task)
-    rc.set(task_id, json.dumps(task))
+    rc.set(f"task:{task_id}", json.dumps(task))
 
 
 def main():

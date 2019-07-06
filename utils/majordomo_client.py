@@ -52,7 +52,7 @@ class ZMQClient(object):
         request = [MDP.C_CLIENT, pickle.dumps(service)] + request
         #if self.verbose:
         logging.warn("I: send request to '%s' service: ", service)
-        dump(request)
+#        dump(request)
         reply = None
 
         retries = self.retries
