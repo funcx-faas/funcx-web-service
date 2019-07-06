@@ -3,7 +3,7 @@ from flask import (Flask, request, flash, redirect, session, url_for)
 #from api.api import api
 #from api.automate_api import automate
 
-#from config import SECRET_KEY, _load_funcx_client
+from config import SECRET_KEY, _load_funcx_client
 
 #import logging
 
@@ -16,7 +16,7 @@ application = Flask(__name__)
 
 @application.route("/")
 def hello():
-    #app.logger.debug("FuncX")
+    app.logger.debug("FuncX")
     return "Funcx"
 
 
