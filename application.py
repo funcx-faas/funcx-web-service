@@ -16,7 +16,7 @@ application = Flask(__name__)
 
 @application.route("/")
 def hello():
-    app.logger.debug("FuncX")
+    application.logger.debug("FuncX")
     return "Funcx"
 
 
