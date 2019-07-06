@@ -5,9 +5,19 @@ import uuid
 import json
 import time
 
-from utils.majordomo_client import ZMQClient
 
+# TODO: yikes, lets fix this..
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+
+from utils.majordomo_client import ZMQClient
 from config import _get_redis_client, _get_db_connection
+
+from api.utils import _resolve_function, _resolve_endpoint
+
+zmq_client = ZMQClient("tcp://3.88.81.131:50001")
 
 caching = True
 
@@ -26,7 +36,9 @@ def worker(task_id, rc):
     """
     try:
         # Get the task
-        task = json.loads(rc.get(task_id))
+        task = rc.get(task_id)
+        print(task)
+        task = json.loads(task)
 
         # task {
         # endpoint_id,
@@ -40,11 +52,9 @@ def worker(task_id, rc):
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
         if caching and task['function_id'] in function_cache:
-            app.logger.debug("Fetching function from function cache...")
             func_code, func_entry = function_cache[task['function_id']]
         else:
-            app.logger.debug("Function name not in cache -- fetching from DB...")
-            func_code, func_entry = _resolve_function(task['user_'], task['function_id'])
+            func_code, func_entry = _resolve_function(task['user_id'], task['function_id'])
 
             # Now put it INTO the cache!
             if caching:
@@ -62,7 +72,7 @@ def worker(task_id, rc):
         event = {'data': task['input_data'], 'context': {}}
         data = {"function": func_code, "entry_point": func_entry, 'event': event}
         obj = (exec_flag, task_id, data)
-
+        print(obj)
         # Send the request to ZMQ
         res = zmq_client.send(endpoint_id, obj)
         res = pickle.loads(res)
@@ -73,9 +83,10 @@ def worker(task_id, rc):
 
     # Minor TODO: Add specific errors as to why command failed.
     except Exception as e:
-        app.logger.error("Execution failed: {}".format(str(e)))
         task['status'] = 'FAILED'
         task['reason'] = str(e)
+
+    print(task)
 
     rc.set(task_id, json.dumps(task))
 
@@ -86,10 +97,12 @@ def main():
     while True:
         try:
             rc = _get_redis_client()
-            task_id = rc.blpop("task_list")
+            print('listening for tasks')
+            task_id = rc.blpop("task_list")[1]
+            print(type(task_id))
             print(task_id)
             # Put this into another list? Move it between lists?
-
+            print('starting worker')
             thd = threading.Thread(target=worker, args=(task_id, rc))
             thd.start()
 
