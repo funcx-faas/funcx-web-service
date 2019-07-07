@@ -50,9 +50,6 @@ def _create_task(task):
         print(e)
         app.logger.error(e)
 
-    res = {"status": task_status, "task_id": str(task_uuid)}
-    return res
-
 
 def _log_request(user_id, input_data, response_data, endpoint, exec_type):
     """Log the invocation time in the database.
