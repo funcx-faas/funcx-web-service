@@ -37,6 +37,7 @@ def worker(task_id, rc):
     """
     try:
         zmq_client = ZMQClient("tcp://3.88.81.131:50001")
+
         # Get the task
         task = json.loads(rc.get(f"task:{task_id}"))
 
