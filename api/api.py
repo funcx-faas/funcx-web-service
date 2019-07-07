@@ -34,14 +34,11 @@ def execute():
         abort(400, description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
-        print("Here:")
-        print(token_cache[token])
         user_id, user_name, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
         user_id, user_name, short_name = _get_user(request.headers)
         token_cache['token'] = (user_id, user_name, short_name)
-
 
     if not user_name:
         abort(400, description=f"Could not find user. You must be logged in to perform this function.")
@@ -52,6 +49,7 @@ def execute():
         function_uuid = post_req['func']
         input_data = post_req['data']
 
+        task_status = 'ACTIVE'
         task_id = str(uuid.uuid4())
 
         if 'action_id' in post_req:
@@ -70,7 +68,7 @@ def execute():
                         'user_name': user_name,
                         'user_id': user_id,
                         'created_at': time.time(),
-                        'status': 'PENDING'}
+                        'status': task_status}
         
         rc.set(f"task:{task_id}", json.dumps(task_payload))
 
@@ -140,11 +138,11 @@ def status(task_id):
             res.update({'details': details})
 
         app.logger.debug("Status Response: {}".format(str(res)))
-        return json.dumps(res)
+        return jsonify(res)
 
     except Exception as e:
         app.logger.error(e)
-        return json.dumps({'InternalError': e})
+        return jsonify({'InternalError': e})
 
 
 @api.route("/containers/<container_id>/<container_type>", methods=['GET'])
