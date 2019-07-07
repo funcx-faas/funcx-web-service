@@ -1,6 +1,7 @@
 import json
 import uuid
 import base64
+import datetime
 
 from config import _load_funcx_client, _get_db_connection
 from flask import request, current_app as app
@@ -22,8 +23,8 @@ def _create_task(task):
         task_id = task['task_id']
         function_id = task['function_id']
         endpoint_id = task['endpoint_id']
-        created_at = task['created_at']
-        modified_at = task['modified_at']
+        created_at = datetime.datetime.fromtimestamp(task['created_at'])
+        modified_at = datetime.datetime.fromtimestamp(task['modified_at'])
         status = task['status']
         result = None
         if 'result' in task:
