@@ -31,17 +31,20 @@ def execute():
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description=f"Error: You must be logged in to perform this function. {token} , {request.headers}")
+        abort(400, description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
+        print("Here:")
+        print(token_cache[token])
         user_id, user_name, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
         user_id, user_name, short_name = _get_user(request.headers)
-        token_cache.update({token: (user_id, user_name, short_name)})
+        token_cache['token'] = (user_id, user_name, short_name)
+
 
     if not user_name:
-        abort(400, description=f"Error: Could not find user. You must be logged in to perform this function. {token}")
+        abort(400, description=f"Could not find user. You must be logged in to perform this function.")
 
     try:
         post_req = request.json
@@ -99,7 +102,7 @@ def status(task_id):
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description=f"Error: You must be logged in to perform this function. {request.headers}")
+        abort(400, description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
         user_name = token_cache[token]
@@ -109,14 +112,17 @@ def status(task_id):
         token_cache.update({token: user_name})
 
     if not user_name:
-        abort(400, description="Error: Could not find user. You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be logged in to perform this function.")
 
     try:
         # Get a redis client
         rc = _get_redis_client()
 
         # Get the task from redis
-        task = json.loads(rc.get(f"task:{task_id}"))
+        try:
+            task = json.loads(rc.get(f"task:{task_id}"))
+        except:
+            abort(404, description="Task ID not found")
 
         res = {'task_id': task_id}
         details = {}
