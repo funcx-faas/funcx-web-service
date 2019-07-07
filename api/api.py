@@ -118,14 +118,15 @@ def status(task_id):
         # Get a redis client
         rc = _get_redis_client()
 
+        details = {}
+        
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
         except:
-            abort(404, description="Task ID not found")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         res = {'task_id': task_id}
-        details = {}
         if 'status' in task:
             res['status'] = task['status']
 
