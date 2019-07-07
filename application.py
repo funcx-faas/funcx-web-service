@@ -5,30 +5,27 @@ from api.automate_api import automate
 
 from config import SECRET_KEY, _load_funcx_client
 
-import logging
-
-app = Flask(__name__)
+application = Flask(__name__)
 
 
 # Include the API blueprint
-app.register_blueprint(api, url_prefix="/api/v1")
-app.register_blueprint(automate, url_prefix="/automate")
+application.register_blueprint(api, url_prefix="/api/v1")
+application.register_blueprint(automate, url_prefix="/automate")
 
-@app.route("/")
+@application.route("/")
 def hello():
-    app.logger.debug("FuncX")
-    return "Funcx"
+    application.logger.debug("FuncX")
+    return "Funcx EB"
 
 
-# TODO: Consider using @authenticated decorator so don't need to check user.
-@app.route('/login', methods=['GET'])
+# Consider using @authenticated decorator so don't need to check user.
+@application.route('/login', methods=['GET'])
 def login():
-
     """Send the user to Globus Auth."""
     return redirect(url_for('callback'))
 
 
-@app.route('/callback', methods=['GET'])
+@application.route('/callback', methods=['GET'])
 def callback():
     """Handles the interaction with Globus Auth."""
     # If we're coming back from Globus Auth in an error state, the error
@@ -68,7 +65,7 @@ def callback():
         return redirect('https://funcx.org')
 
 
-@app.route('/logout', methods=['GET'])
+@application.route('/logout', methods=['GET'])
 def logout():
     """
     - Revoke the tokens with Globus Auth.
@@ -104,30 +101,9 @@ def logout():
     return redirect(''.join(ga_logout_url))
 
 
-def start_broker():
-    """
-    Start the ZMQ broker. This allows multiple workers to submit requests.
-    """
-    try:
-        broker = ZMQBroker()
-        broker.start("*", 50000)
-    except Exception as e:
-        app.logger.debug("Broker failed. %s" % e)
-        app.logger.debug("Continuing without a broker.")
-
-
-app.secret_key = SECRET_KEY
-app.config['SESSION_TYPE'] = 'filesystem'
+application.secret_key = SECRET_KEY
+application.config['SESSION_TYPE'] = 'filesystem'
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8080)
-else:
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-    handler = logging.StreamHandler()
-    format_string = "%(asctime)s %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
-    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
+    application.run(debug=True, host="0.0.0.0")
 
