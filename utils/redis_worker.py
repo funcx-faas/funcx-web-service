@@ -15,7 +15,7 @@ sys.path.insert(0,parentdir)
 from utils.majordomo_client import ZMQClient
 from config import _get_redis_client, _get_db_connection
 
-from api.utils import _resolve_function, _resolve_endpoint
+from api.utils import _resolve_function, _resolve_endpoint, _create_task
 
 from zmq.error import ZMQError
 
@@ -59,6 +59,7 @@ def worker(task_id, rc):
             task['reason'] = "Unable to access endpoint"
             task['modified_at'] = time.time()
             rc.set(f"task:{task_id}", json.dumps(task))
+            _create_task(task)
             return
 
         # Wrap up an object to send to ZMQ
@@ -92,7 +93,7 @@ def worker(task_id, rc):
     task['modified_at'] = time.time()
     print(task)
     rc.set(f"task:{task_id}", json.dumps(task))
-
+    _create_task(task)
 
 def main():
     """Pull tasks from the redis queue and start threads to process them"""

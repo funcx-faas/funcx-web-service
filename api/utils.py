@@ -9,67 +9,47 @@ from flask import request, current_app as app
 ############
 # Database #
 ############
-def _create_task(user_id, task_uuid, is_async, task_status):
+def _create_task(task):
     """Insert a task into the database.
 
     Parameters
     ----------
-    user_id : str
-        The uuid of the user
-    task_uuid : str
-        The uuid of the task
-    is_async : bool
-        Whether or not it is an asynchronous task
-    task_status : str
-        The status of the task
-
-    Returns
-    -------
-    dict
-        A dictionary of the status and task id
+    task : dict
+        The dictionary of the task
     """
     try:
+        user_id = task['user_id']
+        task_id = task['task_id']
+        function_id = task['function_id']
+        endpoint_id = task['endpoint_id']
+        created_at = task['created_at']
+        modified_at = task['modified_at']
+        result = None
+        if 'result' in task:
+            result = task['result']
+        elif 'reason' in task:
+            result = task['reason']
+
         conn, cur = _get_db_connection()
-        query = "INSERT INTO tasks (user_id, uuid, status, is_async) values (%s, %s, %s, %s);"
-        cur.execute(query, (user_id, task_uuid, task_status, bool(is_async)))
+        query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
+                "created_at, modified_at, status) values (%s, %s, %s, %s, %s, %s, %s);"
+        cur.execute(query, (user_id, task_id, function_id, endpoint_id, created_at, modified_at, status))
+
+        # Add in a result if it is set
+        if result:
+            c = base64.b64encode(result)
+            result = c.decode('utf-8')
+            query = "insert into results (task_id, result) values (%s, %s)"
+            cur.execute(query, (task_uuid, result))
+
         conn.commit()
+
     except Exception as e:
         print(e)
         app.logger.error(e)
 
     res = {"status": task_status, "task_id": str(task_uuid)}
     return res
-
-
-def _update_task(task_uuid, new_status, result=None):
-    """Update a task in the database.
-
-    Parameters
-    ----------
-    task_uuid : str
-        The uuid of the task
-    new_status : str
-        The status of the task
-    result : str
-        The result of the function
-    """
-    try:
-        conn, cur = _get_db_connection()
-        query = "UPDATE tasks SET status = %s, modified_at = 'NOW()' WHERE uuid = %s"
-        cur.execute(query, (new_status, task_uuid))
-
-        # Add in a result if it is set
-        if result:
-            c = base64.b64encode(result)
-            result = c.decode('utf-8')
-
-            query = "insert into results (task_id, result) values (%s, %s)"
-            cur.execute(query, (task_uuid, result))
-        conn.commit()
-
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
 
 
 def _log_request(user_id, input_data, response_data, endpoint, exec_type):

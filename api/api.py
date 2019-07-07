@@ -4,7 +4,7 @@ import uuid
 import json
 import time
 
-from .utils import (_get_user, _create_task, _update_task, _log_request, 
+from .utils import (_get_user, _log_request, 
                     _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
@@ -63,7 +63,8 @@ def execute():
         rc = _get_redis_client()
         
         # Add the job to redis
-        task_payload = {'endpoint_id': endpoint,
+        task_payload = {'task_id': task_id,
+                        'endpoint_id': endpoint,
                         'function_id': function_uuid,
                         'input_data': input_data,
                         'user_name': user_name,

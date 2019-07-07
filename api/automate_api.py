@@ -7,7 +7,7 @@ import statistics
 import base64
 from random import randint
 from datetime import timezone, timedelta, datetime
-from .utils import (_get_user, _create_task, _update_task, _log_request, 
+from .utils import (_get_user, _log_request, 
                     _register_site, _register_function, _resolve_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
