@@ -24,6 +24,7 @@ def _create_task(task):
         endpoint_id = task['endpoint_id']
         created_at = task['created_at']
         modified_at = task['modified_at']
+        status = task['status']
         result = None
         if 'result' in task:
             result = task['result']
