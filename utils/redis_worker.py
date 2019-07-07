@@ -19,7 +19,6 @@ from api.utils import _resolve_function, _resolve_endpoint, _create_task
 
 from zmq.error import ZMQError
 
-zmq_client = ZMQClient("tcp://3.88.81.131:50001")
 
 caching = True
 
@@ -37,6 +36,7 @@ def worker(task_id, rc):
         The client to interact with redis
     """
     try:
+        zmq_client = ZMQClient("tcp://3.88.81.131:50001")
         # Get the task
         task = json.loads(rc.get(f"task:{task_id}"))
 
