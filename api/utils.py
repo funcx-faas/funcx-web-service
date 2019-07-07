@@ -42,7 +42,7 @@ def _create_task(task):
             #c = base64.b64encode(result)
             #result = c.decode('utf-8')
             query = "insert into results (task_id, result) values (%s, %s)"
-            cur.execute(query, (task_uuid, str(result)))
+            cur.execute(query, (task_id, str(result)))
 
         conn.commit()
 
