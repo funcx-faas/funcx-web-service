@@ -105,11 +105,11 @@ def status(task_id):
         abort(400, description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
-        user_name = token_cache[token]
+        user_name, user_id, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_name = _introspect_token(request.headers)
-        token_cache.update({token: user_name})
+        user_name, user_id, short_name = _get_user(request.headers)
+        token_cache[token] = (user_name, user_id, short_name)
 
     if not user_name:
         abort(400, description="Could not find user. You must be logged in to perform this function.")
