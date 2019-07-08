@@ -47,7 +47,7 @@ def run():
 
     try:
         print("Starting the request")
-        post_req = request.json
+        post_req = request.json['body']
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['data']
