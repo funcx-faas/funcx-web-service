@@ -46,6 +46,7 @@ def run():
         abort(400, description=f"Could not find user. You must be logged in to perform this function.")
 
     try:
+        print("Starting the request")
         post_req = request.json
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
@@ -58,7 +59,7 @@ def run():
             task_id = post_req['action_id']
 
         app.logger.info("Task assigned UUID: {}".format(task_id))
-
+        print(task_id)
         # Get the redis connection
         rc = _get_redis_client()
 
@@ -85,9 +86,9 @@ def run():
         "action_id": task_id,
         "details": None,
         "release_after": 'P30D',
-        "start_time": str(datetime.utcnow())
+        "start_time": str(datetime.datetime.utcnow())
     }
-    
+    print(automate_response)
     return jsonify(automate_response)
 
 
