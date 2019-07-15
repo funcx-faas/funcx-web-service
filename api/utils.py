@@ -308,6 +308,8 @@ def _introspect_token(headers):
             auth_detail = client.oauth2_token_introspect(token)
             print('TODO: delete this')
             print(auth_detail)
+            dep_tokens = client.oauth2_get_dependent_tokens(token)
+            print(dep_tokens)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
         except Exception as e:
