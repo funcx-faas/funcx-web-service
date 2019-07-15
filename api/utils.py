@@ -306,6 +306,8 @@ def _introspect_token(headers):
         try:
             client = _load_funcx_client()
             auth_detail = client.oauth2_token_introspect(token)
+            print('TODO: delete this')
+            print(auth_detail)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
         except Exception as e:
