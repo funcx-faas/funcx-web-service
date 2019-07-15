@@ -8,7 +8,8 @@ from multiprocessing import Queue
 
 from multiprocessing import Process
 from parsl.app.errors import RemoteExceptionWrapper
-from funcx import set_file_logger
+
+from forwarder import set_file_logger
 
 
 def double(x):
@@ -166,7 +167,7 @@ def spawn_forwarder(address,
     Returns:
          A Forwarder object
     """
-    from funcx.queues.redis import RedisQueue
+    from forwarder.queues.redis import RedisQueue
     from funcx.executors import HighThroughputExecutor as HTEX
     from parsl.providers import LocalProvider
     from parsl.channels import LocalChannel
