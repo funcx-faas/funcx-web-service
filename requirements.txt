@@ -3,3 +3,4 @@ flask
 psycopg2-binary
 globus_sdk
 zmq
+globus_nexus_client
