@@ -15,7 +15,7 @@ application.register_blueprint(automate, url_prefix="/automate")
 @application.route("/")
 def hello():
     application.logger.debug("FuncX")
-    return "Funcx EB"
+    return "funcX Dev"
 
 
 # Consider using @authenticated decorator so don't need to check user.
