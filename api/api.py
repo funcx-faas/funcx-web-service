@@ -13,7 +13,12 @@ from config import _get_db_connection, _get_redis_client
 # Flask
 api = Blueprint("api", __name__)
 
+# A cache for user information
 token_cache = {}
+
+# A cache for authorized endpoint usage by users
+endpoint_cache = {}
+
 caching = True
 
 
@@ -48,6 +53,26 @@ def execute():
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['data']
+
+        endpoint_authorized = False
+        # Check if the user has already used this endpoint
+        if caching and endpoint in endpoint_cache:
+            if user_name in endpoint_cache[endpoint]:
+                endpoint_authorized = True
+
+        if not endpoint_authorized:
+            # Check if the user is allowed to access the endpoint
+            endpoint_authorized = _resolve_endpoint(user_name, endpoint, token)
+
+            # Throw an unauthorized error if they are not allowed
+            if not endpoint_authorized:
+                abort(400, description=f"Unauthorized access of endpoint.")
+
+            # Otherwise, cache it for next time
+            if caching:
+                if endpoint not in endpoint_cache:
+                    endpoint_cache[endpoint] = {}
+                endpoint_cache[endpoint][user_name] = True
 
         task_status = 'ACTIVE'
         task_id = str(uuid.uuid4())

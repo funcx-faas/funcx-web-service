@@ -53,7 +53,7 @@ def worker(task_id, rc):
             if caching:
                 function_cache[task['function_id']] = (func_code, func_entry)
 
-        endpoint_id = _resolve_endpoint(task['user_id'], task['endpoint_id'], status='ONLINE')
+        endpoint_id = task['endpoint_id']
 
         if endpoint_id is None:
             task['status'] = 'FAILED'
