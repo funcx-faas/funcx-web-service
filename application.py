@@ -7,10 +7,10 @@ from config import SECRET_KEY, _load_funcx_client
 
 application = Flask(__name__)
 
-
 # Include the API blueprint
 application.register_blueprint(api, url_prefix="/api/v1")
 application.register_blueprint(automate, url_prefix="/automate")
+
 
 @application.route("/")
 def hello():
@@ -44,11 +44,7 @@ def callback():
     # If there's no "code" query string parameter, we're in this route
     # starting a Globus Auth login flow.
     if 'code' not in request.args:
-        additional_authorize_params = (
-            {'signup': 1} if request.args.get('signup') else {})
-
         auth_uri = client.oauth2_get_authorize_url()
-        # additional_params=additional_authorize_params)
         return redirect(auth_uri)
     else:
         # If we do have a "code" param, we're coming back from Globus Auth
@@ -56,7 +52,7 @@ def callback():
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
         id_token = tokens.decode_id_token(client)
-        app.logger.debug(id_token)
+        application.logger.debug(id_token)
         session.update(
             tokens=tokens.by_resource_server,
             is_authenticated=True
@@ -106,4 +102,3 @@ application.config['SESSION_TYPE'] = 'filesystem'
 
 if __name__ == "__main__":
     application.run(debug=True, host="0.0.0.0")
-

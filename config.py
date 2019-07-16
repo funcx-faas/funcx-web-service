@@ -24,8 +24,8 @@ def _get_db_connection():
     """
     Establish a database connection
     """
-    con_str = "dbname={dbname} user={dbuser} password={dbpass} host={dbhost}".format(dbname=DB_NAME, dbuser=DB_USER,
-                                                                                     dbpass=DB_PASSWORD, dbhost=DB_HOST)
+    con_str = f"dbname={DB_NAME} user={DB_USER}" \
+              f"password={DB_PASSWORD} host={DB_HOST}"
 
     conn = psycopg2.connect(con_str)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -55,8 +55,8 @@ def _get_redis_client():
         A client for redis
     """
     try:
-        redisClient = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-        return redisClient
+        redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
+                                         decode_responses=True)
+        return redis_client
     except Exception as e:
         print(e)
-
