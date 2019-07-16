@@ -207,12 +207,13 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
 
         # Check if there are any groups associated with this endpoint
         query = "select * from auth_groups where endpoint_id = %s"
+        print(query)
         cur.execute(query, (endpoint_uuid,))
         r = cur.fetchall()
         endpoint_groups = []
         for row in r:
             endpoint_groups.append(row['group_id'])
-
+        print(endpoint_groups)
         if len(endpoint_groups) > 0:
             # Check if the user is in one of these groups
             client = _load_funcx_client()
@@ -224,15 +225,17 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
             nexus_client = NexusClient()
             nexus_client.authorizer = AccessTokenAuthorizer(nexus_token)
             user_groups = nexus_client.list_groups(my_statuses="active", fields="id", for_all_identities=True)
-
+            print(user_groups)
             # Check if any of the user's groups match
             for user_group in user_groups:
                 for endpoint_group in endpoint_groups:
                     if user_group['id'] == endpoint_group:
+                        print("MATCHED USER GROUP TO AUTH GROUP")
                         return True
         else:
             # Check if the user owns this endpoint
             query = "select * from sites where endpoint_uuid = %s and user_id = %s order by id DESC limit 1"
+            print(query)
             cur.execute(query, (endpoint_uuid, user_id))
             r = cur.fetchone()
             endpoint_uuid = r['endpoint_uuid']
