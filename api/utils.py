@@ -217,7 +217,7 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
             # Check if the user is in one of these groups
             client = _load_funcx_client()
             dep_tokens = client.oauth2_get_dependent_tokens(token)
-            nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']
+            nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
             print(nexus_token)
 
             # Create a nexus client to retrieve the user's groups
