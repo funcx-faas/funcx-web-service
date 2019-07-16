@@ -55,16 +55,13 @@ def execute():
         input_data = post_req['data']
 
         endpoint_authorized = False
-        print("checking endpoint auth")
         # Check if the user has already used this endpoint
         if caching and endpoint in endpoint_cache:
             if user_name in endpoint_cache[endpoint]:
                 endpoint_authorized = True
-                print("cached")
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
             endpoint_authorized = _authorize_endpoint(user_name, endpoint, token)
-            print(endpoint_authorized)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 abort(400, description=f"Unauthorized access of endpoint.")
