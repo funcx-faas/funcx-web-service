@@ -6,7 +6,7 @@ import json
 import time
 
 from .utils import (_get_user, _log_request,
-                    _register_site, _register_function, _resolve_endpoint,
+                    _register_site, _register_function, _authorize_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, _get_redis_client
@@ -15,6 +15,7 @@ from config import _get_db_connection, _get_redis_client
 automate = Blueprint("automate", __name__)
 
 token_cache = {}
+endpoint_cache = {}
 caching = True
 
 
@@ -51,6 +52,24 @@ def run():
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['data']
+
+        endpoint_authorized = False
+        # Check if the user has already used this endpoint
+        if caching and endpoint in endpoint_cache:
+            if user_name in endpoint_cache[endpoint]:
+                endpoint_authorized = True
+        if not endpoint_authorized:
+            # Check if the user is allowed to access the endpoint
+            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
+            # Throw an unauthorized error if they are not allowed
+            if not endpoint_authorized:
+                return jsonify({"Error": "Unauthorized access of endpoint."}), 400
+
+            # Otherwise, cache it for next time
+            if caching:
+                if endpoint not in endpoint_cache:
+                    endpoint_cache[endpoint] = {}
+                endpoint_cache[endpoint][user_name] = True
 
         task_status = 'ACTIVE'
         task_id = str(uuid.uuid4())

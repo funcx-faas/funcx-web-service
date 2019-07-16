@@ -15,7 +15,7 @@ sys.path.insert(0,parentdir)
 from utils.majordomo_client import ZMQClient
 from config import _get_redis_client, _get_db_connection
 
-from api.utils import _resolve_function, _resolve_endpoint, _create_task
+from api.utils import _resolve_function, _create_task
 
 from zmq.error import ZMQError
 
@@ -53,7 +53,7 @@ def worker(task_id, rc):
             if caching:
                 function_cache[task['function_id']] = (func_code, func_entry)
 
-        endpoint_id = _resolve_endpoint(task['user_id'], task['endpoint_id'], status='ONLINE')
+        endpoint_id = task['endpoint_id']
 
         if endpoint_id is None:
             task['status'] = 'FAILED'

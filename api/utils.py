@@ -6,6 +6,8 @@ import datetime
 from config import _load_funcx_client, _get_db_connection
 from flask import request, current_app as app
 
+from globus_nexus_client import NexusClient
+from globus_sdk import AccessTokenAuthorizer, GlobusAPIError
 
 ############
 # Database #
@@ -39,8 +41,6 @@ def _create_task(task):
 
         # Add in a result if it is set
         if result:
-            #c = base64.b64encode(result)
-            #result = c.decode('utf-8')
             query = "insert into results (task_id, result) values (%s, %s)"
             cur.execute(query, (task_id, str(result)))
 
@@ -141,7 +141,7 @@ def _register_function(user_id, function_name, description, function_code, entry
     return function_uuid
 
 
-def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, project=None):
+def _register_site(user_id, endpoint_name, description, endpoint_uuid=None):
     """Register the site in the database.
 
     Parameters
@@ -154,8 +154,6 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
         A description of the endpoint
     endpoint_uuid : str
         The uuid of the endpoint (if it exists)
-    project : str
-        The project the endpoint belongs to (if any)
 
     Returns
     -------
@@ -168,9 +166,11 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
         if endpoint_uuid:
 
             # Make sure it exists
-            res_endpoint_uuid = _resolve_endpoint(user_id, endpoint_uuid)
-            if res_endpoint_uuid:
-                return res_endpoint_uuid
+            query = "SELECT * from sites where user_id = %s and endpoint_uuid = %s"
+            cur.execute(query, (user_id, endpoint_uuid))
+            rows = cur.fetchall()
+            if len(rows) > 0:
+                return endpoint_uuid
         endpoint_uuid = str(uuid.uuid4())
         query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
                 "values (%s, %s, %s, %s, %s, %s)"
@@ -182,39 +182,65 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
     return endpoint_uuid
 
 
-def _resolve_endpoint(user_id, endpoint_uuid, status=None):
+def _authorize_endpoint(user_id, endpoint_uuid, token):
     """Get the endpoint uuid from database
 
     Parameters
     ----------
-    user_id : str
-        The uuid of the user
+    user_id : int
+        The database id of the user
     endpoint_uuid : str
         The uuid of the function
-    status : str
-        The status of the endpoint
+    token : str
+        The auth token
 
     Returns
     -------
-    str
-        The uuid of the endpoint
+    boolean
+        Whether or not the user is allowed access to the endpoint
     """
 
     try:
-        conn, cur = _get_db_connection() 
-        if status:
-            query = "select * from sites where status = %s and endpoint_uuid = %s and user_id = %s " \
-                    "order by id DESC limit 1"
-            cur.execute(query, (status, endpoint_uuid, user_id))
+        conn, cur = _get_db_connection()
+
+        # Check if there are any groups associated with this endpoint
+        query = "select * from auth_groups where endpoint_id = %s"
+        cur.execute(query, (endpoint_uuid,))
+        rows = cur.fetchall()
+        endpoint_groups = []
+        for row in rows:
+            endpoint_groups.append(row['group_id'])
+
+        if len(endpoint_groups) > 0:
+            # Check if the user is in one of these groups
+            client = _load_funcx_client()
+            dep_tokens = client.oauth2_get_dependent_tokens(token)
+            nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
+
+            # Create a nexus client to retrieve the user's groups
+            nexus_client = NexusClient()
+            nexus_client.authorizer = AccessTokenAuthorizer(nexus_token)
+            user_groups = nexus_client.list_groups(my_statuses="active", fields="id", for_all_identities=True)
+
+            # Check if any of the user's groups match
+            for user_group in user_groups:
+                for endpoint_group in endpoint_groups:
+                    if user_group['id'] == endpoint_group:
+                        return True
         else:
+            # Check if the user owns this endpoint
             query = "select * from sites where endpoint_uuid = %s and user_id = %s order by id DESC limit 1"
             cur.execute(query, (endpoint_uuid, user_id))
-        r = cur.fetchone()
-        endpoint_uuid = r['endpoint_uuid']
+            row = cur.fetchone()
+            endpoint_uuid = row['endpoint_uuid']
+            if not endpoint_uuid:
+                return False
+
     except Exception as e:
         print(e)
         app.logger.error(e)
-    return endpoint_uuid
+        return False
+    return True
 
 
 def _resolve_function(user_id, function_uuid):
@@ -306,10 +332,6 @@ def _introspect_token(headers):
         try:
             client = _load_funcx_client()
             auth_detail = client.oauth2_token_introspect(token)
-            print('TODO: delete this')
-            print(auth_detail)
-            dep_tokens = client.oauth2_get_dependent_tokens(token)
-            print(dep_tokens)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
         except Exception as e:
