@@ -60,7 +60,7 @@ def run():
                 endpoint_authorized = True
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _authorize_endpoint(user_name, endpoint, token)
+            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 abort(400, description=f"Unauthorized access of endpoint.")
