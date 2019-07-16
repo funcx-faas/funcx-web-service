@@ -1,14 +1,11 @@
-import psycopg2.extras
-import pickle
 import uuid
 import json
 import time
 
-from .utils import (_get_user, _log_request, 
-                    _register_site, _register_function, _authorize_endpoint,
-                    _resolve_function, _introspect_token, _get_container)
+from .utils import (_get_user, _register_site, _register_function,
+                    _authorize_endpoint, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection, _get_redis_client
+from config import _get_redis_client
 
 # Flask
 api = Blueprint("api", __name__)
@@ -245,4 +242,3 @@ def register_function():
     app.logger.debug(function_name)
     function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
     return jsonify({'function_uuid': function_uuid})
-
