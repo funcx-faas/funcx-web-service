@@ -170,9 +170,11 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
         if endpoint_uuid:
 
             # Make sure it exists
-            res_endpoint_uuid = _resolve_endpoint(user_id, endpoint_uuid)
-            if res_endpoint_uuid:
-                return res_endpoint_uuid
+            query = "SELECT * from sites where user_id = %s and endpoint_uuid = %s"
+            cur.execute(query, (user_id, endpoint_uuid))
+            rows = cur.fetchall()
+            if len(rows) > 0:
+                return endpoint_uuid
         endpoint_uuid = str(uuid.uuid4())
         query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
                 "values (%s, %s, %s, %s, %s, %s)"
@@ -207,38 +209,37 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
 
         # Check if there are any groups associated with this endpoint
         query = "select * from auth_groups where endpoint_id = %s"
-        print(query)
         cur.execute(query, (endpoint_uuid,))
-        r = cur.fetchall()
+        rows = cur.fetchall()
         endpoint_groups = []
-        for row in r:
+        for row in rows:
             endpoint_groups.append(row['group_id'])
-        print(endpoint_groups)
+
         if len(endpoint_groups) > 0:
             # Check if the user is in one of these groups
             client = _load_funcx_client()
             dep_tokens = client.oauth2_get_dependent_tokens(token)
             nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
-            print(nexus_token)
 
             # Create a nexus client to retrieve the user's groups
             nexus_client = NexusClient()
             nexus_client.authorizer = AccessTokenAuthorizer(nexus_token)
             user_groups = nexus_client.list_groups(my_statuses="active", fields="id", for_all_identities=True)
-            print(user_groups)
+
             # Check if any of the user's groups match
             for user_group in user_groups:
                 for endpoint_group in endpoint_groups:
                     if user_group['id'] == endpoint_group:
-                        print("MATCHED USER GROUP TO AUTH GROUP")
                         return True
         else:
             # Check if the user owns this endpoint
             query = "select * from sites where endpoint_uuid = %s and user_id = %s order by id DESC limit 1"
-            print(query)
             cur.execute(query, (endpoint_uuid, user_id))
-            r = cur.fetchone()
-            endpoint_uuid = r['endpoint_uuid']
+            row = cur.fetchone()
+            endpoint_uuid = row['endpoint_uuid']
+            if not endpoint_uuid:
+                return False
+
     except Exception as e:
         print(e)
         app.logger.error(e)
