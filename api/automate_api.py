@@ -113,7 +113,7 @@ def run():
 
 @automate.route("/", methods=['GET', 'POST'])
 def introspect():
-    return {'api_version':'1', 'input_schema':{'endpoint':{'type':'string'},
+    return """{'api_version':'1', 'input_schema':{'endpoint':{'type':'string'},
                                                'func':{'type':'string'},
                                                'is_async': {'type':'bool'}
                                                'data' : {'type':'json'}
@@ -128,7 +128,7 @@ def introspect():
                                                'synchronous':'true',
                                                'title':"AutomateInput",
                                                'visible_to':
-                                               'all_authenticated_users'}
+                                               'all_authenticated_users'}"""
 
 @automate.route("/<task_id>/status", methods=['GET'])
 def status(task_id):
