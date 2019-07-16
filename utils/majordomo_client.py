@@ -18,7 +18,7 @@ class ZMQClient(object):
     client = None
     poller = None
     timeout = 2500
-    timeout = 600000
+    timeout = 6000000
     retries = 1
     verbose = False
 
