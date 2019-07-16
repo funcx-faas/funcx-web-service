@@ -156,7 +156,7 @@ def spawn_forwarder(address,
        Executor object to be instantiated.
 
     task_q : Queue object
-       Queue object matching funcx.queues.base.FuncxQueue interface
+       Queue object matching forwarder.queues.base.FuncxQueue interface
 
     logging_level : int
        Logging level as defined in the logging module. Default: logging.INFO (20)
