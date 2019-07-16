@@ -5,7 +5,7 @@ import json
 import time
 
 from .utils import (_get_user, _log_request, 
-                    _register_site, _register_function, _resolve_endpoint,
+                    _register_site, _register_function, _authorize_endpoint,
                     _resolve_function, _introspect_token, _get_container)
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_db_connection, _get_redis_client
@@ -62,7 +62,7 @@ def execute():
 
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _resolve_endpoint(user_name, endpoint, token)
+            endpoint_authorized = _authorize_endpoint(user_name, endpoint, token)
 
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:

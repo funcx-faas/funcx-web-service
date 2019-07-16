@@ -15,7 +15,7 @@ sys.path.insert(0,parentdir)
 from utils.majordomo_client import ZMQClient
 from config import _get_redis_client, _get_db_connection
 
-from api.utils import _resolve_function, _resolve_endpoint, _create_task
+from api.utils import _resolve_function, _create_task
 
 from zmq.error import ZMQError
 
