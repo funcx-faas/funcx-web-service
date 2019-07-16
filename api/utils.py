@@ -41,8 +41,6 @@ def _create_task(task):
 
         # Add in a result if it is set
         if result:
-            #c = base64.b64encode(result)
-            #result = c.decode('utf-8')
             query = "insert into results (task_id, result) values (%s, %s)"
             cur.execute(query, (task_id, str(result)))
 
