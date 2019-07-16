@@ -111,25 +111,6 @@ def run():
     return jsonify(automate_response)
 
 
-@automate.route("/", methods=['GET', 'POST'])
-def introspect():
-    return """{'api_version':'1', 'input_schema':{'endpoint':{'type':'string'},
-                                               'func':{'type':'string'},
-                                               'is_async': {'type':'bool'}
-                                               'data' : {'type':'json'}
-                                               'required':['endpoint',
-                                                           'func',
-                                                           'is_async',
-                                                           'data']},
-                                               'keywords':["funcx","faas"],
-                                               'runnable_by':
-                                               "all_authenticated_users",
-                                               'log_support':'false',
-                                               'synchronous':'true',
-                                               'title':"AutomateInput",
-                                               'visible_to':
-                                               'all_authenticated_users'}"""
-
 @automate.route("/<task_id>/status", methods=['GET'])
 def status(task_id):
     """Check the status of a task.
