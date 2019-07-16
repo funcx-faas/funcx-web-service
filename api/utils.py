@@ -143,7 +143,7 @@ def _register_function(user_id, function_name, description, function_code, entry
     return function_uuid
 
 
-def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, project=None):
+def _register_site(user_id, endpoint_name, description, endpoint_uuid=None):
     """Register the site in the database.
 
     Parameters
@@ -156,8 +156,6 @@ def _register_site(user_id, endpoint_name, description, endpoint_uuid=None, proj
         A description of the endpoint
     endpoint_uuid : str
         The uuid of the endpoint (if it exists)
-    project : str
-        The project the endpoint belongs to (if any)
 
     Returns
     -------
@@ -191,8 +189,8 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
 
     Parameters
     ----------
-    user_id : str
-        The uuid of the user
+    user_id : int
+        The database id of the user
     endpoint_uuid : str
         The uuid of the function
     token : str
