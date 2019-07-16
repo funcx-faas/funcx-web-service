@@ -1,15 +1,11 @@
-import psycopg2.extras
+
 import datetime
-import pickle
 import uuid
 import json
 import time
-
-from .utils import (_get_user, _log_request,
-                    _register_site, _register_function, _authorize_endpoint,
-                    _resolve_function, _introspect_token, _get_container)
+from .utils import _get_user, _authorize_endpoint
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection, _get_redis_client
+from config import _get_redis_client
 
 # Flask
 automate = Blueprint("automate", __name__)
@@ -34,7 +30,8 @@ def run():
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description=f"You must be logged in to perform this function.")
+        abort(400,
+              description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
         user_id, user_name, short_name = token_cache[token]
@@ -44,7 +41,9 @@ def run():
         token_cache['token'] = (user_id, user_name, short_name)
 
     if not user_name:
-        abort(400, description=f"Could not find user. You must be logged in to perform this function.")
+        abort(400,
+              description=f"Could not find user."
+                          "You must be logged in to perform this function.")
 
     try:
         print("Starting the request")
@@ -63,7 +62,8 @@ def run():
             endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
-                return jsonify({"Error": "Unauthorized access of endpoint."}), 400
+                return jsonify({"Error":
+                                "Unauthorized access of endpoint."}), 400
 
             # Otherwise, cache it for next time
             if caching:
@@ -110,24 +110,39 @@ def run():
     print(automate_response)
     return jsonify(automate_response)
 
+
 @automate.route("/", methods=['GET', 'POST'])
 def introspect():
-    return jsonify({'api_version':'1', 'input_schema':{'endpoint':{'type':'string'},
-                                               'func':{'type':'string'},
-                                               'is_async': {'type':'bool'},
-                                               'data' : {'type':'json'},
-                                               'required':['endpoint',
-                                                           'func',
-                                                           'is_async',
-                                                           'data']},
-                                               'keywords':["funcx","faas"],
-                                               'runnable_by':
-                                               "all_authenticated_users",
-                                               'log_support':'false',
-                                               'synchronous':'true',
-                                               'title':"AutomateInput",
-                                               'visible_to':
-                                               'all_authenticated_users'})
+    """
+    introspect()
+
+    Returns
+    ______
+    Introspect Compatible Json blob
+    """
+    return jsonify({'api_version': '1', 'input_schema': {'endpoint':
+                                                         {'type': 'string'},
+                                                         'func':
+                                                         {'type': 'string'},
+                                                         'is_async':
+                                                         {'type': 'bool'},
+                                                         'data':
+                                                         {'type': 'json'},
+                                                         'required':
+                                                         ['endpoint',
+                                                          'func',
+                                                          'is_async',
+                                                          'data']},
+                                        'keywords': ["funcx", "faas"],
+                                        'runnable_by':
+                                        "all_authenticated_users",
+                                        'log_support': 'false',
+                                        'synchronous': 'true',
+                                        'title': "AutomateInput",
+                                        'visible_to':
+                                        'all_authenticated_users'})
+
+
 @automate.route("/<task_id>/status", methods=['GET'])
 def status(task_id):
     """Check the status of a task.
@@ -148,7 +163,8 @@ def status(task_id):
         token = request.headers.get('Authorization')
         token = token.split(" ")[1]
     else:
-        abort(400, description=f"You must be logged in to perform this function.")
+        abort(400,
+              description=f"You must be logged in to perform this function.")
 
     if caching and token in token_cache:
         user_name, user_id, short_name = token_cache[token]
@@ -158,7 +174,9 @@ def status(task_id):
         token_cache[token] = (user_name, user_id, short_name)
 
     if not user_name:
-        abort(400, description="Could not find user. You must be logged in to perform this function.")
+        abort(400,
+              description="Could not find user."
+                          "You must be logged in to perform this function.")
 
     try:
         # Get a redis client
@@ -169,7 +187,7 @@ def status(task_id):
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
-        except:
+        except Exception:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         if 'result' in task:
