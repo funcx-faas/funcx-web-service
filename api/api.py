@@ -46,7 +46,8 @@ def execute():
         token_cache['token'] = (user_id, user_name, short_name)
 
     if not user_name:
-        abort(400, description=f"Could not find user. You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
 
     try:
         post_req = request.json
@@ -64,7 +65,7 @@ def execute():
             endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
-                abort(400, description=f"Unauthorized access of endpoint.")
+                return jsonify({"Error": "Unauthorized access of endpoint."}), 400
 
             # Otherwise, cache it for next time
             if caching:
