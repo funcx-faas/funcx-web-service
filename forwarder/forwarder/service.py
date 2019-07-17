@@ -41,7 +41,10 @@ def register():
     # connected to avoid clogging up the pipe. Submits will block if the client has
     # no endpoint connected.
     endpoint_id = endpoint_details['endpoint_id']
-    fw = spawn_forwarder(request.app.address, endpoint_id=endpoint_id)
+    fw = spawn_forwarder(request.app.address,
+                         endpoint_details['redis_address'],
+                         endpoint_id)
+
     connection_info = fw.connection_info
     ret_package = {'endpoint_id': endpoint_id}
     ret_package.update(connection_info)
@@ -59,9 +62,9 @@ def list_mappings():
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", default=8088,
+    parser.add_argument("-p", "--port", default=8080,
                         help="Port at which the service will listen on")
-    parser.add_argument("-a", "--address", default='127.0.0.1',
+    parser.add_argument("-a", "--address", default='0.0.0.0',
                         help="Address at which the service is running")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")
@@ -75,7 +78,7 @@ def cli():
     app.ep_mapping = {}
 
     try:
-        run(host=args.address, app=app, port=int(args.port), debug=True)
+        run(host='0.0.0.0', app=app, port=int(args.port), debug=True)
     except Exception as e:
         # This doesn't do anything
         print("Caught exception : {}".format(e))
