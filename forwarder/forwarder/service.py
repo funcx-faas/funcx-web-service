@@ -40,7 +40,7 @@ def register():
     # Make sure to not put anything into the client, until after an interchange has
     # connected to avoid clogging up the pipe. Submits will block if the client has
     # no endpoint connected.
-    endpoint_id = str(uuid.uuid4())
+    endpoint_id = endpoint_details['endpoint_id']
     fw = spawn_forwarder(request.app.address, endpoint_id=endpoint_id)
     connection_info = fw.connection_info
     ret_package = {'endpoint_id': endpoint_id}
