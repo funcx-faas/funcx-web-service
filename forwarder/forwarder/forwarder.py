@@ -139,10 +139,11 @@ class Forwarder(Process):
 
 
 def spawn_forwarder(address,
+                    redis_address,
+                    endpoint_id,
                     executor=None,
                     task_q=None,
                     result_q=None,
-                    endpoint_id=uuid.uuid4(),
                     logging_level=logging.INFO):
     """ Spawns a forwarder and returns the forwarder process for tracking.
 
@@ -152,6 +153,12 @@ def spawn_forwarder(address,
     address : str
        IP Address to which the endpoint must connect
 
+    redis_address : str
+       The redis host url at which task/result queues can be created. No port info
+
+    endpoint_id : str
+       Endpoint id string that will be used to address task/result queues.
+    
     executor : Executor object. Optional
        Executor object to be instantiated.
 
@@ -167,15 +174,18 @@ def spawn_forwarder(address,
     Returns:
          A Forwarder object
     """
-    from forwarder.queues.redis import RedisQueue
+    from forwarder.queues import RedisQueue
     from funcx.executors import HighThroughputExecutor as HTEX
     from parsl.providers import LocalProvider
     from parsl.channels import LocalChannel
 
     if not task_q:
-        task_q = RedisQueue('task', '127.0.0.1')
+        task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
-        result_q = RedisQueue('result', '127.0.0.1')
+        result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+
+    print("Task_q: {}".format(task_q))
+    print("Result_q: {}".format(result_q))
 
     if not executor:
         executor = HTEX(label='htex',
