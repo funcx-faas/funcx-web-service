@@ -40,18 +40,20 @@ def worker(task_id, rc):
 
         # Get the task
         task = json.loads(rc.get(f"task:{task_id}"))
+        
+        func_container = None
 
         # Check to see if function in cache. OTHERWISE go get it.
         # TODO: Cache flushing -- do LRU or something.
         # TODO: Move this to the RESOLVE function (not here).
         if caching and task['function_id'] in function_cache:
-            func_code, func_entry = function_cache[task['function_id']]
+            func_code, func_entry, func_container = function_cache[task['function_id']]
         else:
-            func_code, func_entry = _resolve_function(task['user_id'], task['function_id'])
+            func_code, func_entry, func_container = _resolve_function(task['user_id'], task['function_id'])
 
             # Now put it INTO the cache!
             if caching:
-                function_cache[task['function_id']] = (func_code, func_entry)
+                function_cache[task['function_id']] = (func_code, func_entry, func_container)
 
         endpoint_id = task['endpoint_id']
 
@@ -66,7 +68,8 @@ def worker(task_id, rc):
         # Wrap up an object to send to ZMQ
         exec_flag = 1
         event = {'data': task['input_data'], 'context': {}}
-        data = {"function": func_code, "entry_point": func_entry, 'event': event}
+        data = {"function": func_code, "entry_point": func_entry, 'event': event, "container_uuid": func_container}
+        print(f"sending: {data}")
         obj = (exec_flag, task_id, data)
         # Send the request to ZMQ
         res = zmq_client.send(endpoint_id, obj)
