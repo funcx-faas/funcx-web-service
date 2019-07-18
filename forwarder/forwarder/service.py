@@ -11,6 +11,7 @@ import argparse
 import json
 import uuid
 import sys
+import logging
 
 from forwarder.forwarder import Forwarder, spawn_forwarder
 
@@ -43,7 +44,9 @@ def register():
     endpoint_id = endpoint_details['endpoint_id']
     fw = spawn_forwarder(request.app.address,
                          endpoint_details['redis_address'],
-                         endpoint_id)
+                         endpoint_id,
+                         logging_level=logging.DEBUG if request.app.debug else logging.INFO)
+
 
     connection_info = fw.connection_info
     ret_package = {'endpoint_id': endpoint_id}
@@ -64,8 +67,8 @@ def cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", default=8080,
                         help="Port at which the service will listen on")
-    parser.add_argument("-a", "--address", default='0.0.0.0',
-                        help="Address at which the service is running")
+    parser.add_argument("-a", "--address", required=True,
+                        help="Address at which the service is running. This is the address passed to the endpoints")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")
     parser.add_argument("-d", "--debug", action='store_true',
@@ -75,6 +78,7 @@ def cli():
 
     app = bottle.default_app()
     app.address = args.address
+    app.debug = args.debug
     app.ep_mapping = {}
 
     try:
