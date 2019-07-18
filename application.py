@@ -12,10 +12,7 @@ application.register_blueprint(api, url_prefix="/api/v1")
 application.register_blueprint(automate, url_prefix="/automate")
 
 
-@application.route("/")
-def hello():
-    application.logger.debug("FuncX")
-    return "funcX Dev"
+from gui.routes import *
 
 
 # Consider using @authenticated decorator so don't need to check user.

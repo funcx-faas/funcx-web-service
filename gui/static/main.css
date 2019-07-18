@@ -1,0 +1,252 @@
+body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+header {
+    margin-bottom: 1.5em;
+}
+
+.BODY_MAIN {
+    padding-top: 75px;
+    padding-bottom: 10px;
+}
+
+.PAGE-TITLE {
+    margin-bottom: 12px;
+    /*margin-left: 14px;*/
+}
+
+.ALERT {
+    margin-top: -25px;
+}
+
+.INLINE-BLOCK {
+    display: inline-block;
+}
+
+/*Start Page*/
+
+#START-HEADER {
+    align-items: flex-start;
+    background-color: #335BA2;
+    color: rgb(250,250,250);
+    display: flex;
+    /*justify-content: flex-start;*/
+    margin-bottom: 70px;
+    padding: 20px;
+    padding-top: 0px;
+}
+
+#START-LOGO {
+    /*background-color: red;*/
+    display: inline-block;
+    margin-right: 24px;
+    width: 200px;
+}
+
+#START-HEADER-COL {
+    display: inline-block;
+    margin-top: 36px;
+}
+
+.BTN-OUTLINE {
+    background-color: rgba(250,250,250,0);
+    border: 1px solid rgb(250,250,250) !important;
+    /*border-radius: 3px;*/
+    color: rgb(250,250,250) !important;
+    /*line-height: 1em;*/
+    /*padding: 8px !important;*/
+    transition: color .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+.BTN-OUTLINE:hover {
+    background-color: rgba(250,250,250,1);
+    color: #335BA2 !important;
+}
+
+.BTN-IMG {
+    filter: brightness(5);
+}
+
+.BTN-OUTLINE:hover .BTN-IMG {
+    filter: brightness(1);
+}
+
+.CENTER {
+    text-align: center;
+}
+
+.CIRCLE-NUM {
+    margin-bottom: 20px;
+    width: 100px;
+}
+
+.STEP-DESC {
+    color: rgb(64,64,64);
+    display: block;
+    font-size: 2em;
+}
+
+.DIVIDE {
+    border-top: 1px solid rgb(227,227,227);
+    margin: 60px auto 60px auto;
+    width: 90%;
+}
+
+.START-SECTION-TEXT {
+
+}
+
+.START-SECTION-HEADER {
+    color: rgb(64,64,64);
+    font-size: 2.5em;
+    text-align: left;
+}
+
+.START-IMG {
+    border: 1px solid rgb(227,227,227);
+    display: inline-block;
+    height: 300px;
+    padding: 0 !important;
+    width: 480px;
+}
+
+/*Site Navigation*/
+
+#NAVBAR {
+    background-color: #335BA2;
+    /*height: 40px;*/
+    /*margin-bottom: 25px;*/
+    padding-bottom: 0px;
+    padding-top: 0px;
+}
+
+#NAV-LOGO {
+    /*filter: invert(100%);*/
+    margin-left: 10px;
+    width: 70px;
+}
+
+.NAV-LINK {
+    margin: 0px 2px 0px 2px;
+}
+
+.NAV-EXTERNAL-LINK {
+    border-radius: 20%;
+}
+
+.NAV-EXTERNAL-LINK:hover {
+    background-color: rgba(255,255,255,0.25);
+}
+
+.NAV-EXTERNAL-IMG {
+    /*filter: invert(100%);*/
+    width: 35px;
+}
+
+/*Home Page*/
+
+.HOME-ROW {
+    display: flex;
+    margin-bottom: 50px;
+}
+
+.IMG-LINK-COL {
+    align-items: flex-end;
+    background-color:#d6eef8;
+    background-size: cover;
+    color: rgb(250,250,250);
+    display: flex;
+    font-size: 1em;
+    height:350px;
+    margin:20px;
+    padding: 0;
+}
+
+.IMG-LINK-COL:hover {
+    color: rgb(250,250,250);
+}
+
+.IMG-LINK-COL-CAPTION {
+    background-color: rgba(70,70,70,0.8);
+    transition: font-size .1s ease-in-out;
+}
+
+.IMG-LINK-COL:hover .IMG-LINK-COL-CAPTION{
+    font-size: 1.4em;
+}
+
+blockquote {
+    font-size: 1.5em;
+    font-style: italic;
+}
+
+/*Functions Page*/
+
+#FUNCTIONS-TABLE {
+    background-color: rgb(245,245,245);
+    border: 1px solid rgb(221,221,221);
+    border-bottom: none;
+    /*padding-top: 50px;*/
+}
+
+#FUNCTIONS-TABLE-LABELS {
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+#FUNCTIONS-TABLE-LABELS:first-child {
+    padding-left: 0px;
+}
+
+#FUNCTIONS-TABLE-LABELS:last-child {
+    padding-right: 0px;
+}
+
+.FUNCTIONS-TABLE-R {
+    border-bottom: 1px solid rgb(221,221,221);
+    color:rgb(118,118,118);
+    padding: 5px 14px;
+}
+
+.FUNCTIONS-TABLE-C:first-child {
+    padding-left: 0px;
+}
+
+.FUNCTIONS-TABLE-C:last-child {
+    padding-right: 0px;
+}
+
+/*View Page*/
+
+#VIEW-INFO {
+    background-color: rgb(245,245,245);
+    border: 1px solid rgb(221,221,221);
+    border-radius: 5px;
+    cursor: auto;
+    margin-bottom: 20px;
+    /*margin-left: 20px;*/
+    margin-top: 5px;
+    padding-bottom: 8px !important;
+    padding-top: 5px !important;
+}
+
+dd {
+    display: inline-block;
+    margin-bottom: 0.5em;
+}
+
+#VIEW-CONTENT {
+    border: 2px solid rgb(221,221,221);
+    border-radius: 5px;
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 87.5%;
+    height: 24em;
+    margin-bottom: 16px;
+    margin-left: -14px;
+    overflow: scroll;
+    padding: 4px;
+    resize: both;
+    width: 48em;
+}

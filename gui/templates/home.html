@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row HOME-ROW">
+            <a href="{{ url_for('functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }}); padding: 0;">
+                <div class="container-fluid IMG-LINK-COL-CAPTION" style="padding: 10px 5px 10px 5px;">View Your Functions</div>
+            </a>
+            <a href="{{ url_for('new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }}); padding: 0;">
+                <div class="container-fluid IMG-LINK-COL-CAPTION" style="padding: 10px 5px 10px 5px;">Write a Function</div>
+            </a>
+        </div>
+        <div class="row HOME-ROW">
+            <div class="col-4">
+                <blockquote class="text-muted">
+                    &quotFuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot
+                </blockquote>
+            </div>
+            <div class="col-8" style="display:flex; justify-content: flex-end;">
+                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+{% endblock %}
