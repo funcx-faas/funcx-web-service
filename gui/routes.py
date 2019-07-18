@@ -8,20 +8,25 @@ from gui import app, db
 from gui.forms import EditForm
 import globus_sdk
 
+from flask import current_app as app, Blueprint, jsonify, request, abort
+
+# Flask
+guiapi = Blueprint("guiapi", __name__)
+
 def load_app_client():
     """Create an AuthClient for the portal"""
     app = globus_sdk.ConfidentialAppAuthClient('978450b9-b2d4-41dd-a12a-2785ec1b9206','3hPNqGDocBENKgvf7N8j58uL3NimZJ8GRPN4cIc4Lus=')
     return app
 
-@app.route('/')
+@guiapi.route('/')
 def start():
     return render_template('start.html')
 
-@app.route('/home')
+@guiapi.route('/home')
 def home():
     return render_template('home.html', title='Home')
 
-@app.route('/login')
+@guiapi.route('/login')
 def login():
     # app.secret_key = "secret"
     """
@@ -77,7 +82,7 @@ def login():
        return redirect('/home')
 
 
-@app.route('/logout', methods=['GET'])
+@guiapi.route('/logout', methods=['GET'])
 # @authenticated
 def logout():
    """
@@ -113,14 +118,14 @@ def logout():
    # Redirect the user to the Globus Auth logout page
    return redirect(''.join(ga_logout_url))
 
-@app.route('/functions')
+@guiapi.route('/functions')
 def functions():
     functions = Function.query.order_by(Function.date_created).all()
     # length = len(functions)
     # numPages = ceil(length/12)
     return render_template('functions.html', title='Your Functions', functions=functions)
 
-@app.route('/new', methods=['GET', 'POST'])
+@guiapi.route('/new', methods=['GET', 'POST'])
 def new():
     form = EditForm()
     if form.validate_on_submit():
@@ -136,7 +141,7 @@ def new():
     form.language.data = "Python 3"
     return render_template('edit.html', title='New Function', form=form, cancel_route="functions")
 
-@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+@guiapi.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit(id):
     func = Function.query.get_or_404(id)
     form = EditForm()
@@ -156,12 +161,12 @@ def edit(id):
     form.content.data = func.content
     return render_template('edit.html', title=f'Edit "{func.title}"', func=func, form=form, cancel_route="view")
 
-@app.route('/view/<int:id>')
+@guiapi.route('/view/<int:id>')
 def view(id):
     func = Function.query.get_or_404(id)
     return render_template('view.html', title=f'View "{func.title}"', func=func)
 
-@app.route('/delete/<int:id>')
+@guiapi.route('/delete/<int:id>')
 def delete(id):
     func = Function.query.get_or_404(id)
     try:
