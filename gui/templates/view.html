@@ -4,12 +4,12 @@
     <section class="container" style="padding-left: 0px; padding-right: 0px;">
         <div class="row">
             <div class="col">
-                <a href="{{ url_for('edit', id=func.id) }}" style="margin-right: 10px;">Edit</a>
-                <a href="{{ url_for('delete', id=func.id) }}" style="margin-right: 10px;">Delete</a>
+                <a href="{{ url_for('guiapi.edit', id=func.id) }}" style="margin-right: 10px;">Edit</a>
+                <a href="{{ url_for('guiapi.delete', id=func.id) }}" style="margin-right: 10px;">Delete</a>
                 <a href="">Run</a>
             </div>
             <div class="col" style="display:flex; justify-content:flex-end; padding-left: 0px;">
-                <a href="{{ url_for('functions') }}">Back to Functions</a>
+                <a href="{{ url_for('guiapi.functions') }}">Back to Functions</a>
             </div>
         </div>
     </section>

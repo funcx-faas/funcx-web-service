@@ -1,4 +1,4 @@
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import abort, Blueprint, current_app as app, flash, jsonify, redirect, render_template, request, session, url_for
 from datetime import datetime, timezone
 import requests
 import math
@@ -7,8 +7,6 @@ from gui import app, db
 # from gui.models import User, Function
 from gui.forms import EditForm
 import globus_sdk
-
-from flask import current_app as app, Blueprint, jsonify, request, abort
 
 # Flask
 guiapi = Blueprint("guiapi", __name__)

@@ -22,10 +22,10 @@
             </section>
             <div class="container" style="padding-left: 0;">
                 {{ form.submit }}
-                {% if cancel_route == "functions" %}
-                    <input type="button" onclick="window.location.href = '{{ url_for('functions') }}';" value="Cancel"/>
-                {% elif cancel_route == "view" %}
-                    <input type="button" onclick="window.location.href = '{{ url_for('view', id=func.id) }}';" value="Cancel"/>
+                {% if title != 'New Function' %}
+                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">
+                {% else %}
+                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', id=func.id) }}';" value="Cancel">
                 {% endif %}
             </div>
         </fieldset>

@@ -11,19 +11,19 @@
     <body class="BODY_MAIN">
         <header class="container-fluid">
             <nav class="row navbar navbar-expand-sm navbar-dark fixed-top" id="NAVBAR">
-                <a href="{{ url_for('start') }}">
+                <a href="{{ url_for('guiapi.start') }}">
                     <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="FuncX" id="NAV-LOGO">
                 </a>
                 <div class="col">
                     <ul class="navbar-nav INLINE-BLOCK">
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('home') }}">Home</a>
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.home') }}">Home</a>
                         </li>
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('functions') }}">Your Functions</a>
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
                         </li>
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('new') }}">New Function</a>
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
                         </li>
                     </ul>
                 </div>

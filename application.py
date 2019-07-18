@@ -6,7 +6,7 @@ from gui.routes import guiapi
 
 from config import SECRET_KEY, _load_funcx_client
 
-application = Flask(__name__)
+application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
 
 # Include the API blueprint
 application.register_blueprint(guiapi)
