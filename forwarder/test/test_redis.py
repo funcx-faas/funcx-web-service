@@ -1,6 +1,7 @@
 import argparse
 
-from funcx.queues import RedisQueue
+# from funcx.queues import RedisQueue
+from forwarder.queues import RedisQueue
 
 
 def test(endpoint_id=None, hostname=None, port=None):
@@ -12,8 +13,16 @@ def test(endpoint_id=None, hostname=None, port=None):
     results_rq = RedisQueue(f'result_{endpoint_id}', hostname)
     tasks_rq.connect()
     results_rq.connect()
+
+    print("Putting tasks in")
     for i in range(10):
-        tasks_rq.put("01", {'a': 1, 'b': 2})
+        tasks_rq.put(i, {'task_id': i, 'payload': i})
+
+    print("Getting tasks out")
+    # Print getting task
+    for i in range(10):
+        tid, task = tasks_rq.get()
+        print("Tid: {} , task:{}".format(tid, task))
 
     for i in range(10):
         print("Got task back: ", tasks_rq.get())
