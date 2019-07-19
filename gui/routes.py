@@ -6,6 +6,8 @@ from math import *
 from gui import app, db
 # from gui.models import User, Function
 from gui.forms import EditForm
+import uuid
+import config
 import globus_sdk
 
 # Flask
@@ -15,6 +17,8 @@ def load_app_client():
     """Create an AuthClient for the portal"""
     app = globus_sdk.ConfidentialAppAuthClient('978450b9-b2d4-41dd-a12a-2785ec1b9206','3hPNqGDocBENKgvf7N8j58uL3NimZJ8GRPN4cIc4Lus=')
     return app
+
+conn, cur = config._get_db_connection()
 
 @guiapi.route('/')
 def start():
@@ -127,12 +131,16 @@ def functions():
 def new():
     form = EditForm()
     if form.validate_on_submit():
-        func = Function(title=form.title.data, language=form.language.data, content=form.content.data)
+        # func = Function(title=form.title.data, language=form.language.data, content=form.content.data)
+        name = form.title.data
+        code = form.content.data
+        uuid = str(uuid.uuid4())
         try:
-            db.session.add(func)
-            db.session.commit()
-            flash(f'Saved Function "{func.title}"!', 'success')
-            return redirect('../view/' + str(func.id))
+            # db.session.add(func)
+            # db.session.commit()
+            cur.execute("INSERT INTO functions VALUES (function_name = %s, function_uuid = %s, function_code = %s)", (name, uuid, code))
+            flash(f'Saved Function "{name}"!', 'success')
+            return redirect('../view/' + str(id))
         except:
             flash('There was an issue handling your request', 'danger')
     form.title.data = ""
@@ -141,36 +149,54 @@ def new():
 
 @guiapi.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit(id):
-    func = Function.query.get_or_404(id)
+    # func = Function.query.get_or_404(id)
+    cur.execute(f'select id, function_name, user_id, description, timestamp, modified_at, function_uuid, function_code from functions where id = {id}')
+    func = cur.fetchone()
+    name = func['function_name']
     form = EditForm()
     if form.validate_on_submit():
-        func.title = form.title.data
-        func.language = form.language.data
-        func.content = form.content.data
-        func.date_edited = datetime.now(timezone.utc)
+        name = form.title.data
+        # func.language = form.language.data
+        code = form.content.data
         try:
-            db.session.commit()
-            flash(f'Saved Function "{func.title}"!', 'success')
-            return redirect('../view/' + str(func.id))
+            # db.session.commit()
+            cur.execute("update functions set function_name = %s, function_code = %s, modified_at = 'NOW()' where id = %s", (name, code, id))
+            conn.commit()
+            flash(f'Saved Function "{name}"!', 'success')
+            return redirect('../view/' + str(id))
         except:
             flash('There was an issue handling your request.', 'danger')
-    form.title.data = func.title
-    form.language.data = func.language
-    form.content.data = func.content
-    return render_template('edit.html', title=f'Edit "{func.title}"', func=func, form=form, cancel_route="view")
+    form.title.data = func['function_name']
+    # form.language.data = func.language
+    form.content.data = func['function_code']
+    return render_template('edit.html', title=f'Edit "{name}"', func=func, form=form, cancel_route="view")
 
-@guiapi.route('/view/<int:id>')
+
+@guiapi.route('/view/<id>')
 def view(id):
-    func = Function.query.get_or_404(id)
-    return render_template('view.html', title=f'View "{func.title}"', func=func)
+    # func = Function.query.get_or_404(id)
+    cur.execute(f'select id, function_name, user_id, description, timestamp, modified_at, function_uuid, function_code from functions where id = {id}')
+    func = cur.fetchone()
+    name = func['function_name']
+    user_id = func['user_id']
+    desc = func['description']
+    date_created = func['timestamp']
+    date_modified = func['modified_at']
+    function_uuid = func['function_uuid']
+    function_code = func['function_code']
+    return render_template('view.html', title=f'View "{name}"', id=id, name=name, user_id=user_id, desc=desc, date_created=date_created, date_modified=date_modified, function_uuid=function_uuid, function_code=function_code)
 
 @guiapi.route('/delete/<int:id>')
 def delete(id):
-    func = Function.query.get_or_404(id)
+    # func = Function.query.get_or_404(id)
+    cur.execute("SELECT id, function_name, deleted FROM functions WHERE id = %s", id)
+    func = cur.fetchone()
+    name = func['function_name']
     try:
-        db.session.delete(func)
-        db.session.commit()
-        flash(f'Deleted Function "{func.title}".', 'success')
+        # db.session.delete(func)
+        # db.session.commit()
+        cur.execute("UPDATE functions SET deleted = true WHERE id = %s", (id))
+        flash(f'Deleted Function "{name}".', 'success')
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))

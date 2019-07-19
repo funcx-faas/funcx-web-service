@@ -90,7 +90,7 @@ def logout():
     ga_logout_url.append('https://auth.globus.org/v2/web/logout')
     ga_logout_url.append('?client=6a47fd0c-6423-4851-80a2-c0947c1d884d')
     ga_logout_url.append('&redirect_uri={}'.format(redirect_uri))
-    ga_logout_url.append('&redirect_name=https://funcx.org')
+    ga_logout_url.append('&redirect_name=https://dev.funcx.org')
 
     # Redirect the user to the Globus Auth logout page
     return redirect(''.join(ga_logout_url))

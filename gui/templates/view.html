@@ -1,11 +1,11 @@
 {% extends 'layout.html' %}
 {% block content %}
-    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">{{ func.title }}</h1>
+    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">{{ name }}</h1>
     <section class="container" style="padding-left: 0px; padding-right: 0px;">
         <div class="row">
             <div class="col">
-                <a href="{{ url_for('guiapi.edit', id=func.id) }}" style="margin-right: 10px;">Edit</a>
-                <a href="{{ url_for('guiapi.delete', id=func.id) }}" style="margin-right: 10px;">Delete</a>
+                <a href="{{ url_for('guiapi.edit', id=id) }}" style="margin-right: 10px;">Edit</a>
+                <a href="{{ url_for('guiapi.delete', id=id) }}" style="margin-right: 10px;">Delete</a>
                 <a href="">Run</a>
             </div>
             <div class="col" style="display:flex; justify-content:flex-end; padding-left: 0px;">
@@ -14,13 +14,16 @@
         </div>
     </section>
     <dl id="VIEW-INFO" class="container">
-        <dt>Title: </dt><dd>{{ func.title }}</dd>
-        <dt>Language: </dt><dd>{{ func.language }}</dd>
-        <dt>Date Created: </dt><dd>{{ func.date_created.date() }} {{ func.date_created.strftime('%X') }}</dd>
-        <dt>Date Edited: </dt><dd>{{ func.date_edited.date() }} {{ func.date_edited.strftime('%X') }}</dd>
-        <dt>UUID: </dt><dd>{{ func.uuid }}</dd>
+        <dt>Title: </dt><dd>{{ name }}</dd>
+{#        <dt>Language: </dt><dd>{{ func.language }}</dd>#}
+        <dt>Description: </dt><dd>{{ desc }}</dd>
+        <dt>Created By: </dt><dd>{{ user_id }}</dd>
+        <dt>Date Created: </dt><dd>{{ date_created }}</dd>
+{#        {{ date_created.date() }} {{ date_created.strftime('%X') }}#}
+        <dt>Date Edited: </dt><dd>{{ date_modified.date() }} {{ date_modified.strftime('%X') }}</dd>
+        <dt>UUID: </dt><dd>{{ function_uuid }}</dd>
     </dl>
     <section class="container">
-        <pre id="VIEW-CONTENT" class="python"><code>{{ func.content }}</code></pre>
+        <pre id="VIEW-CONTENT" class="python"><code>{{ function_code }}</code></pre>
     </section>
 {% endblock %}

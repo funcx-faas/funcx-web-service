@@ -12,9 +12,9 @@
                 <dt>Title: </dt><ins>{{ form.title }}</ins>
                 <dt>Language: </dt><ins>{{ form.language }}</ins>
                 {% if title != 'New Function' %}
-                    <dt>Date Created: </dt><ins>{{ func.date_created.date() }} {{ func.date_created.strftime('%X') }}</ins>
-                    <dt>Date Edited: </dt><ins>{{ func.date_edited.date() }} {{ func.date_edited.strftime('%X') }}</ins>
-                    <dt>UUID: </dt><ins>{{ func.uuid }}</ins>
+                    <dt>Date Created: </dt><ins>{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</ins>
+                    <dt>Date Edited: </dt><ins>{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</ins>
+                    <dt>UUID: </dt><ins>{{ func['function_uuid'] }}</ins>
                 {% endif %}
             </dl>
             <section class="container">
@@ -25,7 +25,7 @@
                 {% if title != 'New Function' %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">
                 {% else %}
-                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', id=func.id) }}';" value="Cancel">
+                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', id=func['id']) }}';" value="Cancel">
                 {% endif %}
             </div>
         </fieldset>
