@@ -3,7 +3,8 @@ import json
 import time
 import datetime
 
-from authentication.auth import get_user, authorize_endpoint
+from .utils import resolve_user
+from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import  get_redis_client
 
@@ -16,34 +17,25 @@ caching = True
 
 
 @automate.route('/run', methods=['POST'])
-def run():
-    """Execute the specified function
+@authenticated
+def run(user_name):
+    """Puts a job in Redis and returns an id
 
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
     Returns
     -------
     json
         The task document
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_id, user_name, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_id, user_name, short_name = get_user(request.headers)
-        token_cache['token'] = (user_id, user_name, short_name)
-
     if not user_name:
-        abort(400, description=f"Could not find user. You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
 
     try:
-        print("Starting the request")
         post_req = request.json['body']
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
@@ -56,7 +48,7 @@ def run():
                 endpoint_authorized = True
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = authorize_endpoint(user_id, endpoint, token)
+            endpoint_authorized = authorize_endpoint(user_name, endpoint, request)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
@@ -77,6 +69,8 @@ def run():
         print(task_id)
         # Get the redis connection
         rc = get_redis_client()
+
+        user_id = resolve_user(user_name)
 
         # Add the job to redis
         task_payload = {'task_id': task_id,
@@ -108,11 +102,14 @@ def run():
 
 
 @automate.route("/<task_id>/status", methods=['GET'])
-def status(task_id):
+@authenticated
+def status(user_name, task_id):
     """Check the status of a task.
 
     Parameters
     ----------
+    user_name : str
+        The primary identity of the user
     task_id : str
         The task uuid to look up
 
@@ -122,23 +119,9 @@ def status(task_id):
         The status of the task
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_name, user_id, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_name, user_id, short_name = get_user(request.headers)
-        token_cache[token] = (user_name, user_id, short_name)
-
     if not user_name:
-        abort(400, description="Could not find user. You must be logged in to perform this function.")
-
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
     try:
         # Get a redis client
         rc = get_redis_client()

@@ -3,7 +3,7 @@ import json
 import time
 
 from .utils import register_endpoint, register_function, get_container
-from authentication.auth import authorize_endpoint, get_user, authenticated
+from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import get_redis_client
 
