@@ -177,7 +177,7 @@ def get_cont(user_name, container_id, container_type):
                                "logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
     container = get_container(container_id, container_type)
-    print(container)
+    app.logger.debug(f"Got container: {container}")
     return jsonify({'container': container})
 
 

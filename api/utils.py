@@ -78,11 +78,10 @@ def register_function(user_name, function_name, description, function_code, entr
                             function_uuid, function_code, entry_point))
 
         if container_uuid is not None:
-            print(f'Inserting container mapping: {container_uuid}')
+            app.logger.debug(f'Inserting container mapping: {container_uuid}')
             query = "INSERT INTO function_containers (container_id, function_id) values (" \
                     "(SELECT id from containers where container_uuid = %s), " \
                     "(SELECT id from functions where function_uuid = %s))"
-            print(query)
             cur.execute(query, (container_uuid, function_uuid))
         conn.commit()
     except Exception as e:
