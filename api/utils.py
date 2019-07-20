@@ -118,12 +118,12 @@ def register_container(user_name, container_name, location, description, contain
     try:
         conn, cur = get_db_connection()
 
-        query = "INSERT INTO containers (author, name, container_uuid, description) values (%s, %s, %s, %s) RETURNING id"
+        query = "INSERT INTO containers (author, name, container_uuid, description) values (%s, %s, %s, %s)"
         cur.execute(query, (user_id, container_name, container_uuid, description))
-        container_id = cur.fetchone()[0]
 
-        query = "INSERT INTO container_images (container_id, type, location) values (%s, %s, %s)"
-        cur.execute(query, (container_id, container_type, location))
+        query = "INSERT INTO container_images (container_id, type, location) values (" \
+                "(SELECT id from containers where container_uuid = %s), %s, %s)"
+        cur.execute(query, (container_uuid, container_type, location))
         conn.commit()
     except Exception as e:
         print(e)
