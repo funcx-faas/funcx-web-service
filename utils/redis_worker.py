@@ -11,9 +11,8 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from utils.majordomo_client import ZMQClient
-from config import get_redis_client
 
-from models.utils import resolve_function, create_task
+from models.utils import resolve_function, create_task, get_redis_client
 
 from zmq.error import ZMQError
 

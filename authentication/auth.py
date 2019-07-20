@@ -1,8 +1,8 @@
-from config import load_funcx_client, get_db_connection
+from models.utils import get_db_connection
 from flask import request, current_app as app
 
 from globus_nexus_client import NexusClient
-from globus_sdk import AccessTokenAuthorizer, GlobusAPIError
+from globus_sdk import AccessTokenAuthorizer, GlobusAPIError, ConfidentialAppAuthClient
 
 from functools import wraps
 from flask import abort
@@ -19,7 +19,7 @@ def authenticated(f):
         token = str.replace(str(token), 'Bearer ', '')
         user_name = None
         try:
-            client = load_funcx_client()
+            client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
@@ -46,7 +46,7 @@ def check_group_membership(token, endpoint_groups):
     bool
         Whether or not the user is a member of any of the groups
     """
-    client = load_funcx_client()
+    client = get_auth_client()
     dep_tokens = client.oauth2_get_dependent_tokens(token)
     nexus_token = dep_tokens.by_resource_server['nexus.routes.globus.org']["access_token"]
 
@@ -111,49 +111,8 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
     return authorized
 
 
-def get_user(headers):
-    """Get the user details from the database.
-
-    Parameters
-    ----------
-    headers : dict
-        The request headers
-
-    Returns
-    -------
-    str
-        The uuid of the user
-    str
-        The name of the user
-    str
-        The shortname of the user
+def get_auth_client():
     """
-
-    globus_name = user_name
-    short_name = None
-    user_id = None
-
-    app.logger.debug('Authorizing user: {}'.format(user_name))
-    if not user_name:
-        return None, None, None
-
-    # Now check if it is in the database.
-    try:
-        conn, cur = get_db_connection()
-        cur.execute("SELECT * from users where username = %s", (user_name,))
-        rows = cur.fetchall()
-        if len(rows) > 0:
-            for r in rows:
-                short_name = r['namespace']
-                user_id = r['id']
-        else:
-            short_name = "{name}_{org}".format(name=user_name.split("@")[0], org=user_name.split("@")[1].split(".")[0])
-            cmd = "INSERT into users (username, globus_identity, namespace) values (%s, %s, %s) RETURNING id"
-            cur.execute(cmd, (user_name, globus_name, short_name))
-            conn.commit()
-            user_id = cur.fetchone()[0]
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
-    return user_id, user_name, short_name
-
+    Create an AuthClient for the portal
+    """
+    return ConfidentialAppAuthClient(app.config['GLOBUS_CLIENT'], app.config.['GLOBUS_KEY'])

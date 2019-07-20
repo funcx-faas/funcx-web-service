@@ -3,10 +3,9 @@ import json
 import time
 import datetime
 
-from models.utils import resolve_user
+from models.utils import resolve_user, get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import  get_redis_client
 
 # Flask
 automate_api = Blueprint("automate", __name__)
