@@ -8,7 +8,7 @@ from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import get_redis_client
 
 # Flask
-api = Blueprint("routes", __name__)
+funcx_api = Blueprint("routes", __name__)
 
 # A cache for authorized endpoint usage by users
 endpoint_cache = {}
@@ -16,7 +16,7 @@ endpoint_cache = {}
 caching = True
 
 
-@api.route('/execute', methods=['POST'])
+@funcx_api.route('/execute', methods=['POST'])
 @authenticated
 def execute(user_name):
     """Puts a job in Redis and returns an id
@@ -98,7 +98,7 @@ def execute(user_name):
     return jsonify({'task_id': task_id})
 
 
-@api.route("/<task_id>/status", methods=['GET'])
+@funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
     """Check the status of a task.
@@ -152,7 +152,7 @@ def status(user_name, task_id):
         return jsonify({'InternalError': e})
 
 
-@api.route("/containers/<container_id>/<container_type>", methods=['GET'])
+@funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 @authenticated
 def get_cont(user_name, container_id, container_type):
     """Get the details of a container.
@@ -181,7 +181,7 @@ def get_cont(user_name, container_id, container_type):
     return jsonify({'container': container})
 
 
-@api.route("/containers", methods=['POST'])
+@funcx_api.route("/containers", methods=['POST'])
 @authenticated
 def reg_container(user_name):
     """Register a new container.
@@ -210,7 +210,7 @@ def reg_container(user_name):
     return jsonify({'container_id': container_id})
 
 
-@api.route("/register_endpoint", methods=['POST'])
+@funcx_api.route("/register_endpoint", methods=['POST'])
 @authenticated
 def reg_endpoint(user_name):
     """Register the endpoint. Add this site to the database and associate it with this user.
@@ -245,7 +245,7 @@ def reg_endpoint(user_name):
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 
-@api.route("/register_function", methods=['POST'])
+@funcx_api.route("/register_function", methods=['POST'])
 @authenticated
 def reg_function(user_name):
     """Register the function.

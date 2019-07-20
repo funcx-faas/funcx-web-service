@@ -9,14 +9,14 @@ from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import  get_redis_client
 
 # Flask
-automate = Blueprint("automate", __name__)
+automate_api = Blueprint("automate", __name__)
 
 token_cache = {}
 endpoint_cache = {}
 caching = True
 
 
-@automate.route('/run', methods=['POST'])
+@automate_api.route('/run', methods=['POST'])
 @authenticated
 def run(user_name):
     """Puts a job in Redis and returns an id
@@ -101,7 +101,7 @@ def run(user_name):
     return jsonify(automate_response)
 
 
-@automate.route("/<task_id>/status", methods=['GET'])
+@automate_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
     """Check the status of a task.

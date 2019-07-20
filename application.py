@@ -1,7 +1,7 @@
 from flask import Flask
 
-from routes.funcx import api
-from routes.automate import automate
+from routes.funcx import funcx_api
+from routes.automate import automate_api
 from routes.auth import auth_api
 
 from config import SECRET_KEY
@@ -9,8 +9,8 @@ from config import SECRET_KEY
 application = Flask(__name__)
 
 # Include the API blueprint
-application.register_blueprint(api, url_prefix="/routes/v1")
-application.register_blueprint(automate, url_prefix="/automate")
+application.register_blueprint(funcx_api, url_prefix="/routes/v1")
+application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
 
 
