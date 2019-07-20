@@ -1,7 +1,5 @@
-import psycopg2.extras
 import threading
 import pickle
-import uuid
 import json
 import time
 
@@ -13,9 +11,9 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from utils.majordomo_client import ZMQClient
-from config import get_redis_client, get_db_connection
+from config import get_redis_client
 
-from api.utils import resolve_function, create_task
+from models.utils import resolve_function, create_task
 
 from zmq.error import ZMQError
 

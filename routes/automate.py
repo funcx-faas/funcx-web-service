@@ -3,7 +3,7 @@ import json
 import time
 import datetime
 
-from .utils import resolve_user
+from models.utils import resolve_user
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import  get_redis_client

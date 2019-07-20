@@ -48,7 +48,7 @@ def check_group_membership(token, endpoint_groups):
     """
     client = load_funcx_client()
     dep_tokens = client.oauth2_get_dependent_tokens(token)
-    nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
+    nexus_token = dep_tokens.by_resource_server['nexus.routes.globus.org']["access_token"]
 
     # Create a nexus client to retrieve the user's groups
     nexus_client = NexusClient()
