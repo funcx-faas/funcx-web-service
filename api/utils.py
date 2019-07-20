@@ -91,7 +91,7 @@ def register_function(user_name, function_name, description, function_code, entr
     return function_uuid
 
 
-def register_container(user_name, location, description, container_type):
+def register_container(user_name, container_name, location, description, container_type):
     """Register the container in the database. Put an entry into containers and
     container_images
 
@@ -99,6 +99,8 @@ def register_container(user_name, location, description, container_type):
     ----------
     user_name : str
         The primary identity of the user
+    container_name : str
+        A name for the container
     location : str
         The path to the container
     description : str
@@ -116,8 +118,9 @@ def register_container(user_name, location, description, container_type):
     try:
         conn, cur = get_db_connection()
 
-        query = "INSERT INTO containers (author, container_uuid, description) values (%s, %s, %s) RETURNING id"
-        cur.execute(query, (user_id, container_uuid, description))
+        query = "INSERT INTO containers (author, name, container_uuid, description) " \ 
+                "values (%s, %s, %s, %s) RETURNING id"
+        cur.execute(query, (user_id, container_name, container_uuid, description))
         container_id = cur.fetchone()[0]
 
         query = "INSERT INTO container_images (container_id, type, location) values (%s, %s, %s)"

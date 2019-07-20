@@ -204,7 +204,7 @@ def reg_container(user_name):
     app.logger.debug(f"Creating container.")
     post_req = request.json
 
-    container_id = register_container(user_name, post_req['location'],
+    container_id = register_container(user_name, post_req['name'], post_req['location'],
                                     post_req['description'], post_req['type'])
     app.logger.debug(f"Created container: {container_id}")
     return jsonify({'container_id': container_id})
@@ -274,8 +274,7 @@ def reg_function(user_name):
             container_uuid = request.json["container"]
     except Exception as e:
         app.logger.error(e)
-    print(container_uuid)
-    print(function_name)
+
     app.logger.debug(f"Registering function {function_name}")
 
     function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
