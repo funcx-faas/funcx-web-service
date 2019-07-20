@@ -264,12 +264,18 @@ def reg_function(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
     try:
+
         function_name = request.json["function_name"]
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
+        container_uuid = None
+        if 'container' in request.json:
+            container_uuid = request.json["container"]
     except Exception as e:
         app.logger.error(e)
-    app.logger.debug(function_name)
-    function_uuid = register_function(user_name, function_name, description, function_code, entry_point)
+
+    app.logger.debug(f"Registering function {function_name}")
+
+    function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
     return jsonify({'function_uuid': function_uuid})

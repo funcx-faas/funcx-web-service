@@ -45,7 +45,7 @@ def create_task(task):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point):
+def register_function(user_name, function_name, description, function_code, entry_point, container_uuid):
     """Register the site in the database.
 
     Parameters
@@ -60,6 +60,8 @@ def register_function(user_name, function_name, description, function_code, entr
         The function's code
     entry_point : str
         The entry point to the function (function name)
+    container_uuid : str
+        The uuid of the container to map this to
 
     Returns
     -------
@@ -71,9 +73,14 @@ def register_function(user_name, function_name, description, function_code, entr
         conn, cur = get_db_connection()
         function_uuid = str(uuid.uuid4())
         query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"
         cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
                             function_uuid, function_code, entry_point))
+        function_id = cur.fetchone()[0]
+        if container_uuid:
+            query = "INSERT INTO function_container (container_id, function_id) values (" \
+                    "(SELECT id from containers where container_uuid = %s), %s)"
+            cur.execute(query, (container_uuid, function_id))
         conn.commit()
     except Exception as e:
         print(e)
