@@ -2,8 +2,8 @@ import uuid
 import json
 import time
 
-from .utils import (_get_user, _register_site, _register_function,
-                    _authorize_endpoint, _get_container)
+from .utils import _register_site, _register_function, _get_container
+from authentication.auth import _authorize_endpoint, _get_user
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import _get_redis_client
 

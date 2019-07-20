@@ -1,15 +1,11 @@
-import psycopg2.extras
-import datetime
-import pickle
 import uuid
 import json
 import time
+import datetime
 
-from .utils import (_get_user, _log_request,
-                    _register_site, _register_function, _authorize_endpoint,
-                    _resolve_function, _introspect_token, _get_container)
+from authentication.auth import _get_user, _authorize_endpoint
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection, _get_redis_client
+from config import  _get_redis_client
 
 # Flask
 automate = Blueprint("automate", __name__)
