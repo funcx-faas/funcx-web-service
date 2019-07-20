@@ -45,13 +45,13 @@ def create_task(task):
         app.logger.error(e)
 
 
-def register_function(user_id, function_name, description, function_code, entry_point):
+def register_function(user_name, function_name, description, function_code, entry_point):
     """Register the site in the database.
 
     Parameters
     ----------
-    user_id : str
-        The uuid of the user
+    user_name : str
+        The primary identity of the user
     function_name : str
         The name of the function
     description : str
@@ -66,6 +66,7 @@ def register_function(user_id, function_name, description, function_code, entry_
     str
         The uuid of the function
     """
+    user_id = resolve_user(user_name)
     try:
         conn, cur = get_db_connection()
         function_uuid = str(uuid.uuid4())
@@ -80,13 +81,13 @@ def register_function(user_id, function_name, description, function_code, entry_
     return function_uuid
 
 
-def register_endpoint(user_id, endpoint_name, description, endpoint_uuid=None):
+def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None):
     """Register the endpoint in the database.
 
     Parameters
     ----------
-    user_id : str
-        The uuid of the user
+    user_name : str
+        The primary identity of the user
     endpoint_name : str
         The name of the endpoint
     description : str
@@ -99,11 +100,10 @@ def register_endpoint(user_id, endpoint_name, description, endpoint_uuid=None):
     str
         The uuid of the endpoint
     """
-
+    user_id = resolve_user(user_name)
     try:
         conn, cur = get_db_connection()
         if endpoint_uuid:
-
             # Make sure it exists
             query = "SELECT * from sites where user_id = %s and endpoint_uuid = %s"
             cur.execute(query, (user_id, endpoint_uuid))
@@ -119,6 +119,29 @@ def register_endpoint(user_id, endpoint_name, description, endpoint_uuid=None):
         print(e)
         app.logger.error(e)
     return endpoint_uuid
+
+
+def resolve_user(user_name):
+    """Get the user id given their primary globus identity.
+
+    Parameters
+    ----------
+    user_name : str
+        The user's primary identity
+
+    Returns
+    -------
+    int
+        The user's id in the database
+    """
+    try:
+        conn, cur = get_db_connection()
+        query = "select * from users where username = %s limit 1"
+        cur.execute(query, (user_name,))
+        row = cur.fetchone()
+        return row['id']
+    except Exception as e:
+        app.logger.error(f"Failed to find user identity {user_name}. {e}")
 
 
 def resolve_function(user_id, function_uuid):
@@ -168,13 +191,11 @@ def resolve_function(user_id, function_uuid):
     return function_code, function_entry, container_uuid
 
 
-def get_container(user_id, container_uuid, container_type):
+def get_container(container_uuid, container_type):
     """Retrieve the container information.
 
     Parameters
     ----------
-    user_id : int
-        The user's ID in the database
     container_uuid : str
         The container id to look up
     container_type : str

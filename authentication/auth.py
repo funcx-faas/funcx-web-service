@@ -129,7 +129,6 @@ def get_user(headers):
         The shortname of the user
     """
 
-    user_name = introspect_token(headers)
     globus_name = user_name
     short_name = None
     user_id = None
