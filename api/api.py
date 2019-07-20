@@ -36,6 +36,7 @@ def execute(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    app.logger.debug(f"Received task from user: {user_name}")
     try:
         post_req = request.json
         endpoint = post_req['endpoint']
@@ -52,7 +53,7 @@ def execute(user_name):
             token = request.headers.get('Authorization')
             token = str.replace(str(token), 'Bearer ', '')
 
-            endpoint_authorized = authorize_endpoint(user_name, endpoint, request)
+            endpoint_authorized = authorize_endpoint(user_name, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
