@@ -2,7 +2,7 @@ import uuid
 import json
 import time
 
-from .utils import register_endpoint, register_function, get_container
+from .utils import register_endpoint, register_function, get_container, resolve_user
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from config import get_redis_client
@@ -74,7 +74,9 @@ def execute(user_name):
 
         # Get the redis connection
         rc = get_redis_client()
-        
+
+        user_id = resolve_user(user_name)
+
         # Add the job to redis
         task_payload = {'task_id': task_id,
                         'endpoint_id': endpoint,
