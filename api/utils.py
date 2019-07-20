@@ -76,10 +76,13 @@ def register_function(user_name, function_name, description, function_code, entr
                 "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"
         cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
                             function_uuid, function_code, entry_point))
+        print(query)
         function_id = cur.fetchone()[0]
-        if container_uuid:
-            query = "INSERT INTO function_container (container_id, function_id) values (" \
+
+        if container_uuid is not None:
+            query = "INSERT INTO function_containers (container_id, function_id) values (" \
                     "(SELECT id from containers where container_uuid = %s), %s)"
+            print(query)
             cur.execute(query, (container_uuid, function_id))
         conn.commit()
     except Exception as e:

@@ -183,7 +183,7 @@ def get_cont(user_name, container_id, container_type):
 
 @api.route("/containers", methods=['POST'])
 @authenticated
-def register_cont(user_name):
+def reg_container(user_name):
     """Register a new container.
 
     Parameters
@@ -274,7 +274,8 @@ def reg_function(user_name):
             container_uuid = request.json["container"]
     except Exception as e:
         app.logger.error(e)
-
+    print(container_uuid)
+    print(function_name)
     app.logger.debug(f"Registering function {function_name}")
 
     function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
