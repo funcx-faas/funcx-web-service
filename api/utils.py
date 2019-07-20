@@ -73,21 +73,17 @@ def register_function(user_name, function_name, description, function_code, entr
         conn, cur = get_db_connection()
         function_uuid = str(uuid.uuid4())
         query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"
+                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
         cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
                             function_uuid, function_code, entry_point))
-        print(query)
-        print(user_id, '', description, 'REGISTERED', function_name,
-                            function_uuid, function_code, entry_point)
-        function_id = cur.fetchone()[0]
-        print(function_id)
 
         if container_uuid is not None:
             print(f'Inserting container mapping: {container_uuid}')
             query = "INSERT INTO function_containers (container_id, function_id) values (" \
-                    "(SELECT id from containers where container_uuid = %s), %s)"
+                    "(SELECT id from containers where container_uuid = %s), " \
+                    "(SELECT id from functions where function_uuid = %s))"
             print(query)
-            cur.execute(query, (container_uuid, function_id))
+            cur.execute(query, (container_uuid, function_uuid))
         conn.commit()
     except Exception as e:
         print(e)
