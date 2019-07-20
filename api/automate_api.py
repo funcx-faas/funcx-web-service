@@ -3,9 +3,9 @@ import json
 import time
 import datetime
 
-from authentication.auth import _get_user, _authorize_endpoint
+from authentication.auth import get_user, authorize_endpoint
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import  _get_redis_client
+from config import  get_redis_client
 
 # Flask
 automate = Blueprint("automate", __name__)
@@ -36,7 +36,7 @@ def run():
         user_id, user_name, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_id, user_name, short_name = _get_user(request.headers)
+        user_id, user_name, short_name = get_user(request.headers)
         token_cache['token'] = (user_id, user_name, short_name)
 
     if not user_name:
@@ -56,7 +56,7 @@ def run():
                 endpoint_authorized = True
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
+            endpoint_authorized = authorize_endpoint(user_id, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
@@ -76,7 +76,7 @@ def run():
         app.logger.info("Task assigned UUID: {}".format(task_id))
         print(task_id)
         # Get the redis connection
-        rc = _get_redis_client()
+        rc = get_redis_client()
 
         # Add the job to redis
         task_payload = {'task_id': task_id,
@@ -133,7 +133,7 @@ def status(task_id):
         user_name, user_id, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_name, user_id, short_name = _get_user(request.headers)
+        user_name, user_id, short_name = get_user(request.headers)
         token_cache[token] = (user_name, user_id, short_name)
 
     if not user_name:
@@ -141,7 +141,7 @@ def status(task_id):
 
     try:
         # Get a redis client
-        rc = _get_redis_client()
+        rc = get_redis_client()
 
         details = {}
 

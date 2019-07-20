@@ -13,9 +13,9 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from utils.majordomo_client import ZMQClient
-from config import _get_redis_client, _get_db_connection
+from config import get_redis_client, get_db_connection
 
-from api.utils import _resolve_function, _create_task
+from api.utils import resolve_function, create_task
 
 from zmq.error import ZMQError
 
@@ -49,7 +49,7 @@ def worker(task_id, rc):
         if caching and task['function_id'] in function_cache:
             func_code, func_entry, func_container = function_cache[task['function_id']]
         else:
-            func_code, func_entry, func_container = _resolve_function(task['user_id'], task['function_id'])
+            func_code, func_entry, func_container = resolve_function(task['user_id'], task['function_id'])
 
             # Now put it INTO the cache!
             if caching:
@@ -62,7 +62,7 @@ def worker(task_id, rc):
             task['reason'] = "Unable to access endpoint"
             task['modified_at'] = time.time()
             rc.set(f"task:{task_id}", json.dumps(task))
-            _create_task(task)
+            create_task(task)
             return
 
         # Wrap up an object to send to ZMQ
@@ -97,14 +97,14 @@ def worker(task_id, rc):
     task['modified_at'] = time.time()
     print(task)
     rc.set(f"task:{task_id}", json.dumps(task))
-    _create_task(task)
+    create_task(task)
 
 def main():
     """Pull tasks from the redis queue and start threads to process them"""
 
     while True:
         try:
-            rc = _get_redis_client()
+            rc = get_redis_client()
             task_id = rc.blpop("task_list")[1]
             # Put this into another list? Move it between lists?
             thd = threading.Thread(target=worker, args=(task_id, rc))

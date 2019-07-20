@@ -303,7 +303,7 @@ class MajorDomoBroker(object):
 
 def _update_endpoint(new_status, endpoint_uuid):
     try:
-        conn, cur = config._get_db_connection()
+        conn, cur = config.get_db_connection()
         query = """UPDATE sites SET status = '{}' WHERE endpoint_uuid = '{}';""".format(new_status, str(endpoint_uuid))
         cur.execute(query)
         conn.commit()

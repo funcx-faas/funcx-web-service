@@ -20,7 +20,7 @@ REDIS_HOST = os.environ.get('redis_host')
 _prod = True
 
 
-def _get_db_connection():
+def get_db_connection():
     """
     Establish a database connection
     """
@@ -32,7 +32,7 @@ def _get_db_connection():
     return conn, cur
 
 
-def _load_funcx_client():
+def load_funcx_client():
     """
     Create an AuthClient for the portal
     """
@@ -45,7 +45,7 @@ def _load_funcx_client():
     return app
 
 
-def _get_redis_client():
+def get_redis_client():
     """Return a redis client
 
     Returns
