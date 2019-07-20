@@ -167,7 +167,7 @@ def status(task_id):
 
 
 @api.route("/containers/<container_id>/<container_type>", methods=['GET'])
-def get_container(container_id, container_type):
+def get_cont(container_id, container_type):
     """Get the details of a container.
 
     Parameters
@@ -192,8 +192,8 @@ def get_container(container_id, container_type):
 
 
 @api.route("/register_endpoint", methods=['POST'])
-def register_site():
-    """Register the site. Add this site to the database and associate it with this user.
+def reg_endpoint():
+    """Register the endpoint. Add this site to the database and associate it with this user.
 
     Returns
     -------
@@ -221,7 +221,7 @@ def register_site():
 
 
 @api.route("/register_function", methods=['POST'])
-def register_function():
+def reg_function():
     """Register the function.
 
     Returns
