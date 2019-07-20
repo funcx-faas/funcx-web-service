@@ -115,4 +115,4 @@ def get_auth_client():
     """
     Create an AuthClient for the portal
     """
-    return ConfidentialAppAuthClient(app.config['GLOBUS_CLIENT'], app.config.['GLOBUS_KEY'])
+    return ConfidentialAppAuthClient(app.config['GLOBUS_CLIENT'], app.config['GLOBUS_KEY'])
