@@ -118,7 +118,7 @@ def register_container(user_name, container_name, location, description, contain
     try:
         conn, cur = get_db_connection()
 
-        query = "INSERT INTO containers (author, name, container_uuid, description) " \ 
+        query = "INSERT INTO containers (author, name, container_uuid, description) " \
                 "values (%s, %s, %s, %s) RETURNING id"
         cur.execute(query, (user_id, container_name, container_uuid, description))
         container_id = cur.fetchone()[0]
