@@ -1,8 +1,10 @@
 import json
 import uuid
+import redis
 import datetime
+import psycopg2
+import psycopg2.extras
 
-from config import get_db_connection
 from flask import request, current_app as app
 
 
@@ -271,3 +273,31 @@ def get_container(container_uuid, container_type):
         print(e)
         app.logger.error(e)
     return container
+
+
+def get_db_connection():
+    """
+    Establish a database connection
+    """
+    con_str = f"dbname={app.config['DB_NAME']} user={app.config['DB_USER']} password={app.config['DB_PASSWORD']} host={app.config['DB_HOST']}"
+
+    conn = psycopg2.connect(con_str)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    return conn, cur
+
+
+def get_redis_client():
+    """Return a redis client
+
+    Returns
+    -------
+    redis.StrictRedis
+        A client for redis
+    """
+    try:
+        redis_client = redis.StrictRedis(host=app.config['REDIS_HOST'], port=app.config['REDIS_PORT'],
+                                         decode_responses=True)
+        return redis_client
+    except Exception as e:
+        print(e)

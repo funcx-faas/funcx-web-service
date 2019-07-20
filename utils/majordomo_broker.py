@@ -11,6 +11,8 @@ import MDP
 from zhelpers import dump
 
 # update db site status
+import models.utils
+
 sys.path.append('..')
 import config
 
@@ -303,7 +305,7 @@ class MajorDomoBroker(object):
 
 def _update_endpoint(new_status, endpoint_uuid):
     try:
-        conn, cur = config.get_db_connection()
+        conn, cur = models.utils.get_db_connection()
         query = """UPDATE sites SET status = '{}' WHERE endpoint_uuid = '{}';""".format(new_status, str(endpoint_uuid))
         cur.execute(query)
         conn.commit()

@@ -2,10 +2,10 @@ import uuid
 import json
 import time
 
-from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container
+from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
+    get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import get_redis_client
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
