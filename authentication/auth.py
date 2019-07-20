@@ -90,7 +90,7 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
 
         # Check if the user owns the endpoint
         query = "select * from sites, users where endpoint_uuid = %s and sites.user_id = users.id " \
-                "and users.username = %s order by id DESC limit 1 "
+                "and users.username = %s"
         cur.execute(query, (endpoint_uuid, user_name))
         if cur.fetchone() is not None:
             authorized = True
