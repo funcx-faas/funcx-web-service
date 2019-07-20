@@ -1,6 +1,8 @@
 from models.utils import get_db_connection
 from flask import request, current_app as app
 
+from models.utils import resolve_user
+
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, GlobusAPIError, ConfidentialAppAuthClient
 
@@ -85,13 +87,13 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
     """
 
     authorized = False
+    user_id = resolve_user(user_name)
     try:
         conn, cur = get_db_connection()
 
         # Check if the user owns the endpoint
-        query = "select * from sites, users where endpoint_uuid = %s and sites.user_id = users.id " \
-                "and users.username = %s"
-        cur.execute(query, (endpoint_uuid, user_name))
+        query = "select * from sites where endpoint_uuid = %s and user_id = %s"
+        cur.execute(query, (endpoint_uuid, user_id))
         if cur.fetchone() is not None:
             authorized = True
         else:
