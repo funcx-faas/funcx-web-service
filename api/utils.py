@@ -45,7 +45,7 @@ def create_task(task):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point):
+def register_function(user_name, function_name, description, function_code, entry_point, container_uuid):
     """Register the site in the database.
 
     Parameters
@@ -60,6 +60,8 @@ def register_function(user_name, function_name, description, function_code, entr
         The function's code
     entry_point : str
         The entry point to the function (function name)
+    container_uuid : str
+        The uuid of the container to map this to
 
     Returns
     -------
@@ -71,14 +73,57 @@ def register_function(user_name, function_name, description, function_code, entr
         conn, cur = get_db_connection()
         function_uuid = str(uuid.uuid4())
         query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"
         cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
                             function_uuid, function_code, entry_point))
+        function_id = cur.fetchone()[0]
+        if container_uuid:
+            query = "INSERT INTO function_container (container_id, function_id) values (" \
+                    "(SELECT id from containers where container_uuid = %s), %s)"
+            cur.execute(query, (container_uuid, function_id))
         conn.commit()
     except Exception as e:
         print(e)
         app.logger.error(e)
     return function_uuid
+
+
+def register_container(user_name, location, description, container_type):
+    """Register the container in the database. Put an entry into containers and
+    container_images
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    location : str
+        The path to the container
+    description : str
+        A description of the function
+    container_type : str
+        The container type
+
+    Returns
+    -------
+    str
+        The uuid of the container
+    """
+    user_id = resolve_user(user_name)
+    container_uuid = str(uuid.uuid4())
+    try:
+        conn, cur = get_db_connection()
+
+        query = "INSERT INTO containers (author, container_uuid, description) values (%s, %s, %s) RETURNING id"
+        cur.execute(query, (user_id, container_uuid, description))
+        container_id = cur.fetchone()[0]
+
+        query = "INSERT INTO container_images (container_id, type, location) values (%s, %s, %s)"
+        cur.execute(query, (container_id, container_type, location))
+        conn.commit()
+    except Exception as e:
+        print(e)
+        app.logger.error(e)
+    return container_uuid
 
 
 def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None):
