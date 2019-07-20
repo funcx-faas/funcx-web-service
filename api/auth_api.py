@@ -1,4 +1,4 @@
-from config import _load_funcx_client
+from config import load_funcx_client
 from flask import request, flash, redirect, session, url_for, Blueprint
 
 auth_api = Blueprint("auth_api", __name__)
@@ -22,7 +22,7 @@ def callback():
 
     # Set up our Globus Auth/OAuth2 state
     redirect_uri = 'https://funcx.org/callback'
-    client = _load_funcx_client()
+    client = load_funcx_client()
     client.oauth2_start_flow(redirect_uri, refresh_tokens=False)
 
     # If there's no "code" query string parameter, we're in this route
@@ -51,7 +51,7 @@ def logout():
     - Destroy the session state.
     - Redirect the user to the Globus Auth logout page.
     """
-    client = _load_funcx_client()
+    client = load_funcx_client()
 
     # Revoke the tokens with Globus Auth
     for token, token_type in (

@@ -2,10 +2,10 @@ import uuid
 import json
 import time
 
-from .utils import _register_site, _register_function, _get_container
-from authentication.auth import _authorize_endpoint, _get_user
+from .utils import register_endpoint, register_function, get_container
+from authentication.auth import authorize_endpoint, get_user
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_redis_client
+from config import get_redis_client
 
 # Flask
 api = Blueprint("api", __name__)
@@ -39,7 +39,7 @@ def execute():
         user_id, user_name, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_id, user_name, short_name = _get_user(request.headers)
+        user_id, user_name, short_name = get_user(request.headers)
         token_cache['token'] = (user_id, user_name, short_name)
 
     if not user_name:
@@ -59,7 +59,7 @@ def execute():
                 endpoint_authorized = True
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
+            endpoint_authorized = authorize_endpoint(user_id, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
@@ -79,7 +79,7 @@ def execute():
         app.logger.info("Task assigned UUID: {}".format(task_id))
 
         # Get the redis connection
-        rc = _get_redis_client()
+        rc = get_redis_client()
         
         # Add the job to redis
         task_payload = {'task_id': task_id,
@@ -128,7 +128,7 @@ def status(task_id):
         user_name, user_id, short_name = token_cache[token]
     else:
         # Perform an Auth call to get the user name
-        user_name, user_id, short_name = _get_user(request.headers)
+        user_name, user_id, short_name = get_user(request.headers)
         token_cache[token] = (user_name, user_id, short_name)
 
     if not user_name:
@@ -136,7 +136,7 @@ def status(task_id):
 
     try:
         # Get a redis client
-        rc = _get_redis_client()
+        rc = get_redis_client()
 
         details = {}
         
@@ -182,11 +182,11 @@ def get_container(container_id, container_type):
     dict
         A dictionary of container details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
+    user_id, user_name, short_name = get_user(request.headers)
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
-    container = _get_container(user_id, container_id, container_type)
+    container = get_container(user_id, container_id, container_type)
     print(container)
     return jsonify({'container': container})
 
@@ -200,7 +200,7 @@ def register_site():
     json
         A dict containing the endpoint details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
+    user_id, user_name, short_name = get_user(request.headers)
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
     endpoint_name = None
@@ -216,7 +216,7 @@ def register_site():
         endpoint_uuid = request.json["endpoint_uuid"]
 
     app.logger.debug(endpoint_name)
-    endpoint_uuid = _register_site(user_id, endpoint_name, description, endpoint_uuid)
+    endpoint_uuid = register_endpoint(user_id, endpoint_name, description, endpoint_uuid)
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 
@@ -229,7 +229,7 @@ def register_function():
     json
         Dict containing the function details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
+    user_id, user_name, short_name = get_user(request.headers)
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
     try:
@@ -240,5 +240,5 @@ def register_function():
     except Exception as e:
         app.logger.error(e)
     app.logger.debug(function_name)
-    function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
+    function_uuid = register_function(user_id, function_name, description, function_code, entry_point)
     return jsonify({'function_uuid': function_uuid})

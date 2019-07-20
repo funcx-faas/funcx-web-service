@@ -1,11 +1,11 @@
-from config import _load_funcx_client, _get_db_connection
+from config import load_funcx_client, get_db_connection
 from flask import request, current_app as app
 
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, GlobusAPIError
 
 
-def _authorize_endpoint(user_id, endpoint_uuid, token):
+def authorize_endpoint(user_id, endpoint_uuid, token):
     """Get the endpoint uuid from database
 
     Parameters
@@ -24,7 +24,7 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
     """
 
     try:
-        conn, cur = _get_db_connection()
+        conn, cur = get_db_connection()
 
         # Check if there are any groups associated with this endpoint
         query = "select * from auth_groups where endpoint_id = %s"
@@ -36,7 +36,7 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
 
         if len(endpoint_groups) > 0:
             # Check if the user is in one of these groups
-            client = _load_funcx_client()
+            client = load_funcx_client()
             dep_tokens = client.oauth2_get_dependent_tokens(token)
             nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
 
@@ -66,7 +66,7 @@ def _authorize_endpoint(user_id, endpoint_uuid, token):
     return True
 
 
-def _introspect_token(headers):
+def introspect_token(headers):
     """
     Decode the token and retrieve the user's details
 
@@ -86,7 +86,7 @@ def _introspect_token(headers):
         app.logger.debug(token)
         token = token.split(" ")[1]
         try:
-            client = _load_funcx_client()
+            client = load_funcx_client()
             auth_detail = client.oauth2_token_introspect(token)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
@@ -96,7 +96,7 @@ def _introspect_token(headers):
     return user_name
 
 
-def _get_user(headers):
+def get_user(headers):
     """Get the user details from the database.
 
     Parameters
@@ -114,7 +114,7 @@ def _get_user(headers):
         The shortname of the user
     """
 
-    user_name = _introspect_token(headers)
+    user_name = introspect_token(headers)
     globus_name = user_name
     short_name = None
     user_id = None
@@ -125,7 +125,7 @@ def _get_user(headers):
 
     # Now check if it is in the database.
     try:
-        conn, cur = _get_db_connection()
+        conn, cur = get_db_connection()
         cur.execute("SELECT * from users where username = %s", (user_name,))
         rows = cur.fetchall()
         if len(rows) > 0:
