@@ -77,9 +77,13 @@ def register_function(user_name, function_name, description, function_code, entr
         cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
                             function_uuid, function_code, entry_point))
         print(query)
+        print(user_id, '', description, 'REGISTERED', function_name,
+                            function_uuid, function_code, entry_point)
         function_id = cur.fetchone()[0]
+        print(function_id)
 
         if container_uuid is not None:
+            print(f'Inserting container mapping: {container_uuid}')
             query = "INSERT INTO function_containers (container_id, function_id) values (" \
                     "(SELECT id from containers where container_uuid = %s), %s)"
             print(query)
