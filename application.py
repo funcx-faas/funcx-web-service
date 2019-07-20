@@ -2,7 +2,7 @@ from flask import Flask
 
 from api.api import api
 from api.automate_api import automate
-from api.auth import auth_api
+from api.auth_api import auth_api
 
 from config import SECRET_KEY
 
