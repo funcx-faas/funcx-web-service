@@ -81,6 +81,44 @@ def register_function(user_name, function_name, description, function_code, entr
     return function_uuid
 
 
+def register_container(user_name, location, description, container_type):
+    """Register the container in the database. Put an entry into containers and
+    container_images
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    location : str
+        The path to the container
+    description : str
+        A description of the function
+    container_type : str
+        The container type
+
+    Returns
+    -------
+    str
+        The uuid of the container
+    """
+    user_id = resolve_user(user_name)
+    container_uuid = str(uuid.uuid4())
+    try:
+        conn, cur = get_db_connection()
+
+        query = "INSERT INTO containers (author, container_uuid, description) values (%s, %s, %s) RETURNING id"
+        cur.execute(query, (user_id, container_uuid, description))
+        container_id = cur.fetchone()[0]
+
+        query = "INSERT INTO container_images (container_id, type, location) values (%s, %s, %s)"
+        cur.execute(query, (container_id, container_type, location))
+        conn.commit()
+    except Exception as e:
+        print(e)
+        app.logger.error(e)
+    return container_uuid
+
+
 def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None):
     """Register the endpoint in the database.
 
