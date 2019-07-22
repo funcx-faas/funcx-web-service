@@ -3,6 +3,9 @@ import globus_sdk
 import psycopg2
 import redis
 import os
+import uuid
+
+uuid.uuid4()
 
 GLOBUS_KEY = os.environ.get('globus_key')
 GLOBUS_CLIENT = os.environ.get('globus_client')

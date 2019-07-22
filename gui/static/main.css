@@ -106,12 +106,10 @@ header {
 }
 
 .START-IMG {
-    border: 1px solid rgb(227,227,227);
     display: inline-block;
-    height: 300px;
     padding: 0 !important;
-    width: 480px;
 }
+
 
 /*Site Navigation*/
 
@@ -146,6 +144,7 @@ header {
     width: 35px;
 }
 
+
 /*Home Page*/
 
 .HOME-ROW {
@@ -162,7 +161,7 @@ header {
     font-size: 1em;
     height:350px;
     margin:20px;
-    padding: 0;
+    padding: 0 !important;
 }
 
 .IMG-LINK-COL:hover {
@@ -171,6 +170,7 @@ header {
 
 .IMG-LINK-COL-CAPTION {
     background-color: rgba(70,70,70,0.8);
+    padding: 10px 5px 10px 5px !important;
     transition: font-size .1s ease-in-out;
 }
 
@@ -218,6 +218,7 @@ blockquote {
 .FUNCTIONS-TABLE-C:last-child {
     padding-right: 0px;
 }
+
 
 /*View Page*/
 
