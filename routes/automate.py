@@ -130,7 +130,7 @@ def status(user_name, task_id):
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
-        except:
+        except Exception:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         if 'result' in task:

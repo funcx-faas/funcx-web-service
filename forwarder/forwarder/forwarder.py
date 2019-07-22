@@ -4,11 +4,19 @@ from functools import partial
 import uuid
 import os
 import queue
-from multiprocessing import Queue
+import time
+import zmq
 
-from multiprocessing import Process
+from multiprocessing import Queue
+from parsl.providers import LocalProvider
+from parsl.channels import LocalChannel
 from parsl.app.errors import RemoteExceptionWrapper
 
+from funcx.executors import HighThroughputExecutor as HTEX
+
+from multiprocessing import Process
+
+from forwarder.queues import RedisQueue
 from forwarder import set_file_logger
 
 
@@ -18,6 +26,13 @@ def double(x):
 
 def failer(x):
     return x / 0
+
+loglevels = {50: 'CRITICAL',
+             40: 'ERROR',
+             30: 'WARNING',
+             20: 'INFO',
+             10: 'DEBUG',
+             0: 'NOTSET'}
 
 
 class Forwarder(Process):
@@ -35,7 +50,7 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, result_q, executor, endpoint_id,
-                 logdir="forwarder", logging_level=logging.INFO):
+                 logdir="forwarder_logs", logging_level=logging.INFO):
         """
         Params:
              task_q : A queue object
@@ -66,6 +81,8 @@ class Forwarder(Process):
                                  level=logging_level)
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
+        logger.info("Log level set to {}".format(loglevels[logging_level]))
+
         self.task_q = task_q
         self.result_q = result_q
         self.executor = executor
@@ -90,6 +107,39 @@ class Forwarder(Process):
         else:
             logger.debug("Task:{} succeeded".format(task_id))
 
+
+    def task_loop(self):
+        """ task loop
+        """
+        count = 0
+        while True:
+
+            count += 1
+            logger.info("[TASK_LOOP] pushing a task")
+
+            task_id = str(uuid.uuid4())
+            args = [count]
+            kwargs = {}
+            try:
+                fu = self.executor.submit(double, *args, **kwargs)
+            except zmq.error.Again:
+                logger.error("[TASK_LOOP] No endpoint available for task dispatch")
+
+            else:
+                logger.info("[TASK_LOOP] pushed a task, waiting for result")
+                res = fu.result()
+                logger.info("[TASK_LOOP] got result :{}".format(res))
+                # fu.add_done_callback(partial(self.handle_app_update, task_id))
+
+            x = self.executor.outstanding
+            logger.info("[TASK_LOOP] outstanding {}".format(x))
+
+            x = self.executor.connected_workers
+            logger.info("[TASK_LOOP] connected {}".format(x))
+
+            time.sleep(5)
+
+
     def run(self):
         """ Process entry point.
         """
@@ -108,6 +158,8 @@ class Forwarder(Process):
         logger.info("[TASKS] Endpoint connection info: {}".format(conn_info))
 
         while True:
+            self.task_loop()
+            """
             try:
                 task = self.task_q.get(timeout=10)
                 logger.debug("[TASKS] Not doing {}".format(task))
@@ -124,6 +176,8 @@ class Forwarder(Process):
                 fu = self.executor.submit(double, *args, **kwargs)
                 fu.add_done_callback(partial(self.handle_app_update, task_id))
 
+            """
+
         logger.info("[TASKS] Terminating self due to user requested kill")
         return
 
@@ -139,10 +193,11 @@ class Forwarder(Process):
 
 
 def spawn_forwarder(address,
+                    redis_address,
+                    endpoint_id,
                     executor=None,
                     task_q=None,
                     result_q=None,
-                    endpoint_id=uuid.uuid4(),
                     logging_level=logging.INFO):
     """ Spawns a forwarder and returns the forwarder process for tracking.
 
@@ -151,6 +206,12 @@ def spawn_forwarder(address,
 
     address : str
        IP Address to which the endpoint must connect
+
+    redis_address : str
+       The redis host url at which task/result queues can be created. No port info
+
+    endpoint_id : str
+       Endpoint id string that will be used to address task/result queues.
 
     executor : Executor object. Optional
        Executor object to be instantiated.
@@ -167,15 +228,15 @@ def spawn_forwarder(address,
     Returns:
          A Forwarder object
     """
-    from forwarder.queues.redis import RedisQueue
-    from funcx.executors import HighThroughputExecutor as HTEX
-    from parsl.providers import LocalProvider
-    from parsl.channels import LocalChannel
 
     if not task_q:
-        task_q = RedisQueue('task', '127.0.0.1')
+        task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
-        result_q = RedisQueue('result', '127.0.0.1')
+        result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+
+    print("Logging_level: {}".format(logging_level))
+    print("Task_q: {}".format(task_q))
+    print("Result_q: {}".format(result_q))
 
     if not executor:
         executor = HTEX(label='htex',

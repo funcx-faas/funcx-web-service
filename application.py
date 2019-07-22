@@ -6,8 +6,8 @@ from routes.automate import automate_api
 from routes.auth import auth_api
 
 application = Flask(__name__)
-
 application.config.from_object(os.environ['APP_SETTINGS'])
+
 
 # Include the API blueprint
 application.register_blueprint(funcx_api, url_prefix="/api/v1")
