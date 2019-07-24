@@ -252,3 +252,18 @@ dd {
     resize: both;
     width: 48em;
 }
+
+    /*404*/
+.ERROR-HEADING {
+    font-size: 50px;
+    font-weight: bold;
+}
+
+.ERROR-TEXT {
+    font-size: 30px;
+}
+
+.ERROR-TITLE {
+    font-size: 80px;
+}
+

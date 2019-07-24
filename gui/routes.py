@@ -19,6 +19,11 @@ def home():
     return render_template('home.html', title='Home')
 
 
+@guiapi.route('/404')
+def error():
+    return render_template('404.html', title='Error')
+
+
 @guiapi.route('/functions')
 def functions():
     # functions = Function.query.order_by(Function.date_created).all()
