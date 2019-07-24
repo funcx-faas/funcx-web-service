@@ -95,9 +95,9 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
         # Check if the user owns the endpoint
         query = "select * from sites where endpoint_uuid = %s"
         cur.execute(query, (endpoint_uuid, ))
-        rows = cur.fetchone()
-        print(rows)
-        for row in rows:
+        row = cur.fetchone()
+        print(row)
+        if len(row) > 0:
             # Check if the user owns it
             print(row)
             print(row['public'])
