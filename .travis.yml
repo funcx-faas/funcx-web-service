@@ -5,8 +5,8 @@ python:
 services:
       - redis-server
 
-before_install:
-      - sudo apt-get update -q
+#before_install:
+#      - sudo apt-get update -q
 
 install:
       - cd forwarder
