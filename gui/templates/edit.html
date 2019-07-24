@@ -4,21 +4,24 @@
         {{ form.hidden_tag() }}
         <fieldset>
             {% if title == 'New Function' %}
-                <legend class="container h1 PAGE-TITLE" style="padding-left: 0;">New Function</legend>
+                <legend class="container h1 PAGE-TITLE">New Function</legend>
             {% else %}
-                <legend class="container h1 PAGE-TITLE" style="padding-left: 0;">Edit Function</legend>
+                <legend class="container h1 PAGE-TITLE">Edit Function</legend>
             {% endif %}
             <dl id="VIEW-INFO" class="container">
-                <dt>Title: </dt><ins>{{ form.title }}</ins>
-                <dt>Language: </dt><ins>{{ form.language }}</ins>
+                <dt>Name: </dt><dd>{{ form.name(class="form-control") }}</dd>
+                <dt>Description: </dt><dd>{{ form.desc }}</dd>
+                <dt>Entry Point: </dt><dd>{{ form.entry_point }}</dd>
+{#                <dt>Language: </dt><dd>{{ form.language }}</dd>#}
                 {% if title != 'New Function' %}
-                    <dt>Date Created: </dt><ins>{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</ins>
-                    <dt>Date Edited: </dt><ins>{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</ins>
-                    <dt>UUID: </dt><ins>{{ func['function_uuid'] }}</ins>
+                    <dt>Created By: </dt><dd>{{ func['user_id'] }}</dd>
+                    <dt>Date Created: </dt><dd>{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</dd>
+                    <dt>Date Edited: </dt><dd>{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</dd>
+                    <dt>UUID: </dt><dd>{{ func['function_uuid'] }}</dd>
                 {% endif %}
             </dl>
             <section class="container">
-                {{ form.content(id="VIEW-CONTENT", style="font-size: 76.5625%;") }}
+                {{ form.code(id="FUNC-CODE") }}
             </section>
             <div class="container" style="padding-left: 0;">
                 {{ form.submit }}
