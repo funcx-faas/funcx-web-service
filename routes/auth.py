@@ -21,7 +21,7 @@ def callback():
         return redirect(url_for('home'))
 
     # Set up our Globus Auth/OAuth2 state
-    redirect_uri = url_for('auth_api.callback')
+    redirect_uri = 'https://dev.funcx.org/callback'
     client = get_auth_client()
     client.oauth2_start_flow(redirect_uri, refresh_tokens=False)
 
@@ -41,7 +41,7 @@ def callback():
             is_authenticated=True
         )
 
-        return redirect(url_for('guiapi.home'))
+        return redirect('https://dev.funcx.org/home')
 
 
 @auth_api.route('/logout', methods=['GET'])

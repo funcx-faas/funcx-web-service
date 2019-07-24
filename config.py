@@ -19,7 +19,7 @@ class Config(object):
 
     REDIS_PORT = os.environ.get('redis_port')
     REDIS_HOST = os.environ.get('redis_host')
-    
+
 
 class ProductionConfig(Config):
     DEBUG = False
