@@ -1,5 +1,5 @@
 from authentication.auth import get_auth_client
-from flask import request, flash, redirect, session, url_for, Blueprint
+from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
 
@@ -21,7 +21,7 @@ def callback():
         return redirect(url_for('home'))
 
     # Set up our Globus Auth/OAuth2 state
-    redirect_uri = 'https://funcx.org/callback'
+    redirect_uri = app.config['REDIRECT_URL']
     client = get_auth_client()
     client.oauth2_start_flow(redirect_uri, refresh_tokens=False)
 
