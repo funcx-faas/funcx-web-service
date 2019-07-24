@@ -260,10 +260,14 @@ dd {
 }
 
 .ERROR-TEXT {
-    font-size: 30px;
+    font-size: 20px;
 }
 
 .ERROR-TITLE {
     font-size: 80px;
+    line-height: 1em;
+    font-style: italic;
+    font-family: "Times New Roman";
+    margin-left: 20px;
 }
 
