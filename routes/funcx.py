@@ -244,6 +244,74 @@ def reg_endpoint(user_name):
     endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
+def register_with_hub(address, endpoint_id):
+    """ This registers with the Forwarder micro service.
+
+    Can be used as an example of how to make calls this it, while the main API
+    is updated to do this calling on behalf of the endpoint in the second iteration.
+
+    Parameters
+    ----------
+    address : str
+       Address of the forwarder service of the form http://<IP_Address>:<Port>
+
+    """
+    r = requests.post(address + '/register',
+                      json={'endpoint_id': endpoint_id,
+                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
+
+                      }
+    )
+    if r.status_code != 200:
+        print(dir(r))
+        print(r)
+        raise RegistrationError(r.reason)
+
+    return r.json()
+
+
+@funcx_api.route("/version", methods=['GET'])
+def get_version():
+    return jsonify(1)
+
+@funcx_api.route("/register_endpoint_2", methods=['POST'])
+@authenticated
+def register_endpoint_2(user_name):
+    """Register an endpoint. Add this endpoint to the database and associate it with this user.
+
+    Returns
+    -------
+    json
+        A dict containing the endpoint details
+    """
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+
+    # TODO: We should handle keyError here
+    try:
+        app.logger.debug(request.json['endpoint_name'])
+        endpoint_uuid = register_endpoint(user_name,
+                                          request.json['endpoint_name'],
+                                          request.json['description'],
+                                          request.json['endpoint_uuid'])
+    except KeyError as e:
+        app.logger.debug("Missing Keys in json request : {}".format(e))
+        response = {'status' : 'error',
+                    'reason' : 'Missing Keys in json request {e}'.format(e)}
+    except Exception as e:
+        app.logger.debug("Caught random error : {}".format(e))
+        response = {'status' : 'error',
+                    'reason' : 'Caught error while registering endpoint {e}'.format(e)}
+
+    try:
+        response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid)
+    except Exception as e:
+        app.logger.debug("Caught error during forwarder initialization")
+        response = {'status' : 'error',
+                    'reason' : 'Failed during broker start {e}'.format(e)}
+
+
+    return jsonify(response)
 
 @funcx_api.route("/register_function", methods=['POST'])
 @authenticated
