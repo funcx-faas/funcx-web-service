@@ -4,8 +4,9 @@ from flask import Flask
 from routes.funcx import funcx_api
 from routes.automate import automate_api
 from routes.auth import auth_api
+from gui.routes import guiapi
 
-application = Flask(__name__)
+application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
 application.config.from_object(os.environ['APP_SETTINGS'])
 
 
@@ -13,13 +14,7 @@ application.config.from_object(os.environ['APP_SETTINGS'])
 application.register_blueprint(funcx_api, url_prefix="/api/v1")
 application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
-
-
-@application.route("/")
-def home():
-    # TODO: Remove this once the GUI is deployed.
-    application.logger.debug("FuncX")
-    return "funcX"
+application.register_blueprint(guiapi)
 
 
 if __name__ == "__main__":
