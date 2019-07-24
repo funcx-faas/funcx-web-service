@@ -4,14 +4,17 @@ matrix:
           dist: xenial
           sudo: true
 
+services:
+      - redis-server
 
 before_install:
-  - sudo apt-get update -q
-  - sudo apt-get install redis
+      - sudo apt-get update -q
+
+
 install:
-  - cd forwarder
-  - pip install .
+      - cd forwarder
+      - pip install .
 
 script:
-  - pwd
-  - flake8 forwarder
+      - pwd
+      - flake8 forwarder
