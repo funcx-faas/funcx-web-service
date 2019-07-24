@@ -8,11 +8,11 @@ services:
 before_install:
       - sudo apt-get update -q
 
-
 install:
       - cd forwarder
       - python$PY -m pip install .
 
 script:
-      - pwd
-      - flake8 forwarder
+      - pip install -r test-requirements.txt
+      - #flake8 forwarder
+      - python$PY -c "import forwarder"
