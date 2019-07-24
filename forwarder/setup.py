@@ -11,7 +11,7 @@ with open('requirements.txt') as f:
     install_requires = f.readlines()
 
 setup(
-    name='funcx',
+    name='forwarder',
     version=version,
     packages=find_packages(),
     description='funcX Forwarder: High Performance Function Serving for Science',
@@ -31,6 +31,10 @@ setup(
         "FaaS",
         "Function Serving"
     ],
+    entry_points={'console_scripts':
+                  ['forwarder-service=forwarder.service:cli',
+                  ]
+    },
     author='funcX team',
     author_email='labs@globus.org',
     license="Apache License, Version 2.0",

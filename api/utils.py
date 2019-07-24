@@ -259,13 +259,10 @@ def _resolve_function(user_id, function_uuid):
         The function code
     str
         The function entry point
-    str
-        The uuid of the container image to use
     """
 
     function_code = None
     function_entry = None
-    container_uuid = None
     try:
         conn, cur = _get_db_connection()
         query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
@@ -273,31 +270,20 @@ def _resolve_function(user_id, function_uuid):
         r = cur.fetchone()
         function_code = r['function_code']
         function_entry = r['entry_point']
-        function_id = r['id']
-        query = "select * from function_containers, containers, container_images where " \
-                "function_containers.function_id = %s and containers.id = function_containers.container_id " \
-                "and function_containers.container_id = container_images.container_id " \
-                "order by function_containers.id desc limit 1"
-        cur.execute(query, (function_id,))
-        r = cur.fetchone()
-        try:
-            container_uuid = r['container_uuid']
-        except:
-            pass
     except Exception as e:
         print(e)
         app.logger.error(e)
-    return function_code, function_entry, container_uuid
+    return function_code, function_entry
 
 
-def _get_container(user_id, container_uuid, container_type):
+def _get_container(user_id, container_id, container_type):
     """Retrieve the container information.
 
     Parameters
     ----------
     user_id : int
         The user's ID in the database
-    container_uuid : str
+    container_id : str
         The container id to look up
     container_type : str
         The container type requested (Docker, Singualrity, Shifter)
@@ -311,14 +297,9 @@ def _get_container(user_id, container_uuid, container_type):
     container = {}
     try:
         conn, cur = _get_db_connection()
-        query = "select * from containers, container_images where containers.id = " \
-                "container_images.container_id and container_uuid = %s and type = %s"
-        cur.execute(query, (container_uuid, container_type.lower()))
-        r = cur.fetchone()
-        container['container_uuid'] = r['container_uuid']
-        container['name'] = r['name']
-        container['type'] = r['type']
-        container['location'] = r['location']
+        query = "select * from container_images where container_id=%s and type=%s"
+        cur.execute(query, (container_id, container_type))
+        container = cur.fetchone()
     except Exception as e:
         print(e)
         app.logger.error(e)
