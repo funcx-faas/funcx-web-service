@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.7"
+
+
+before_install:
+  - sudo apt-get update -q
+  - sudo apt-get install redis
+install:
+  - cd forwarder
+  - pip install .
+
+script:
+  - pwd
+  - flake8 forwarder
