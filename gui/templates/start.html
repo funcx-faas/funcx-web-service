@@ -20,7 +20,7 @@
                 <button class="btn BTN-OUTLINE" style="font-size:2em; padding-left: 3px; text-align: center;">
                     <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try FuncX</button>
                 <div style="font-size: 1.5em;">or</div>
-                <button class="btn BTN-OUTLINE" onclick="window.location.href = '{{ url_for('login') }}';" style="font-size:2em;">
+                <button class="btn BTN-OUTLINE" onclick="window.location.href = '{{ url_for('auth_api.login') }}';" style="font-size:2em;">
                     <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo.png') }}" style="width: 40px; margin-bottom: 4px; margin-right: 4px;">Log In</button>
             </div>
         </header>
@@ -52,13 +52,13 @@
                 <p class="text-muted">Deploying a FuncX endpoint transforms your computing infrastructure into a high performance function-serving platform.</p>
             </div>
             <div class="col-6">
-                <img class="START-IMG">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/pictures/network_cloud.png') }}" style="width: 350px;">
             </div>
         </section>
         <div class="DIVIDE"></div>
         <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
             <div class="col-6">
-                <img class="START-IMGx" src="{{ url_for('static', filename='imgs/pictures/strong_weak_scaling.png') }}" style="display: inline-block; padding: 0; width: 350px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/pictures/strong_weak_scaling.png') }}" style="width: 350px;">
             </div>
             <div class="col-6 START-SECTION-TEXT">
                 <h3 class="START-SECTION-HEADER">Scalable: Process millions of functions on thousands of nodes</h3>
@@ -72,16 +72,16 @@
                 <p class="text-muted">We employ fine-grained access control and identity management to secure endpoints and isolate functions within containers to minimize risk.</p>
             </div>
             <div class="col-6">
-                <img class="START-IMGx" src="{{ url_for('static', filename='imgs/logos/globus_logo_full.png') }}" style="display: inline-block; margin-bottom: 20px; padding: 0; width: 480px;">
-                <img class="START-IMGx" src="{{ url_for('static', filename='imgs/logos/singularity_logo.png') }}" style="display: inline-block; padding: 0; width: 120px;">
-                <img class="START-IMGx" src="{{ url_for('static', filename='imgs/logos/docker_logo.png') }}" style="display: inline-block; margin: 0 40px; padding: 0; width: 120px;">
-                <img class="START-IMGx" src="{{ url_for('static', filename='imgs/logos/shifter_logo.png') }}" style="display: inline-block; padding: 0; width: 120px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo_full.png') }}" style="display: block; margin: 0 auto 20px auto; width: 480px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/singularity_logo.png') }}" style="width: 120px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/docker_logo.png') }}" style="margin: 0 40px; width: 120px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/shifter_logo.png') }}" style="width: 120px;">
             </div>
         </section>
         <div class="DIVIDE"></div>
         <footer class="row" style="margin: 0 160px 40px 160px; text-align: center;">
             <a class="col-4" href="https://labs.globus.org" alt="Globus Labs">
-                <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.svg') }}" style="height: 48px; filter:invert(100%);">
+                <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.png') }}" style="height: 48px;">
             </a>
             <a class="col-4" href="https://www.uchicago.edu" alt="University of Chicago">
                 <img src="{{ url_for('static', filename='imgs/logos/uc_logo.png') }}" style="height: 48px;">

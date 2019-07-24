@@ -1,4 +1,6 @@
 import redis
+import queue
+
 from forwarder.queues.base import FuncxQueue, NotConnected
 import json
 
@@ -49,11 +51,19 @@ class RedisQueue(FuncxQueue):
            Timeout for the blocking get in seconds
         """
         try:
-            task_list, task_id = self.redis_client.blpop(f'{self.prefix}_list', timeout=timeout)
+            x = self.redis_client.blpop(f'{self.prefix}_list', timeout=timeout)
+            if not x:
+                raise queue.Empty
+
+            task_list, task_id = x
             jtask_info = self.redis_client.get(f'{self.prefix}:{task_id}')
             task_info = json.loads(jtask_info)
+        except queue.Empty:
+            raise
+
         except AttributeError:
             raise NotConnected(self)
+
         except redis.exceptions.ConnectionError:
             print(f"ConnectionError while trying to connect to Redis@{self.hostname}:{self.port}")
             raise
@@ -83,6 +93,12 @@ class RedisQueue(FuncxQueue):
     @property
     def is_connected(self):
         return self.redis_client is not None
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return "<RedisQueue at {}:{}#{}".format(self.hostname, self.port, self.prefix)
 
 
 def test():

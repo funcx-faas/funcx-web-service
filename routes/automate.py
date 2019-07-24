@@ -1,53 +1,40 @@
-import psycopg2.extras
-import datetime
-import pickle
 import uuid
 import json
 import time
+import datetime
 
-from .utils import (_get_user, _log_request,
-                    _register_site, _register_function, _authorize_endpoint,
-                    _resolve_function, _introspect_token, _get_container)
+from models.utils import resolve_user, get_redis_client
+from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_db_connection, _get_redis_client
 
 # Flask
-automate = Blueprint("automate", __name__)
+automate_api = Blueprint("automate", __name__)
 
 token_cache = {}
 endpoint_cache = {}
 caching = True
 
 
-@automate.route('/run', methods=['POST'])
-def run():
-    """Execute the specified function
+@automate_api.route('/run', methods=['POST'])
+@authenticated
+def run(user_name):
+    """Puts a job in Redis and returns an id
 
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
     Returns
     -------
     json
         The task document
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_id, user_name, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_id, user_name, short_name = _get_user(request.headers)
-        token_cache['token'] = (user_id, user_name, short_name)
-
     if not user_name:
-        abort(400, description=f"Could not find user. You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
 
     try:
-        print("Starting the request")
         post_req = request.json['body']
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
@@ -60,7 +47,7 @@ def run():
                 endpoint_authorized = True
         if not endpoint_authorized:
             # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
+            endpoint_authorized = authorize_endpoint(user_name, endpoint, request)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
@@ -80,7 +67,9 @@ def run():
         app.logger.info("Task assigned UUID: {}".format(task_id))
         print(task_id)
         # Get the redis connection
-        rc = _get_redis_client()
+        rc = get_redis_client()
+
+        user_id = resolve_user(user_name)
 
         # Add the job to redis
         task_payload = {'task_id': task_id,
@@ -111,12 +100,15 @@ def run():
     return jsonify(automate_response)
 
 
-@automate.route("/<task_id>/status", methods=['GET'])
-def status(task_id):
+@automate_api.route("/<task_id>/status", methods=['GET'])
+@authenticated
+def status(user_name, task_id):
     """Check the status of a task.
 
     Parameters
     ----------
+    user_name : str
+        The primary identity of the user
     task_id : str
         The task uuid to look up
 
@@ -126,33 +118,19 @@ def status(task_id):
         The status of the task
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_name, user_id, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_name, user_id, short_name = _get_user(request.headers)
-        token_cache[token] = (user_name, user_id, short_name)
-
     if not user_name:
-        abort(400, description="Could not find user. You must be logged in to perform this function.")
-
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
     try:
         # Get a redis client
-        rc = _get_redis_client()
+        rc = get_redis_client()
 
         details = {}
 
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
-        except:
+        except Exception:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         if 'result' in task:

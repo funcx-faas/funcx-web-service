@@ -2,16 +2,13 @@ import uuid
 import json
 import time
 
-from .utils import (_get_user, _register_site, _register_function,
-                    _authorize_endpoint, _get_container)
+from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
+    get_redis_client
+from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from config import _get_redis_client
 
 # Flask
-api = Blueprint("api", __name__)
-
-# A cache for user information
-token_cache = {}
+funcx_api = Blueprint("routes", __name__)
 
 # A cache for authorized endpoint usage by users
 endpoint_cache = {}
@@ -19,33 +16,27 @@ endpoint_cache = {}
 caching = True
 
 
-@api.route('/execute', methods=['POST'])
-def execute():
+@funcx_api.route('/execute', methods=['POST'])
+@authenticated
+def execute(user_name):
     """Puts a job in Redis and returns an id
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
 
     Returns
     -------
     json
         The task document
     """
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_id, user_name, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_id, user_name, short_name = _get_user(request.headers)
-        token_cache['token'] = (user_id, user_name, short_name)
 
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    app.logger.debug(f"Received task from user: {user_name}")
     try:
         post_req = request.json
         endpoint = post_req['endpoint']
@@ -58,8 +49,11 @@ def execute():
             if user_name in endpoint_cache[endpoint]:
                 endpoint_authorized = True
         if not endpoint_authorized:
-            # Check if the user is allowed to access the endpoint
-            endpoint_authorized = _authorize_endpoint(user_id, endpoint, token)
+            # Check if the user's token is allowed to access the endpoint
+            token = request.headers.get('Authorization')
+            token = str.replace(str(token), 'Bearer ', '')
+
+            endpoint_authorized = authorize_endpoint(user_name, endpoint, token)
             # Throw an unauthorized error if they are not allowed
             if not endpoint_authorized:
                 return jsonify({"Error": "Unauthorized access of endpoint."}), 400
@@ -79,8 +73,10 @@ def execute():
         app.logger.info("Task assigned UUID: {}".format(task_id))
 
         # Get the redis connection
-        rc = _get_redis_client()
-        
+        rc = get_redis_client()
+
+        user_id = resolve_user(user_name)
+
         # Add the job to redis
         task_payload = {'task_id': task_id,
                         'endpoint_id': endpoint,
@@ -102,12 +98,15 @@ def execute():
     return jsonify({'task_id': task_id})
 
 
-@api.route("/<task_id>/status", methods=['GET'])
-def status(task_id):
+@funcx_api.route("/<task_id>/status", methods=['GET'])
+@authenticated
+def status(user_name, task_id):
     """Check the status of a task.
 
     Parameters
     ----------
+    user_name : str
+        The primary identity of the user
     task_id : str
         The task uuid to look up
 
@@ -117,26 +116,13 @@ def status(task_id):
         The status of the task
     """
 
-    token = None
-    if 'Authorization' in request.headers:
-        token = request.headers.get('Authorization')
-        token = token.split(" ")[1]
-    else:
-        abort(400, description=f"You must be logged in to perform this function.")
-
-    if caching and token in token_cache:
-        user_name, user_id, short_name = token_cache[token]
-    else:
-        # Perform an Auth call to get the user name
-        user_name, user_id, short_name = _get_user(request.headers)
-        token_cache[token] = (user_name, user_id, short_name)
-
     if not user_name:
-        abort(400, description="Could not find user. You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
 
     try:
         # Get a redis client
-        rc = _get_redis_client()
+        rc = get_redis_client()
 
         details = {}
         
@@ -166,12 +152,15 @@ def status(task_id):
         return jsonify({'InternalError': e})
 
 
-@api.route("/containers/<container_id>/<container_type>", methods=['GET'])
-def get_container(container_id, container_type):
+@funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
+@authenticated
+def get_cont(user_name, container_id, container_type):
     """Get the details of a container.
 
     Parameters
     ----------
+    user_name : str
+        The primary identity of the user
     container_id : str
         The id of the container
     container_type : str
@@ -182,27 +171,63 @@ def get_container(container_id, container_type):
     dict
         A dictionary of container details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
+
     if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
-    container = _get_container(user_id, container_id, container_type)
-    print(container)
+    container = get_container(container_id, container_type)
+    app.logger.debug(f"Got container: {container}")
     return jsonify({'container': container})
 
 
-@api.route("/register_endpoint", methods=['POST'])
-def register_site():
-    """Register the site. Add this site to the database and associate it with this user.
+@funcx_api.route("/containers", methods=['POST'])
+@authenticated
+def reg_container(user_name):
+    """Register a new container.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+
+    Returns
+    -------
+    dict
+        A dictionary of container details including its uuid
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    app.logger.debug(f"Creating container.")
+    post_req = request.json
+
+    container_id = register_container(user_name, post_req['name'], post_req['location'],
+                                    post_req['description'], post_req['type'])
+    app.logger.debug(f"Created container: {container_id}")
+    return jsonify({'container_id': container_id})
+
+
+@funcx_api.route("/register_endpoint", methods=['POST'])
+@authenticated
+def reg_endpoint(user_name):
+    """Register the endpoint. Add this site to the database and associate it with this user.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
 
     Returns
     -------
     json
         A dict containing the endpoint details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
     endpoint_name = None
     description = None
     endpoint_uuid = None
@@ -216,29 +241,41 @@ def register_site():
         endpoint_uuid = request.json["endpoint_uuid"]
 
     app.logger.debug(endpoint_name)
-    endpoint_uuid = _register_site(user_id, endpoint_name, description, endpoint_uuid)
+    endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 
-@api.route("/register_function", methods=['POST'])
-def register_function():
+@funcx_api.route("/register_function", methods=['POST'])
+@authenticated
+def reg_function(user_name):
     """Register the function.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
 
     Returns
     -------
     json
         Dict containing the function details
     """
-    user_id, user_name, short_name = _get_user(request.headers)
     if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
     try:
+
         function_name = request.json["function_name"]
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
+        container_uuid = None
+        if 'container' in request.json:
+            container_uuid = request.json["container"]
     except Exception as e:
         app.logger.error(e)
-    app.logger.debug(function_name)
-    function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
+
+    app.logger.debug(f"Registering function {function_name}")
+
+    function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
     return jsonify({'function_uuid': function_uuid})

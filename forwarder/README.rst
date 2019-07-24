@@ -1,8 +1,9 @@
-Notes
-=====
+FuncX Forwarder Service
+=======================
 
 
-We want the mock_broker to be hosting a REST service. This service will have the following routes:
+This is a REST micro service that handles requests for initializing Forwarders to which endpoints will connect.
+This service will have the following routes:
 
 /register
 ---------
@@ -15,11 +16,8 @@ For eg:
 POST payload::
 
   {
-     'python_v': '3.6',
-     'os': 'Linux',
-     'hname': 'borgmachine2',
-     'username': 'yadu',
-     'funcx_v': '0.0.1'
+     'endpoint_id': '<ENDPOINT_ID>',
+     'redis_url': '<REDIS_URL>',
   }
 
 
@@ -31,6 +29,18 @@ Response payload::
      'result_url': 'tcp://55.77.66.22:50002',
      'command_port': 'tcp://55.77.66.22:50003'
   }
+
+/list_endpoints
+---------------
+
+This route will list the endpoint mappings.
+
+
+/ping
+-----
+
+This route is for liveness checking. Will return "pong" string when you do a GET on this route.
+
 
 
 

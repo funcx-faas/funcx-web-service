@@ -22,7 +22,7 @@
             </section>
             <div class="container" style="padding-left: 0;">
                 {{ form.submit }}
-                {% if title != 'New Function' %}
+                {% if title == 'New Function' %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">
                 {% else %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', id=func['id']) }}';" value="Cancel">
