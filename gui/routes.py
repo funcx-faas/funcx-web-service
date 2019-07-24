@@ -28,6 +28,10 @@ def start():
 def home():
     return render_template('home.html', title='Home')
 
+@guiapi.route('/404')
+def error():
+    return render_template('404.html', title='Error')
+
 @guiapi.route('/login')
 def login():
     # app.secret_key = "secret"
