@@ -1,19 +1,14 @@
-from flask import abort, Blueprint, current_app as app, flash, jsonify, redirect, render_template, request, session, url_for
-from datetime import datetime, timezone
-import requests
+from flask import (abort, Blueprint, current_app as app, flash, jsonify,
+                   redirect, render_template, request, session, url_for)
+
 import uuid
-# import math
-# from math import *
-from gui import app, db
-# from gui.models import User, Function
 from gui.forms import EditForm
-import config
-import globus_sdk
+from models.utils import get_db_connection
 
 # Flask
 guiapi = Blueprint("guiapi", __name__)
 
-conn, cur = config._get_db_connection()
+conn, cur = get_db_connection()
 
 @guiapi.route('/')
 def start():
