@@ -80,7 +80,7 @@ def execute():
 
         # Get the redis connection
         rc = _get_redis_client()
-        
+
         # Add the job to redis
         task_payload = {'task_id': task_id,
                         'endpoint_id': endpoint,
@@ -90,7 +90,7 @@ def execute():
                         'user_id': user_id,
                         'created_at': time.time(),
                         'status': task_status}
-        
+
         rc.set(f"task:{task_id}", json.dumps(task_payload))
 
         # Add the task to the redis queue
@@ -139,7 +139,7 @@ def status(task_id):
         rc = _get_redis_client()
 
         details = {}
-        
+
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
@@ -220,6 +220,63 @@ def register_site():
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 
+def register_with_hub(address, endpoint_id):
+    """ This registers with the Forwarder micro service.
+
+    Can be used as an example of how to make calls this it, while the main API
+    is updated to do this calling on behalf of the endpoint in the second iteration.
+
+    Parameters
+    ----------
+    address : str
+       Address of the forwarder service of the form http://<IP_Address>:<Port>
+
+    """
+    r = requests.post(address + '/register',
+                      json={'endpoint_id': endpoint_id,
+                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
+
+                      }
+    )
+    if r.status_code != 200:
+        print(dir(r))
+        print(r)
+        raise RegistrationError(r.reason)
+
+    return r.json()
+
+
+@api.route("/register_endpoint_2", methods=['POST'])
+def register_endpoint():
+    """Register an endpoint. Add this endpoint to the database and associate it with this user.
+
+    Do we need this to be authenticated ?
+
+    Returns
+    -------
+    json
+        A dict containing the endpoint details
+    """
+    user_id, user_name, short_name = _get_user(request.headers)
+
+    if not user_name:
+        abort(400, description="Error: You must be logged in to perform this function.")
+
+    # TODO: We should handle keyError here
+    try:
+        app.logger.debug(request.json['endpoint_name'])
+        endpoint_uuid = _register_site(user_id, endpoint_name, description, endpoint_uuid)
+    except KeyError as e:
+        app.logger.debug("Missing Keys in json request : {}".format(e))
+        response =  jsonify({'status' : 'error',
+                             'reason' : 'Missing Keys in json request {e}'.format(e)})
+
+    try:
+        response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid)
+
+    return jsonify(response)
+
+
 @api.route("/register_function", methods=['POST'])
 def register_function():
     """Register the function.
@@ -242,3 +299,5 @@ def register_function():
     app.logger.debug(function_name)
     function_uuid = _register_function(user_id, function_name, description, function_code, entry_point)
     return jsonify({'function_uuid': function_uuid})
+
+
