@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <title>FuncX</title>
+    </head>
+    <body>
+        <header class="container-fluid" id="START-HEADER">
+            <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="FuncX" id="START-LOGO">
+            <div class="col" id="START-HEADER-COL">
+                <h1>FuncX</h1>
+                <h2 class="h4" style="margin-bottom: 16px;">Serverless Supercomputing</h2>
+                <button class="btn BTN-OUTLINE" onclick="window.location.href = 'https://github.com/funcx-faas';" style="margin-right: 8px;">GitHub</button><!--
+                --><button class="btn BTN-OUTLINE" onclick="window.location.href = 'https://funcx.readthedocs.io/en/latest/';">Read the Docs</button>
+            </div>
+            <div class="col" id="START-HEADER-COL" style="margin-top: 28px; text-align: center;">
+                <button class="btn BTN-OUTLINE" style="font-size:2em; padding-left: 3px; text-align: center;">
+                    <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try FuncX</button>
+                <div style="font-size: 1.5em;">or</div>
+                <button class="btn BTN-OUTLINE" onclick="window.location.href = '{{ url_for('auth_api.login') }}';" style="font-size:2em;">
+                    <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo.png') }}" style="width: 40px; margin-bottom: 4px; margin-right: 4px;">Log In</button>
+            </div>
+        </header>
+        <section class="row" style="margin-left: 0; margin-right: 0;">
+            <div class="col-1"></div>
+            <div class="col-2 CENTER">
+                <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/1_circled.png') }}">
+                <span class="STEP-DESC">Deploy an Endpoint</span>
+            </div>
+            <div class="col-2 CENTER">
+                <img class="" src="{{ url_for('static', filename='imgs/design/arrow.png') }}" style="margin-top: 0px; width: 90%;">
+            </div>
+            <div class="col-2 CENTER">
+                <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/2_circled.png') }}">
+                <span class="STEP-DESC">Register a Function</span>
+            </div>
+            <div class="col-2 CENTER">
+                <img class="" src="{{ url_for('static', filename='imgs/design/arrow.png') }}" style="margin-top: 0px; width: 90%;">
+            </div>
+            <div class="col-2 CENTER">
+                <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/3_circled.png') }}">
+                <span class="STEP-DESC">Run From Anywhere</span> {# Profit! #}
+            </div>
+        </section>
+        <div class="DIVIDE"></div>
+        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+            <div class="col-6 START-SECTION-TEXT">
+                <h3 class="START-SECTION-HEADER">Turn anything into a FaaS platform</h3>
+                <p class="text-muted">Deploying a FuncX endpoint transforms your computing infrastructure into a high performance function-serving platform.</p>
+            </div>
+            <div class="col-6">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/pictures/network_cloud.png') }}" style="width: 350px;">
+            </div>
+        </section>
+        <div class="DIVIDE"></div>
+        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+            <div class="col-6">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/pictures/strong_weak_scaling.png') }}" style="width: 350px;">
+            </div>
+            <div class="col-6 START-SECTION-TEXT">
+                <h3 class="START-SECTION-HEADER">Scalable: Process millions of functions on thousands of nodes</h3>
+                <p class="text-muted">The FuncX endpoint leverages <a href="http://parsl-project.org">Parsl</a> to efficiently deploy workers across thousands of nodes, capable of serving millions of functions.</p>
+            </div>
+        </section>
+        <div class="DIVIDE"></div>
+        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+            <div class="col-6 START-SECTION-TEXT">
+                <h3 class="START-SECTION-HEADER">Secured with Globus Auth and containers</h3>
+                <p class="text-muted">We employ fine-grained access control and identity management to secure endpoints and isolate functions within containers to minimize risk.</p>
+            </div>
+            <div class="col-6">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo_full.png') }}" style="display: block; margin: 0 auto 20px auto; width: 480px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/singularity_logo.png') }}" style="width: 120px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/docker_logo.png') }}" style="margin: 0 40px; width: 120px;">
+                <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/shifter_logo.png') }}" style="width: 120px;">
+            </div>
+        </section>
+        <div class="DIVIDE"></div>
+        <footer class="row" style="margin: 0 160px 40px 160px; text-align: center;">
+            <a class="col-4" href="https://labs.globus.org" alt="Globus Labs">
+                <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.png') }}" style="height: 48px;">
+            </a>
+            <a class="col-4" href="https://www.uchicago.edu" alt="University of Chicago">
+                <img src="{{ url_for('static', filename='imgs/logos/uc_logo.png') }}" style="height: 48px;">
+            </a>
+            <a class="col-4" href="https://www.anl.gov" alt="Argonne National Laboratory">
+                <img src="{{ url_for('static', filename='imgs/logos/anl_logo.png') }}" style="height: 80px; margin-left: -30px; margin-top: -18px;">
+            </a>
+        </footer>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    </body>
+</html>

@@ -1,10 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-
-</body>
-</html>
+{% extends "layout.html" %}
+{% block content %}
+    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Your Functions</h1>
+    {% if functions|length < 1 %}
+        <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+    {% else %}
+{#        {% set current_page = 1 %}#}
+{#        <nav>#}
+{#            <a href="#">Previous</a>#}
+{#            <input type="text" value="{{ current_page }}">#}
+{#            <a>Next</a>#}
+{#        </nav>#}
+        <table class="container">
+            <tr id="FUNCTIONS-TABLE-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col">Function</th>
+                <th class="col">Language</th>
+                <th class="col">Date Created</th>
+                <th class="col">Date Edited</th>
+            </tr>
+        </table>
+        <table class="container" id="FUNCTIONS-TABLE">
+            {% for func in functions %}
+                <tr class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                    <th class="col FUNCTIONS-TABLE-C">
+                        <a href="{{ url_for('guiapi.view', id=func.id) }}">{{ func.title }}</a>
+                    </th>
+                    <th class="col FUNCTIONS-TABLE-C">{{ func.language }}</th>
+                    <th class="col FUNCTIONS-TABLE-C">{{ func.date_created.date() }} {{ func.date_created.strftime('%X') }}</th>
+                    <th class="col FUNCTIONS-TABLE-C">{{ func.date_edited.date() }} {{ func.date_edited.strftime('%X') }}</th>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}
