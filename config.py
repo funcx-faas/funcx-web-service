@@ -19,9 +19,7 @@ class Config(object):
 
     REDIS_PORT = os.environ.get('redis_port')
     REDIS_HOST = os.environ.get('redis_host')
-
-    REDIRECT_URL = os.environ.get('redirect_url')
-
+    
 
 class ProductionConfig(Config):
     DEBUG = False
