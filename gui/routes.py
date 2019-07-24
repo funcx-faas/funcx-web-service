@@ -14,9 +14,11 @@ conn, cur = get_db_connection()
 def start():
     return render_template('start.html')
 
+
 @guiapi.route('/home')
 def home():
     return render_template('home.html', title='Home')
+
 
 @guiapi.route('/functions')
 def functions():
@@ -25,8 +27,10 @@ def functions():
     # numPages = ceil(length/12)
     return render_template('functions.html', title='Your Functions', functions=functions)
 
+
 def getUUID():
     return str(uuid.uuid4())
+
 
 @guiapi.route('/new', methods=['GET', 'POST'])
 def new():
@@ -44,6 +48,7 @@ def new():
         except:
             flash('There was an issue handling your request', 'danger')
     return render_template('edit.html', title='New Function', form=form, cancel_route="functions")
+
 
 @guiapi.route('/edit/<id>', methods=['GET', 'POST'])
 def edit(id):
@@ -81,6 +86,7 @@ def view(id):
     function_uuid = func['function_uuid']
     function_code = func['function_code']
     return render_template('view.html', title=f'View "{name}"', id=id, name=name, user_id=user_id, desc=desc, date_created=date_created, date_modified=date_modified, function_uuid=function_uuid, function_code=function_code)
+
 
 @guiapi.route('/delete/<id>', methods=['GET', 'POST'])
 def delete(id):
