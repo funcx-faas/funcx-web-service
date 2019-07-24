@@ -8,7 +8,6 @@ from models.utils import get_db_connection
 # Flask
 guiapi = Blueprint("guiapi", __name__)
 
-conn, cur = get_db_connection()
 
 @guiapi.route('/')
 def start():
@@ -40,6 +39,7 @@ def new():
         uuid = getUUID()
         code = form.content.data
         try:
+            conn, cur = get_db_connection()
             cur.execute("INSERT INTO functions (function_name, function_uuid, function_code) VALUES (%s, %s, %s)", (name, uuid, code))
             conn.commit()
             flash(f'Saved Function "{name}"!', 'success')
@@ -52,6 +52,7 @@ def new():
 
 @guiapi.route('/edit/<id>', methods=['GET', 'POST'])
 def edit(id):
+    conn, cur = get_db_connection()
     cur.execute("SELECT * FROM functions WHERE id = %s", (id,))
     func = cur.fetchone()
     name = func['function_name']
@@ -76,6 +77,7 @@ def edit(id):
 
 @guiapi.route('/view/<id>')
 def view(id):
+    conn, cur = get_db_connection()
     cur.execute("SELECT id, function_name, user_id, description, timestamp, modified_at, function_uuid, function_code FROM functions WHERE id = %s", (id,))
     func = cur.fetchone()
     name = func['function_name']
@@ -90,11 +92,12 @@ def view(id):
 
 @guiapi.route('/delete/<id>', methods=['GET', 'POST'])
 def delete(id):
+    conn, cur = get_db_connection()
     cur.execute("SELECT id, function_name, deleted FROM functions WHERE id = %s", (id,))
     func = cur.fetchone()
     name = func['function_name']
     # print(str(routed))
-    if(func['deleted'] == False):
+    if func['deleted'] == False:
         try:
             cur.execute("UPDATE functions SET deleted = True WHERE id = %s", (id,))
             conn.commit()
