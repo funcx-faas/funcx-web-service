@@ -93,11 +93,17 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
         conn, cur = get_db_connection()
 
         # Check if the user owns the endpoint
-        query = "select * from sites where endpoint_uuid = %s and user_id = %s"
+        query = "select * from sites where endpoint_uuid = %s"
         cur.execute(query, (endpoint_uuid, user_id))
-        if cur.fetchone() is not None:
-            authorized = True
-        else:
+        rows = cur.fetchone()
+        for row in rows:
+            # Check if the user owns it
+            if row['user_id'] == user_id:
+                authorized = True
+            elif row['public']:
+                authorized = True
+
+        if not authorized:
             # Check if there are any groups associated with this endpoint
             query = "select * from auth_groups where endpoint_id = %s"
             cur.execute(query, (endpoint_uuid,))
