@@ -1,6 +1,7 @@
 import uuid
 import json
 import time
+import requests
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
     get_redis_client
