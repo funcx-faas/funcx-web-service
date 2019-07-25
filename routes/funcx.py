@@ -273,7 +273,7 @@ def register_with_hub(address, endpoint_id):
 
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return 1
+    return jsonify(1)
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
