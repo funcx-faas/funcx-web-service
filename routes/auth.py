@@ -1,5 +1,5 @@
 from authentication.auth import get_auth_client
-from flask import request, flash, redirect, session, url_for, Blueprint
+from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
 
