@@ -14,7 +14,7 @@ header {
 
 .PAGE-TITLE {
     margin-bottom: 12px;
-    /*margin-left: 14px;*/
+    padding-left: 0 !important;
 }
 
 .ALERT {
@@ -25,7 +25,7 @@ header {
     display: inline-block;
 }
 
-/*Start Page*/
+/* Start Page */
 
 #START-HEADER {
     align-items: flex-start;
@@ -111,7 +111,7 @@ header {
 }
 
 
-/*Site Navigation*/
+/* Site Navigation */
 
 #NAVBAR {
     background-color: #335BA2;
@@ -145,7 +145,7 @@ header {
 }
 
 
-/*Home Page*/
+/* Home Page */
 
 .HOME-ROW {
     display: flex;
@@ -183,7 +183,7 @@ blockquote {
     font-style: italic;
 }
 
-/*Functions Page*/
+/* Functions Page */
 
 #FUNCTIONS-TABLE {
     background-color: rgb(245,245,245);
@@ -220,7 +220,7 @@ blockquote {
 }
 
 
-/*View Page*/
+/* View & Edit Pages */
 
 #VIEW-INFO {
     background-color: rgb(245,245,245);
@@ -239,7 +239,22 @@ dd {
     margin-bottom: 0.5em;
 }
 
-#VIEW-CONTENT {
+.FORM-FIELD {
+    font-size: 1em !important;
+    line-height: 1em !important;
+    width: 225px !important;
+}
+
+#FUNC-DESC {
+    font-size: 1em !important;
+    line-height: 1em !important;
+    min-height: 62px;
+    min-width: 225px !important;
+    overflow: scroll;
+    resize: both;
+}
+
+#FUNC-CODE {
     border: 2px solid rgb(221,221,221);
     border-radius: 5px;
     font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
@@ -248,12 +263,12 @@ dd {
     margin-bottom: 16px;
     margin-left: -14px;
     overflow: scroll;
-    padding: 4px;
+    padding: 0.5em;
     resize: both;
     width: 48em;
 }
 
-    /*404*/
+/* ERROR */
 .ERROR-HEADING {
     font-size: 50px;
     font-weight: bold;

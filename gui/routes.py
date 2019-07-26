@@ -1,9 +1,9 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
-
 import uuid
 from gui.forms import EditForm
 from models.utils import get_db_connection
+from authentication.auth import authenticated
 
 # Flask
 guiapi = Blueprint("guiapi", __name__)
@@ -14,7 +14,13 @@ def start():
     return render_template('start.html')
 
 
+@guiapi.route('/debug')
+def debug():
+    return jsonify({'username': session.get("username")})
+
+
 @guiapi.route('/home')
+# @authenticated
 def home():
     return render_template('home.html', title='Home')
 
@@ -25,6 +31,7 @@ def error():
 
 
 @guiapi.route('/functions')
+#@authenticated
 def functions():
     # functions = Function.query.order_by(Function.date_created).all()
     # length = len(functions)
@@ -37,15 +44,23 @@ def getUUID():
 
 
 @guiapi.route('/new', methods=['GET', 'POST'])
+# @authenticated
 def new():
+
+    # TODO (from Tyler) -- have this reroute to funcx.org/api/v1/register_function (rather than reinventing the wheel).
+    # TODO: This request should contain: user_id, user_name, short_name
+    # TODO: But talk to Ryan about this.
+
     form = EditForm()
     if form.validate_on_submit():
-        name = form.title.data
+        name = form.name.data
+        desc = form.desc.data
+        entry_point = form.entry_point.data
         uuid = getUUID()
-        code = form.content.data
+        code = form.code.data
         try:
             conn, cur = get_db_connection()
-            cur.execute("INSERT INTO functions (function_name, function_uuid, function_code) VALUES (%s, %s, %s)", (name, uuid, code))
+            cur.execute("INSERT INTO functions (function_name, description, entry_point, function_uuid, function_code) VALUES (%s, %s, %s, %s, %s)", (name, desc, entry_point, uuid, code))
             conn.commit()
             flash(f'Saved Function "{name}"!', 'success')
             # return redirect('../view/' + str(450))
@@ -56,6 +71,7 @@ def new():
 
 
 @guiapi.route('/edit/<id>', methods=['GET', 'POST'])
+# @authenticated
 def edit(id):
     conn, cur = get_db_connection()
     cur.execute("SELECT * FROM functions WHERE id = %s", (id,))
@@ -63,45 +79,39 @@ def edit(id):
     name = func['function_name']
     form = EditForm()
     if form.validate_on_submit():
-        name = form.title.data
-        # func.language = form.language.data
-        code = form.content.data
         try:
             # db.session.commit()
-            cur.execute("UPDATE functions SET function_name = %s, function_code = %s, modified_at = 'NOW()' WHERE id = %s", (name, code, id))
+            cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE id = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, id))
             conn.commit()
             flash(f'Saved Function "{name}"!', 'success')
             return redirect('../view/' + str(id))
         except:
             flash('There was an issue handling your request.', 'danger')
-    form.title.data = func['function_name']
+    form.name.data = func['function_name']
+    form.desc.data = func['description']
+    form.entry_point.data = func['entry_point']
     # form.language.data = func.language
-    form.content.data = func['function_code']
-    return render_template('edit.html', title=f'Edit "{name}"', func=func, form=form, cancel_route="view")
+    form.code.data = func['function_code']
+    return render_template('edit.html', title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
 @guiapi.route('/view/<id>')
+# @authenticated
 def view(id):
     conn, cur = get_db_connection()
-    cur.execute("SELECT id, function_name, user_id, description, timestamp, modified_at, function_uuid, function_code FROM functions WHERE id = %s", (id,))
+    cur.execute("SELECT * FROM functions WHERE id = %s", (id,))
     func = cur.fetchone()
     name = func['function_name']
-    user_id = func['user_id']
-    desc = func['description']
-    date_created = func['timestamp']
-    date_modified = func['modified_at']
-    function_uuid = func['function_uuid']
-    function_code = func['function_code']
-    return render_template('view.html', title=f'View "{name}"', id=id, name=name, user_id=user_id, desc=desc, date_created=date_created, date_modified=date_modified, function_uuid=function_uuid, function_code=function_code)
+    return render_template('view.html', title=f'View "{name}"', func=func)
 
 
 @guiapi.route('/delete/<id>', methods=['GET', 'POST'])
+#@authenticated
 def delete(id):
     conn, cur = get_db_connection()
     cur.execute("SELECT id, function_name, deleted FROM functions WHERE id = %s", (id,))
     func = cur.fetchone()
     name = func['function_name']
-    # print(str(routed))
     if func['deleted'] == False:
         try:
             cur.execute("UPDATE functions SET deleted = True WHERE id = %s", (id,))
