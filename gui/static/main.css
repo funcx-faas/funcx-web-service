@@ -259,15 +259,16 @@ dd {
     font-weight: bold;
 }
 
-.ERROR-TEXT {
-    font-size: 20px;
-}
-
-.ERROR-TITLE {
-    font-size: 80px;
+.ERROR-MAIN {
+    font-size: 70px;
     line-height: 1em;
     font-style: italic;
     font-family: "Times New Roman";
-    margin-left: 20px;
+    margin-left: 40px;
 }
 
+.ERROR-CODE {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 15px;
+    margin-left: 20px;
+}
