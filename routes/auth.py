@@ -36,10 +36,11 @@ def callback():
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
         id_token = tokens.decode_id_token(client)
-        app.logger.debug(id_token)
         session.update(
             tokens=tokens.by_resource_server,
-            username=id_token.get('email'),
+            username=id_token.get('preferred_username'),
+            name=id_token.get('name'),
+            email=id_token.get('email'),
             is_authenticated=True
         )
 
