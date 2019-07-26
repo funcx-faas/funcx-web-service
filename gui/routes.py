@@ -36,6 +36,13 @@ def functions():
     # functions = Function.query.order_by(Function.date_created).all()
     # length = len(functions)
     # numPages = ceil(length/12)
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT * FROM functions, users WHERE functions.user_id = users.id, users.username = %s", (session.get("username"),))
+        functions = cur.fetchall()
+    except:
+        flash('There was an issue handling your request', 'danger')
+        return redirect(url_for('guiapi.home'))
     return render_template('functions.html', title='Your Functions', functions=functions)
 
 
@@ -105,7 +112,7 @@ def view(id):
     return render_template('view.html', title=f'View "{name}"', func=func)
 
 
-@guiapi.route('/delete/<id>', methods=['GET', 'POST'])
+@guiapi.route('/delete/<id>', methods=['POST'])
 #@authenticated
 def delete(id):
     conn, cur = get_db_connection()
