@@ -20,7 +20,7 @@ def debug():
 
 
 @guiapi.route('/home')
-# @authenticated
+@authenticated
 def home():
     return render_template('home.html', title='Home')
 
