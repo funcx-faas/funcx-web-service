@@ -1,5 +1,5 @@
 from authentication.auth import get_auth_client
-from flask import request, flash, redirect, session, url_for, Blueprint
+from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
 
@@ -38,7 +38,9 @@ def callback():
         id_token = tokens.decode_id_token(client)
         session.update(
             tokens=tokens.by_resource_server,
-            username=id_token.get('email'),
+            username=id_token.get('preferred_username'),
+            name=id_token.get('name'),
+            email=id_token.get('email'),
             is_authenticated=True
         )
 
