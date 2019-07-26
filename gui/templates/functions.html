@@ -24,7 +24,7 @@
             {% for func in functions %}
                 <tr class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
                     <th class="col FUNCTIONS-TABLE-C">
-                        <a href="{{ url_for('guiapi.view', id=func['id']) }}">{{ func['function_name'] }}</a>
+                        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">{{ func['function_name'] }}</a>
                     </th>
 {#                    <th class="col FUNCTIONS-TABLE-C">{{ func.language }}</th>#}
                     <th class="col FUNCTIONS-TABLE-C">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</th>

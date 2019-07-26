@@ -274,11 +274,22 @@ dd {
     font-weight: bold;
 }
 
-.ERROR-TEXT {
-    font-size: 30px;
+/*.ERROR-TITLE {*/
+/*    font-family: "Times New Roman";*/
+/*    font-size: 60px;*/
+/*    font-style: italic;*/
+/*}*/
+
+.ERROR-MAIN {
+    font-size: 70px;
+    line-height: 1em;
+    font-style: italic;
+    font-family: "Times New Roman";
+    margin-left: 40px;
 }
 
-.ERROR-TITLE {
-    font-size: 80px;
+.ERROR-CODE {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 15px;
+    margin-left: 20px;
 }
-

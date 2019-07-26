@@ -12,9 +12,8 @@
                 <dt>Name: </dt><dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter function name") }}</dd>
                 <dt>Description: </dt><dd>{{ form.desc(class="form-control", id="FUNC-DESC", placeholder="Enter description") }}</dd>
                 <dt>Entry Point: </dt><dd>{{ form.entry_point(class="form-control FORM-FIELD", placeholder="Enter entry point") }}</dd>
-{#                <dt>Language: </dt><dd>{{ form.language }}</dd>#}
                 {% if title != 'New Function' %}
-                    <dt>Created By: </dt><dd>{{ func['user_id'] }}</dd>
+                    <dt>Created By: </dt><dd>{{ func['username'] }}</dd>
                     <dt>Date Created: </dt><dd>{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</dd>
                     <dt>Date Edited: </dt><dd>{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</dd>
                     <dt>UUID: </dt><dd>{{ func['function_uuid'] }}</dd>
@@ -28,7 +27,7 @@
                 {% if title == 'New Function' %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">
                 {% else %}
-                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', id=func['id']) }}';" value="Cancel">
+                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', uuid=func['function_uuid']) }}';" value="Cancel">
                 {% endif %}
             </div>
         </fieldset>
