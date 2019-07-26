@@ -16,6 +16,9 @@ def start():
 
 @guiapi.route('/debug')
 def debug():
+    session.update(
+        username='kyle@globusid.org'
+    )
     return jsonify({'username': session.get("username")})
 
 
@@ -38,11 +41,11 @@ def functions():
     # numPages = ceil(length/12)
     try:
         conn, cur = get_db_connection()
-        print("Connection established")
-        cur.execute("SELECT * FROM functions, users WHERE functions.user_id = users.id AND users.username = %s", (session.get("username"),))
-        print("Command executed.")
+        cur.execute("SELECT functions.id AS function_id, function_name, timestamp, modified_at FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False", (session.get("username"),))
         functions = cur.fetchall()
-        print("Fetched functions")
+        # print(functions)
+        # func = functions[20]
+        # print(func['functions.id'])
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
