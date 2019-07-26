@@ -15,7 +15,10 @@
     </section>
     <dl id="VIEW-INFO" class="container">
         <dt>Name: </dt><dd>{{ func['function_name'] }}</dd>
-        <dt>Description: </dt><dd>{{ func['description'] }}</dd>
+        {% if func['description'] != "" %}
+            <dt>Description: </dt>
+            <dd>{{ func['description'] }}</dd>
+        {% endif %}
         <dt>Entry Point: </dt><dd>{{ func['entry_point'] }}</dd>
         {#        <dt>Language: </dt><dd>{{ func.language }}</dd>#}
         <dt>Created By: </dt><dd>{{ func['user_id'] }}</dd>

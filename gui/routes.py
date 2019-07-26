@@ -38,8 +38,11 @@ def functions():
     # numPages = ceil(length/12)
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT * FROM functions, users WHERE functions.user_id = users.id, users.username = %s", (session.get("username"),))
+        print("Connection established")
+        cur.execute("SELECT * FROM functions, users WHERE functions.user_id = users.id AND users.username = %s", (session.get("username"),))
+        print("Command executed.")
         functions = cur.fetchall()
+        print("Fetched functions")
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
