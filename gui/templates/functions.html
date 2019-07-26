@@ -2,7 +2,9 @@
 {% block content %}
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Your Functions</h1>
     {% if functions|length < 1 %}
-        <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+        <div class="container" style="padding: 0;">
+            <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+        </div>
     {% else %}
 {#        {% set current_page = 1 %}#}
 {#        <nav>#}
@@ -13,7 +15,7 @@
         <table class="container">
             <tr id="FUNCTIONS-TABLE-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
                 <th class="col">Function</th>
-                <th class="col">Language</th>
+{#                <th class="col">Language</th>#}
                 <th class="col">Date Created</th>
                 <th class="col">Date Edited</th>
             </tr>
@@ -22,11 +24,11 @@
             {% for func in functions %}
                 <tr class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
                     <th class="col FUNCTIONS-TABLE-C">
-                        <a href="{{ url_for('guiapi.view', id=func.id) }}">{{ func.title }}</a>
+                        <a href="{{ url_for('guiapi.view', id=func['function_id']) }}">{{ func['function_name'] }}</a>
                     </th>
-                    <th class="col FUNCTIONS-TABLE-C">{{ func.language }}</th>
-                    <th class="col FUNCTIONS-TABLE-C">{{ func.date_created.date() }} {{ func.date_created.strftime('%X') }}</th>
-                    <th class="col FUNCTIONS-TABLE-C">{{ func.date_edited.date() }} {{ func.date_edited.strftime('%X') }}</th>
+{#                    <th class="col FUNCTIONS-TABLE-C">{{ func.language }}</th>#}
+                    <th class="col FUNCTIONS-TABLE-C">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</th>
+                    <th class="col FUNCTIONS-TABLE-C">{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</th>
                 </tr>
             {% endfor %}
         </table>

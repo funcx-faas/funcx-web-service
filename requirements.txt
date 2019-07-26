@@ -5,4 +5,5 @@ globus_sdk
 zmq
 globus_nexus_client
 flask_wtf
+requests
 
