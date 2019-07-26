@@ -1,9 +1,9 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
-
 import uuid
 from gui.forms import EditForm
 from models.utils import get_db_connection
+from authentication.auth import authenticated
 
 # Flask
 guiapi = Blueprint("guiapi", __name__)
@@ -14,7 +14,13 @@ def start():
     return render_template('start.html')
 
 
+@guiapi.route('/debug')
+def debug():
+    return jsonify({'username': session.get("username")})
+
+
 @guiapi.route('/home')
+# @authenticated
 def home():
     return render_template('home.html', title='Home')
 
@@ -25,6 +31,7 @@ def error():
 
 
 @guiapi.route('/functions')
+#@authenticated
 def functions():
     # functions = Function.query.order_by(Function.date_created).all()
     # length = len(functions)
@@ -37,6 +44,7 @@ def getUUID():
 
 
 @guiapi.route('/new', methods=['GET', 'POST'])
+# @authenticated
 def new():
 
     # TODO (from Tyler) -- have this reroute to funcx.org/api/v1/register_function (rather than reinventing the wheel).
@@ -63,6 +71,7 @@ def new():
 
 
 @guiapi.route('/edit/<id>', methods=['GET', 'POST'])
+# @authenticated
 def edit(id):
     conn, cur = get_db_connection()
     cur.execute("SELECT * FROM functions WHERE id = %s", (id,))
@@ -87,6 +96,7 @@ def edit(id):
 
 
 @guiapi.route('/view/<id>')
+# @authenticated
 def view(id):
     conn, cur = get_db_connection()
     cur.execute("SELECT * FROM functions WHERE id = %s", (id,))
@@ -96,6 +106,7 @@ def view(id):
 
 
 @guiapi.route('/delete/<id>', methods=['GET', 'POST'])
+#@authenticated
 def delete(id):
     conn, cur = get_db_connection()
     cur.execute("SELECT id, function_name, deleted FROM functions WHERE id = %s", (id,))

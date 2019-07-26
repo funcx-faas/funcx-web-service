@@ -38,6 +38,7 @@ def callback():
         id_token = tokens.decode_id_token(client)
         session.update(
             tokens=tokens.by_resource_server,
+            username=id_token.get('email'),
             is_authenticated=True
         )
 
