@@ -2,7 +2,9 @@
 {% block content %}
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Your Functions</h1>
     {% if functions|length < 1 %}
-        <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+        <div class="container" style="padding: 0;">
+            <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+        </div>
     {% else %}
 {#        {% set current_page = 1 %}#}
 {#        <nav>#}
