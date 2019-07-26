@@ -259,6 +259,12 @@ dd {
     font-weight: bold;
 }
 
+/*.ERROR-TITLE {*/
+/*    font-family: "Times New Roman";*/
+/*    font-size: 60px;*/
+/*    font-style: italic;*/
+/*}*/
+
 .ERROR-MAIN {
     font-size: 70px;
     line-height: 1em;
