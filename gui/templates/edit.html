@@ -9,9 +9,9 @@
                 <legend class="container h1 PAGE-TITLE">Edit Function</legend>
             {% endif %}
             <dl id="VIEW-INFO" class="container">
-                <dt>Name: </dt><dd>{{ form.name(class="form-control") }}</dd>
-                <dt>Description: </dt><dd>{{ form.desc }}</dd>
-                <dt>Entry Point: </dt><dd>{{ form.entry_point }}</dd>
+                <dt>Name: </dt><dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter function name") }}</dd>
+                <dt>Description: </dt><dd>{{ form.desc(class="form-control", id="FUNC-DESC", placeholder="Enter description") }}</dd>
+                <dt>Entry Point: </dt><dd>{{ form.entry_point(class="form-control FORM-FIELD", placeholder="Enter entry point") }}</dd>
 {#                <dt>Language: </dt><dd>{{ form.language }}</dd>#}
                 {% if title != 'New Function' %}
                     <dt>Created By: </dt><dd>{{ func['user_id'] }}</dd>
@@ -21,7 +21,7 @@
                 {% endif %}
             </dl>
             <section class="container">
-                {{ form.code(id="FUNC-CODE") }}
+                {{ form.code(id="FUNC-CODE", placeholder="Enter code here...") }}
             </section>
             <div class="container" style="padding-left: 0;">
                 {{ form.submit }}

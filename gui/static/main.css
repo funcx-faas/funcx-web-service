@@ -239,6 +239,21 @@ dd {
     margin-bottom: 0.5em;
 }
 
+.FORM-FIELD {
+    font-size: 1em !important;
+    line-height: 1em !important;
+    width: 225px !important;
+}
+
+#FUNC-DESC {
+    font-size: 1em !important;
+    line-height: 1em !important;
+    min-height: 62px;
+    min-width: 225px !important;
+    overflow: scroll;
+    resize: both;
+}
+
 #FUNC-CODE {
     border: 2px solid rgb(221,221,221);
     border-radius: 5px;
@@ -253,7 +268,7 @@ dd {
     width: 48em;
 }
 
-    /*404*/
+/* ERROR */
 .ERROR-HEADING {
     font-size: 50px;
     font-weight: bold;
