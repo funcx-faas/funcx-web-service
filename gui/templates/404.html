@@ -6,22 +6,29 @@
        Error 404:
     </div>
 
-    <div class="ERROR-TITLE">
-        <small>Func</small><b>X</b> <small>page not found.</small>
-    </div>
 
-    <img src="{{ url_for('static', filename='imgs/design/funcx_redx.png') }}">
-
-<!--    <div class="ERROR-HEADING">-->
-<!--        Error: 404 not found-->
+<!--    1st idea-->
+<!--    <div class="ERROR-TITLE" style="color: #335BA2;">-->
+<!--        web page(NOT FOUND)-->
 <!--    </div>-->
 
-    <div class="ERROR-TEXT">
-        The requested URL was not found.
+<!--    <div class="ERROR-TITLE" style="font-size: 30px;">-->
+<!--        on this-->
+<!--        <div class="ERROR-TITLE" style="display: inline-block; line-height: normal; color: #335BA2;">-->
+<!--            f(X)-->
+<!--        </div>-->
+<!--        server-->
+<!--    </div>-->
+
+    <div class="ERROR-MAIN" style="display: block; font-size: 100px; line-height: 2em;">
+<!--        <span style="color:#335BA2;">f</span>-->
+        f<span style="color:#a31621;">(X)</span>?
     </div>
 
-    <div class="ERROR-TEXT">
-        Please return to your <a href ="{{ url_for('guiapi.home') }}">home page</a>.
+    <div class="ERROR-CODE" style="line-height: 1.5em;">
+        &lt;p>Sorry, the requested URL cannot be found.&lt;/p><br>
+        &lt;p>You may return to your <a href ="{{ url_for('guiapi.home') }}"><u>home page</u></a>.&lt;/p>
     </div>
+
 </div>
 {% endblock %}
