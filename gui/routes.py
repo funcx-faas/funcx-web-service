@@ -17,7 +17,7 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='kyle@globusid.org'
+        username='ryan@globusid.org'
     )
     return jsonify({'username': session.get("username")})
 
@@ -41,7 +41,10 @@ def functions():
     # numPages = ceil(length/12)
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT functions.id AS function_id, function_name, timestamp, modified_at FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False", (session.get("username"),))
+        cur.execute("SELECT functions.id AS function_id, function_name, timestamp, modified_at "
+                    "FROM functions, users "
+                    "WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False",
+                    (session.get("username"),))
         functions = cur.fetchall()
         # print(functions)
         # func = functions[20]
@@ -136,3 +139,18 @@ def delete(id):
         flash('There was an issue handling your request.', 'danger')
     # return redirect(url_for('functions'))
     return redirect(url_for('guiapi.home'))
+
+
+@guiapi.route('/endpoints')
+# @authenticated
+def endpoints():
+
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
+        endpoints = cur.fetchall()
+    except:
+        flash('There was an issue handling your request', 'danger')
+        # return redirect(url_for('guiapi.home'))
+    return render_template('endpoints.html', title='Endpoints', endpoints=endpoints)
+
