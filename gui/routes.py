@@ -63,7 +63,6 @@ def new():
             uuid = register_function(session.get('username'), name, form.desc.data, form.code.data, form.entry_point.data, None)
             flash(f'Saved Function "{name}"!', 'success')
             return redirect(url_for('guiapi.view', uuid=uuid))
-            # return redirect(url_for('guiapi.home'))
         except:
             flash('There was an issue handling your request', 'danger')
     return render_template('edit.html', title='New Function', form=form, cancel_route="functions")
