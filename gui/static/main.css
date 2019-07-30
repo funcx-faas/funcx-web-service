@@ -185,6 +185,13 @@ blockquote {
 
 /* Functions Page */
 
+#FUNCTIONS-TEXT {
+    padding-left: 14px;
+    padding-right: 14px;
+    font-weight: bold;
+
+}
+
 #FUNCTIONS-TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
@@ -286,6 +293,7 @@ dd {
     font-style: italic;
     font-family: "Times New Roman";
     margin-left: 40px;
+
 }
 
 .ERROR-CODE {
@@ -293,3 +301,49 @@ dd {
     font-size: 15px;
     margin-left: 20px;
 }
+
+
+/*ENDPOINTS*/
+
+#ENDPOINTS-TABLE {
+    background-color: rgb(245,245,245);
+    border: 1px solid rgb(221,221,221);
+    border-bottom: none;
+    /*padding-top: 50px;*/
+}
+
+.ENDPOINTS-TABLE-LABELS {
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+#ENDPOINTS-TABLE-LABELS:first-child {
+    padding-left: 0px;
+}
+
+#ENDPOINTS-TABLE-LABELS:last-child {
+    padding-right: 0px;
+}
+
+.ENDPOINTS-TABLE-R {
+    border-bottom: 1px solid rgb(221,221,221);
+    color:rgb(118,118,118);
+    padding: 5px 14px;
+}
+
+.ENDPOINTS-TABLE-C:first-child {
+    padding-left: 0px;
+}
+
+.FUNCTIONS-TABLE-C:last-child {
+    padding-right: 0px;
+}
+
+}
+
+.ERROR-CODE {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 15px;
+    margin-left: 20px;
+}
+
