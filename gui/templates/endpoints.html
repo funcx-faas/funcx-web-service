@@ -3,21 +3,21 @@
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Endpoints</h1>
     {% if endpoints|length < 1 %}
         <div class="container" style="padding: 0;">
-            <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
+            <span>You currently have no endpoints.
         </div>
     {% else %}
         <table class="container">
-            <tr class="ENDPOINTS-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col">No. of online endpoints:</th>
+            <tr class="ENDPOINTS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col-4">No. of online endpoints:</th>
                 <th class="col">{{ endpoints_online }}</th>
             </tr>
-            <tr class="ENDPOINTS-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col">No. of offline endpoints:</th>
+            <tr class="ENDPOINTS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col-4">No. of offline endpoints:</th>
                 <th class="col">{{ endpoints_offline }}</th>
             </tr>
-            <tr class="ENDPOINTS-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col-6">Total no. of endpoints:</th>
-                <th class="col-6">{{ endpoints_total }}</th>
+            <tr class="ENDPOINTS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col-4">Total no. of endpoints:</th>
+                <th class="col">{{ endpoints_total }}</th>
             </tr>
         </table>
         <br/>

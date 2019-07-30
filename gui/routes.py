@@ -46,13 +46,14 @@ def functions():
                     "WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False",
                     (session.get("username"),))
         functions = cur.fetchall()
+        functions_total = len(functions)
         # print(functions)
         # func = functions[20]
         # print(func['functions.id'])
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('functions.html', title='Your Functions', functions=functions)
+    return render_template('functions.html', title='Your Functions', functions=functions, functions_total=functions_total)
 
 
 def getUUID():
