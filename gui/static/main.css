@@ -185,6 +185,13 @@ blockquote {
 
 /* Functions Page */
 
+#FUNCTIONS-TEXT {
+    padding-left: 14px;
+    padding-right: 14px;
+    font-weight: bold;
+
+}
+
 #FUNCTIONS-TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
@@ -294,13 +301,6 @@ dd {
 
 /* ENDPOINTS */
 
-.ENDPOINTS-LABELS {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 14px;
-    padding-right: 14px;
-}
-
 #ENDPOINTS-TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
@@ -308,7 +308,7 @@ dd {
     /*padding-top: 50px;*/
 }
 
-#ENDPOINTS-TABLE-LABELS {
+.ENDPOINTS-TABLE-LABELS {
     margin-left: 0px !important;
     margin-right: 0px !important;
     padding-left: 14px;
