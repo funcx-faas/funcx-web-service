@@ -3,7 +3,7 @@
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Endpoints</h1>
     {% if endpoints|length < 1 %}
         <div class="container" style="padding: 0;">
-            <span>You currently have no endpoints.
+            <span>You currently have no endpoints. Create a new endpoint here!
         </div>
     {% else %}
         <table class="container">
@@ -18,6 +18,12 @@
             <tr class="ENDPOINTS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
                 <th class="col-4">Total no. of endpoints:</th>
                 <th class="col">{{ endpoints_total }}</th>
+            </tr>
+        </table>
+        <br/>
+        <table class="container">
+            <tr class="ENDPOINTS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col">Create a new endpoint here!</th>
             </tr>
         </table>
         <br/>
