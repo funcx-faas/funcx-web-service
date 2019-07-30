@@ -9,9 +9,33 @@
                 <legend class="container h1 PAGE-TITLE">Edit Function</legend>
             {% endif %}
             <dl id="VIEW-INFO" class="container">
-                <dt>Name: </dt><dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter function name") }}</dd>
-                <dt>Description: </dt><dd>{{ form.desc(class="form-control", id="FUNC-DESC", placeholder="Enter description") }}</dd>
-                <dt>Entry Point: </dt><dd>{{ form.entry_point(class="form-control FORM-FIELD", placeholder="Enter entry point") }}</dd>
+                <dt>Name: </dt>
+                {% if form.name.errors %}
+                    <dd>{{ form.name(class="form-control FORM-FIELD is-invalid", placeholder="Enter function name") }}</dd>
+                    {% for error in form.name.errors %}
+                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                    {% endfor %}
+                {% else %}
+                    <dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter function name") }}</dd>
+                {% endif %}
+                <dt>Description: </dt>
+                {% if form.desc.errors %}
+                    <dd>{{ form.desc(class="form-control is-invalid", id="FUNC-DESC", placeholder="Enter description") }}</dd>
+                    {% for error in form.desc.errors %}
+                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                    {% endfor %}
+                {% else %}
+                    <dd>{{ form.desc(class="form-control", id="FUNC-DESC", placeholder="Enter description") }}</dd>
+                {% endif %}
+                <dt>Entry Point: </dt>
+                {% if form.entry_point.errors %}
+                    <dd>{{ form.entry_point(class="form-control FORM-FIELD is-invalid", placeholder="Enter entry point") }}</dd>
+                    {% for error in form.entry_point.errors %}
+                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                    {% endfor %}
+                {% else %}
+                    <dd>{{ form.entry_point(class="form-control FORM-FIELD", placeholder="Enter entry point") }}</dd>
+                {% endif %}
                 {% if title != 'New Function' %}
                     <dt>Created By: </dt><dd>{{ func['username'] }}</dd>
                     <dt>Date Created: </dt><dd>{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</dd>
