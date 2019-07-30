@@ -17,7 +17,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='ryan@globusid.org'
+        username='ryan@globusid.org',
+        name='Ryan Chard'
     )
     return jsonify({'username': session.get("username")})
 
@@ -25,12 +26,12 @@ def debug():
 @guiapi.route('/home')
 # @authenticated
 def home():
-    return render_template('home.html', title='Home')
+    return render_template('home.html', user=session.get('name'), title='Home')
 
 
 @guiapi.route('/404')
 def error():
-    return render_template('404.html', title='Page Not Found')
+    return render_template('404.html', user=session.get('name'), title='Page Not Found')
 
 
 @guiapi.route('/functions')
@@ -46,7 +47,7 @@ def functions():
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('functions.html', title='Your Functions', functions=functions)
+    return render_template('functions.html', user=session.get('name'), title='Your Functions', functions=functions)
 
 
 def getUUID():
@@ -65,7 +66,7 @@ def new():
             return redirect(url_for('guiapi.view', uuid=uuid))
         except:
             flash('There was an issue handling your request', 'danger')
-    return render_template('edit.html', title='New Function', form=form, cancel_route="functions")
+    return render_template('edit.html', user=session.get('name'), title='New Function', form=form, cancel_route="functions")
 
 
 @guiapi.route('/edit/<uuid>', methods=['GET', 'POST'])
@@ -88,7 +89,7 @@ def edit(uuid):
     form.desc.data = func['description']
     form.entry_point.data = func['entry_point']
     form.code.data = func['function_code']
-    return render_template('edit.html', title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
+    return render_template('edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
 @guiapi.route('/view/<uuid>')
@@ -98,7 +99,7 @@ def view(uuid):
     cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
     name = func['function_name']
-    return render_template('view.html', title=f'View "{name}"', func=func)
+    return render_template('view.html', user=session.get('name'), title=f'View "{name}"', func=func)
 
 
 @guiapi.route('/delete/<uuid>', methods=['POST'])
@@ -116,9 +117,9 @@ def delete(uuid):
                 flash(f'Deleted Function "{name}".', 'success')
             else:
                 flash('There was an issue handling your request.', 'danger')
-                return render_template('404.html', title='Page Not Found')
+                return render_template('404.html', user=session.get('name'), title='Page Not Found')
         else:
-            return render_template('404.html', title='Forbidden')
+            return render_template('404.html', user=session.get('name'), title='Forbidden')
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))
