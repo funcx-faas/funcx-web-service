@@ -30,7 +30,6 @@
         <table class="container">
             <tr id="FUNCTIONS-TABLE-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
                 <th class="col-6">Function</th>
-{#                <th class="col">Language</th>#}
                 <th class="col-3">Date Created</th>
                 <th class="col-3">Date Edited</th>
             </tr>
@@ -39,9 +38,8 @@
             {% for func in functions %}
                 <tr class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
                     <th class="col-6 FUNCTIONS-TABLE-C">
-                        <a href="{{ url_for('guiapi.view', id=func['function_id']) }}">{{ func['function_name'] }}</a>
+                        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">{{ func['function_name'] }}</a>
                     </th>
-{#                    <th class="col FUNCTIONS-TABLE-C">{{ func.language }}</th>#}
                     <th class="col-3 FUNCTIONS-TABLE-C">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</th>
                     <th class="col-3 FUNCTIONS-TABLE-C">{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</th>
                 </tr>
