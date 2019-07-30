@@ -275,35 +275,31 @@ dd {
     width: 48em;
 }
 
+
 /* ERROR */
-.ERROR-HEADING {
+
+#ERROR-HEADING {
     font-size: 50px;
     font-weight: bold;
+    margin-bottom: -10px !important;
 }
 
-/*.ERROR-TITLE {*/
-/*    font-family: "Times New Roman";*/
-/*    font-size: 60px;*/
-/*    font-style: italic;*/
-/*}*/
-
-.ERROR-MAIN {
-    font-size: 70px;
-    line-height: 1em;
-    font-style: italic;
+#ERROR-MAIN {
     font-family: "Times New Roman";
-    margin-left: 40px;
-
+    font-size: 10em;
+    font-style: italic;
+    margin: 0px 0px 20px 120px !important;
 }
 
-.ERROR-CODE {
+#ERROR-MESSAGE {
     font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     font-size: 15px;
-    margin-left: 20px;
+    line-height: 1.5em;
+    /*margin-left: 20px;*/
 }
 
 
-/*ENDPOINTS*/
+/* ENDPOINTS */
 
 #ENDPOINTS-TABLE {
     background-color: rgb(245,245,245);
@@ -313,6 +309,8 @@ dd {
 }
 
 .ENDPOINTS-TABLE-LABELS {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
     padding-left: 14px;
     padding-right: 14px;
 }
@@ -335,15 +333,6 @@ dd {
     padding-left: 0px;
 }
 
-.FUNCTIONS-TABLE-C:last-child {
+.ENDPOINTS-TABLE-C:last-child {
     padding-right: 0px;
 }
-
-}
-
-.ERROR-CODE {
-    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-    font-size: 15px;
-    margin-left: 20px;
-}
-

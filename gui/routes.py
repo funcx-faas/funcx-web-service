@@ -29,9 +29,10 @@ def home():
     return render_template('home.html', user=session.get('name'), title='Home')
 
 
-@guiapi.route('/404')
+@guiapi.route('/error')
 def error():
-    return render_template('404.html', user=session.get('name'), title='Page Not Found')
+    return render_template('error.html', user=session.get('name'), title='Page Not Found')
+
 
 
 @guiapi.route('/functions')
@@ -121,9 +122,9 @@ def delete(uuid):
                 flash(f'Deleted Function "{name}".', 'success')
             else:
                 flash('There was an issue handling your request.', 'danger')
-                return render_template('404.html', user=session.get('name'), title='Page Not Found')
+                return render_template('error.html', user=session.get('name'), title='Page Not Found')
         else:
-            return render_template('404.html', user=session.get('name'), title='Forbidden')
+            return render_template('error.html', user=session.get('name'), title='Forbidden')
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))
@@ -132,12 +133,10 @@ def delete(uuid):
 @guiapi.route('/endpoints')
 # @authenticated
 def endpoints():
-
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
-
         endpoints_total = len(endpoints)
 
         cur.execute(
@@ -155,4 +154,4 @@ def endpoints():
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline)
