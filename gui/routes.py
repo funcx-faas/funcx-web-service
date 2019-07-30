@@ -123,3 +123,32 @@ def delete(uuid):
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))
+
+
+@guiapi.route('/endpoints')
+# @authenticated
+def endpoints():
+
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
+        endpoints = cur.fetchall()
+
+        endpoints_total = len(endpoints)
+
+        cur.execute(
+            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' and endpoint_uuid is not null",
+            (session.get("username"),))
+        endpoints_online_all = cur.fetchall()
+        endpoints_online = len(endpoints_online_all)
+
+        cur.execute(
+            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' and endpoint_uuid is not null",
+            (session.get("username"),))
+        endpoints_offline_all = cur.fetchall()
+        endpoints_offline = len(endpoints_offline_all)
+
+    except:
+        flash('There was an issue handling your request', 'danger')
+        return redirect(url_for('guiapi.home'))
+    return render_template('endpoints.html', title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline)
