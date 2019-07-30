@@ -293,6 +293,7 @@ dd {
     font-style: italic;
     font-family: "Times New Roman";
     margin-left: 40px;
+
 }
 
 .ERROR-CODE {
@@ -337,3 +338,12 @@ dd {
 .FUNCTIONS-TABLE-C:last-child {
     padding-right: 0px;
 }
+
+}
+
+.ERROR-CODE {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 15px;
+    margin-left: 20px;
+}
+
