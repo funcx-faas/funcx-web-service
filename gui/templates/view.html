@@ -13,7 +13,7 @@
             </div>
         </div>
     </section>
-    <dl id="VIEW-INFO" class="container">
+    <dl class="container VIEW-INFO">
         <dt>Name: </dt><dd>{{ func['function_name'] }}</dd>
         {% if func['description'] != "" %}
             <dt>Description: </dt>
@@ -26,6 +26,6 @@
         <dt>UUID: </dt><dd>{{ func['function_uuid'] }}</dd>
     </dl>
     <section class="container">
-        <pre id="FUNC-CODE" class="python"><code style="padding: 0;">{{ func['function_code'] }}</code></pre>
+        <pre class="python FUNC-CODE"><code style="padding: 0;">{{ func['function_code'] }}</code></pre>
     </section>
 {% endblock %}
