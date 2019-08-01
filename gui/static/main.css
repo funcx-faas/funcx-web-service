@@ -341,7 +341,7 @@ dd {
 
 /* ENDPOINTS */
 
-#ENDPOINTS-TABLE {
+.ENDPOINTS-TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
     border-bottom: none;
@@ -355,11 +355,11 @@ dd {
     padding-right: 14px;
 }
 
-#ENDPOINTS-TABLE-LABELS:first-child {
-    padding-left: 0px;
-}
+/*.ENDPOINTS-TABLE-LABELS:first-child {*/
+/*    padding-left: 0px;*/
+/*}*/
 
-#ENDPOINTS-TABLE-LABELS:last-child {
+.ENDPOINTS-TABLE-LABELS:last-child {
     padding-right: 0px;
 }
 

@@ -7,7 +7,7 @@
         </div>
     {% else %}
         <div class="container" style="padding: 0;">
-            <p>Run your function <a href="{{ url_for('guiapi.view', uuid=func_tasks['function_uuid']) }}" style="margin-right: 10px;">here</a> !</p>
+            <p>Run your function <a href="{{ url_for('guiapi.view', uuid=func_tasks['function_uuid']) }}" style="margin-right: 10px;">here</a>!</p>
 
         </div>
         <table class="container">
@@ -17,6 +17,20 @@
             </tr>
         </table>
         <br/>
+
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
         <table class="container">
             <tr class="row TASKS-TABLE-LABELS">
                 <th class="col">Endpoint Name</th>
@@ -25,21 +39,52 @@
             </tr>
         </table>
 
-        <table class="container TASKS-TABLE">
-            {% for func_tasks in func_tasks %}
-            <tr class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col TASKS-TABLE-C">{{ func_tasks.endpoint_name }}</th>
-                <th class="col TASKS-TABLE-C">{{ func_tasks.status }}</th>
-<!--                    {% if func_tasks["status"] == 'ONLINE' %}-->
-<!--                        <th class="col-2 TASKS-TABLE-C text-success">{{ func_tasks.status }}</th>-->
-<!--                    {% elif func_tasks["status"] == 'OFFLINE' %}-->
-<!--                        <th class="col-2 TASKS-TABLE-C text-danger">{{ func_tasks.status }}</th>-->
-<!--                    {% else %}-->
-<!--                        <th class="col-2 TASKS-TABLE-C text-primary">{{ func_tasks.status }}</th>-->
-<!--                    {% endif %}-->
-                <th class="col TASKS-TABLE-C">{{ func_tasks['created_at'].date() }} {{ func_tasks['created_at'].strftime('%X') }}</th>
-            </tr>
-            {% endfor %}
-        </table>
+        <section class="container TASKS-TABLE" style="padding: 0;">
+            <div class="tab-content">
+                {% set num = [0] %}
+                {% set bound = numPages + 1 %}
+                {% for page in range(1, bound) %}
+                    {% if page == 1 %}
+                        {% set status = "active" %}
+                    {% else %}
+                        {% set status = "" %}
+                    {% endif %}
+                    <section class="tab-pane {{ status }}" id="page{{ page }}">
+                        {% for results in range(30) %}
+                            {% if num[0] < tasks_total %}
+                                {% set task = func_tasks[num[0]] %}
+                                <section class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                                    <div class="col TASKS-TABLE-C" style="font-weight: bold;">{{ task.endpoint_name }}</div>
+                                    <div class="col TASKS-TABLE-C" style="font-weight: bold;">{{ task.status }}</div>
+                    <!--                    {% if task["status"] == 'ONLINE' %}-->
+                    <!--                        <div class="col-2 TASKS-TABLE-C text-success">{{ task.status }}</div>-->
+                    <!--                    {% elif task["status"] == 'OFFLINE' %}-->
+                    <!--                        <div class="col-2 TASKS-TABLE-C text-danger">{{ task.status }}</div>-->
+                    <!--                    {% else %}-->
+                    <!--                        <div class="col-2 TASKS-TABLE-C text-primary">{{ task.status }}</div>-->
+                    <!--                    {% endif %}-->
+                                    <div class="col TASKS-TABLE-C">{{ task['created_at'].date() }} {{ task['created_at'].strftime('%X') }}</div>
+                                </section>
+                                {% if num.append(num.pop() + 1) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
     {% endif %}
 {% endblock %}

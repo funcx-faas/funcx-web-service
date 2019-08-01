@@ -3,7 +3,7 @@
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Tasks</h1>
     {% if tasks|length < 1 %}
         <div class="container" style="padding: 0;">
-            <span>You currently have no tasks. Create a new task here!</span>
+            <span>You currently have no tasks. Create a task by running a function.</span>
         </div>
     {% else %}
         <table class="container">
@@ -13,27 +13,73 @@
             </tr>
         </table>
         <br/>
-        <table class="container">
-            <tr class="TASKS-TABLE-LABELS row">
-                <th class="col">Create a new task here!</th>
-            </tr>
-        </table>
-        <br/>
+{#        <table class="container">#}
+{#            <tr class="TASKS-TABLE-LABELS row">#}
+{#                <th class="col">Create a new task here!</th>#}
+{#            </tr>#}
+{#        </table>#}
+{#        <br/>#}
+
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
         <table class="container">
             <tr class="TASKS-TABLE-LABELS row">
                 <th class="col">Task ID</th>
                 <th class="col">Status</th>
-                <th class="col">Result</th>
+{#                <th class="col">Result</th>#}
             </tr>
         </table>
-        <table class="container TASKS-TABLE">
-            {% for tasks in tasks %}
-            <tr class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col TASKS-TABLE-C">{{ tasks.task_id }}</th>
-                <th class="col TASKS-TABLE-C">{{ tasks.status }}</th>
-                <th class="col TASKS-TABLE-C">{{ tasks.result }}</th>
-            </tr>
-            {% endfor %}
-        </table>
+
+        <section class="container TASKS-TABLE" style="padding: 0;">
+            <div class="tab-content">
+                {% set num = [0] %}
+                {% set bound = numPages + 1 %}
+                {% for page in range(1, bound) %}
+                    {% if page == 1 %}
+                        {% set status = "active" %}
+                    {% else %}
+                        {% set status = "" %}
+                    {% endif %}
+                    <section class="tab-pane {{ status }}" id="page{{ page }}">
+                        {% for results in range(30) %}
+                            {% if num[0] < tasks_total %}
+                                {% set task = tasks[num[0]] %}
+                                <section class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                                    <div class="col TASKS-TABLE-C">{{ task.task_id }}</div>
+                                    <div class="col TASKS-TABLE-C" style="font-weight: bold;">{{ task.status }}</div>
+                    {#                <div class="col TASKS-TABLE-C">{{ task.result }}</div>#}
+                                </section>
+                                {% if num.append(num.pop() + 1) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
     {% endif %}
 {% endblock %}

@@ -149,10 +149,11 @@ def endpoints():
         endpoints_offline_all = cur.fetchall()
         endpoints_offline = len(endpoints_offline_all)
 
+        numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
 
 
 @guiapi.route('/tasks')
@@ -168,11 +169,11 @@ def tasks():
         tasks = cur.fetchall()
 
         tasks_total = len(tasks)
-
+        numPages = ceil(tasks_total / 30)
     except:
         flash('There was an issue handling your request', 'danger')
         # return redirect(url_for('guiapi.home'))
-    return render_template('tasks.html', user=session.get('name'), title='Tasks', tasks=tasks, tasks_total=tasks_total)
+    return render_template('tasks.html', user=session.get('name'), title='Tasks', tasks=tasks, tasks_total=tasks_total, numPages=numPages)
 
 
 @guiapi.route('/view_tasks/<task_id>')
@@ -192,26 +193,25 @@ def view_tasks(task_id):
 @guiapi.route('/function_tasks/<uuid>')
 #@authenticated
 def function_tasks(uuid):
-
-    conn, cur = get_db_connection()
-    cur.execute(
-        "SELECT cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
-        "FROM tasks, sites, users, functions "
-        "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
-        "AND tasks.function_id = %s", (uuid,))
-
     try:
-        func_tasks = cur.fetchall()
-        func = func_tasks[0]
+        conn, cur = get_db_connection()
+        cur.execute("SELECT function_name FROM functions WHERE function_uuid = %s", (uuid,))
+        func = cur.fetchone()
         func_name = func['function_name']
-
-        print(func_tasks)
-        tasks_total = len(func_tasks)
-
-
+        cur.execute(
+            "SELECT cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+            "FROM tasks, sites, users, functions "
+            "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
+            "AND tasks.function_id = %s", (uuid,))
     except:
         flash('There was an issue handling your request', 'danger')
-        # return redirect(url_for('guiapi.home'))
-    return render_template('function_tasks.html', title='Tasks of (function_name)', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name,)
+        return redirect(url_for('guiapi.view', uuid=uuid))
+    try:
+        func_tasks = cur.fetchall()
+        tasks_total = len(func_tasks)
+        numPages = ceil(tasks_total / 30)
+    except:
+        return render_template('function_tasks.html', title=f'Tasks of {func_name}')
+    return render_template('function_tasks.html', title=f'Tasks of {func_name}', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name, numPages=numPages)
 
 

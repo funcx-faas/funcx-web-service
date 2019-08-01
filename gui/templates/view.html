@@ -6,7 +6,8 @@
             <div class="col">
                 <a href="{{ url_for('guiapi.edit', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Edit</a>
                 <a href="{{ url_for('guiapi.delete', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Delete</a>
-                <a href="">Run</a>
+                <a href="" style="margin-right: 10px;">Run</a>
+                <a href="{{ url_for('guiapi.function_tasks', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Tasks</a>
             </div>
             <div class="col" style="display:flex; justify-content:flex-end; padding-left: 0px;">
                 <a href="{{ url_for('guiapi.functions') }}">Back to Functions</a>
