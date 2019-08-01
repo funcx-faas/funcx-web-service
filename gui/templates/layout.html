@@ -6,27 +6,32 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.8/styles/vs.min.css">
-        <title>{{ title }} | FuncX</title>
+        <title>{{ title }} | funcX</title>
     </head>
     <body class="BODY_MAIN">
         <header class="container-fluid">
             <nav class="row navbar navbar-expand-sm navbar-dark fixed-top" id="NAVBAR">
                 <a href="{{ url_for('guiapi.start') }}">
-                    <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="FuncX" id="NAV-LOGO">
+                    <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="NAV-LOGO">
                 </a>
                 <div class="col">
                     <ul class="navbar-nav INLINE-BLOCK">
                         <li class="nav-item INLINE-BLOCK">
                             <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.home') }}">Home</a>
                         </li>
+
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
-                        </li>
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
+                            <a class="nav-link NAV-LINK" data-toggle="dropdown" href="#">Functions</a>
+                            <div class="dropdown-menu" style="box-shadow: 4px 4px 10px rgba(136,136,136,0.5);">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
+                            </div>
                         </li>
                         <li class="nav-item INLINE-BLOCK">
                             <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.endpoints') }}">Endpoints</a>
+                        </li>
+                        <li class="nav-item INLINE-BLOCK">
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.tasks') }}">Tasks</a>
                         </li>
                     </ul>
                 </div>

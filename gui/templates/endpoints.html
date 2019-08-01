@@ -3,53 +3,89 @@
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Endpoints</h1>
     {% if endpoints|length < 1 %}
         <div class="container" style="padding: 0;">
-            <span>You currently have no endpoints. Create a new endpoint here!
+            <span>You currently have no endpoints. Create a new endpoint here!</span>
         </div>
     {% else %}
         <table class="container">
             <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">No. of online endpoints:</th>
-                <th class="col">{{ endpoints_online }}</th>
+                <th class="col-4">No. of online endpoints: {{ endpoints_online }}</th>
+{#                <th class="col">{{ endpoints_online }}</th>#}
             </tr>
             <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">No. of offline endpoints:</th>
-                <th class="col">{{ endpoints_offline }}</th>
+                <th class="col-4">No. of offline endpoints: {{ endpoints_offline }}</th>
+{#                <th class="col">{{ endpoints_offline }}</th>#}
             </tr>
             <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">Total no. of endpoints:</th>
-                <th class="col">{{ endpoints_total }}</th>
+                <th class="col-4">Total no. of endpoints: {{ endpoints_total }}</th>
+{#                <th class="col">{{ endpoints_total }}</th>#}
             </tr>
         </table>
         <br/>
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
         <table class="container">
-            <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col">Create a new endpoint here!</th>
-            </tr>
-        </table>
-        <br/>
-        <table class="container">
-            <tr id="ENDPOINTS-TABLE-LABELS" class="row">
+            <tr class="row ENDPOINTS-TABLE-LABELS">
                 <th class="col-2">Endpoint Name</th>
                 <th class="col-5">Endpoint UUID</th>
                 <th class="col-2">Status</th>
                 <th class="col">Date Created</th>
             </tr>
         </table>
-        <table class="container" id="ENDPOINTS-TABLE">
-            {% for sites in endpoints %}
-            <tr class="row ENDPOINTS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col-2 ENDPOINTS-TABLE-C">{{ sites.endpoint_name }}</th>
-                <th class="col-5 ENDPOINTS-TABLE-C">{{ sites.endpoint_uuid }}</th>
-                    {% if sites["status"] == 'ONLINE' %}
-                        <th class="col-2 ENDPOINTS-TABLE-C text-success">{{ sites.status }}</th>
-                    {% elif sites["status"] == 'OFFLINE' %}
-                        <th class="col-2 ENDPOINTS-TABLE-C text-danger">{{ sites.status }}</th>
+
+        <section class="container ENDPOINTS-TABLE" style="padding: 0;">
+            <div class="tab-content">
+                {% set num = [0] %}
+                {% set bound = numPages + 1 %}
+                {% for page in range(1, bound) %}
+                    {% if page == 1 %}
+                        {% set status = "active" %}
                     {% else %}
-                        <th class="col-2 ENDPOINTS-TABLE-C text-primary">{{ sites.status }}</th>
+                        {% set status = "" %}
                     {% endif %}
-                <th class="col ENDPOINTS-TABLE-C">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</th>
-            </tr>
-            {% endfor %}
-        </table>
+                    <section class="tab-pane {{ status }}" id="page{{ page }}">
+                        {% for results in range(30) %}
+                            {% if num[0] < endpoints_total %}
+                                {% set sites = endpoints[num[0]] %}
+                                <section class="row ENDPOINTS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                                    <div class="col-2 ENDPOINTS-TABLE-C" style="font-weight: bold;">{{ sites.endpoint_name }}</div>
+                                    <div class="col-5 ENDPOINTS-TABLE-C">{{ sites.endpoint_uuid }}</div>
+                                        {% if sites["status"] == 'ONLINE' %}
+                                            <div class="col-2 ENDPOINTS-TABLE-C text-success" style="font-weight: bold;">{{ sites.status }}</div>
+                                        {% elif sites["status"] == 'OFFLINE' %}
+                                            <div class="col-2 ENDPOINTS-TABLE-C text-danger" style="font-weight: bold;">{{ sites.status }}</div>
+                                        {% else %}
+                                            <div class="col-2 ENDPOINTS-TABLE-C text-primary" style="font-weight: bold;">{{ sites.status }}</div>
+                                        {% endif %}
+                                    <div class="col ENDPOINTS-TABLE-C">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
+                                </section>
+                                {% if num.append(num.pop() + 1) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
     {% endif %}
 {% endblock %}

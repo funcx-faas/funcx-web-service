@@ -1,6 +1,7 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
 import uuid
+from math import *
 from gui.forms import EditForm
 from models.utils import get_db_connection, register_function
 from authentication.auth import authenticated
@@ -19,6 +20,8 @@ def debug():
     session.update(
         username='ryan@globusid.org',
         name='Ryan Chard'
+        # username='aschwartz417@uchicago.edu',
+        # name='Avery Schwartz'
     )
     return jsonify({'username': session.get("username")})
 
@@ -38,21 +41,16 @@ def error():
 @guiapi.route('/functions')
 #@authenticated
 def functions():
-    # functions = Function.query.order_by(Function.date_created).all()
-    # length = len(functions)
-    # numPages = ceil(length/12)
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False", (session.get("username"),))
         functions = cur.fetchall()
         functions_total = len(functions)
-        # print(functions)
-        # func = functions[20]
-        # print(func['functions.id'])
+        numPages = ceil(functions_total / 30)
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('functions.html', title='Your Functions', functions=functions, functions_total=functions_total)
+    return render_template('functions.html', user=session.get('name'), title='Your Functions', functions=functions, functions_total=functions_total, numPages = numPages)
 
 
 def getUUID():
@@ -151,7 +149,69 @@ def endpoints():
         endpoints_offline_all = cur.fetchall()
         endpoints_offline = len(endpoints_offline_all)
 
+        numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
+
+
+@guiapi.route('/tasks')
+# @authenticated
+def tasks():
+    try:
+        conn, cur = get_db_connection()
+
+        cur.execute("SELECT users.id, cast(tasks.user_id as integer), tasks.task_id, result, status "
+                    "FROM results, tasks, users "
+                    "WHERE results.task_id = tasks.task_id AND users.id = cast(tasks.user_id as integer) AND users.username = %s",
+                    (session.get("username"),))
+        tasks = cur.fetchall()
+
+        tasks_total = len(tasks)
+        numPages = ceil(tasks_total / 30)
+    except:
+        flash('There was an issue handling your request', 'danger')
+        # return redirect(url_for('guiapi.home'))
+    return render_template('tasks.html', user=session.get('name'), title='Tasks', tasks=tasks, tasks_total=tasks_total, numPages=numPages)
+
+
+@guiapi.route('/view_tasks/<task_id>')
+# @authenticated
+def view_tasks(task_id):
+    conn, cur = get_db_connection()
+    cur.execute("SELECT tasks.id, tasks.user_id, tasks.task_id, tasks.status, results.result, tasks.created_at, tasks.modified_at, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
+                "FROM tasks, results, sites, functions "
+                "WHERE results.task_id = tasks.task_id AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id AND tasks.task_id = %s "
+                "AND function_id IS NOT NULL;",
+                (task_id,))
+    tasks = cur.fetchone()
+    name = tasks['task_id']
+    return render_template('view_tasks.html', user=session.get('name'), title=f'View "{name}"', tasks=tasks)
+
+
+@guiapi.route('/function_tasks/<uuid>')
+#@authenticated
+def function_tasks(uuid):
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT function_name FROM functions WHERE function_uuid = %s", (uuid,))
+        func = cur.fetchone()
+        func_name = func['function_name']
+        cur.execute(
+            "SELECT cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+            "FROM tasks, sites, users, functions "
+            "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
+            "AND tasks.function_id = %s", (uuid,))
+    except:
+        flash('There was an issue handling your request', 'danger')
+        return redirect(url_for('guiapi.view', uuid=uuid))
+    try:
+        func_tasks = cur.fetchall()
+        tasks_total = len(func_tasks)
+        numPages = ceil(tasks_total / 30)
+    except:
+        return render_template('function_tasks.html', title=f'Tasks of {func_name}')
+    return render_template('function_tasks.html', title=f'Tasks of {func_name}', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name, numPages=numPages)
+
+

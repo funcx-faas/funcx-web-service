@@ -6,14 +6,15 @@
             <div class="col">
                 <a href="{{ url_for('guiapi.edit', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Edit</a>
                 <a href="{{ url_for('guiapi.delete', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Delete</a>
-                <a href="">Run</a>
+                <a href="" style="margin-right: 10px;">Run</a>
+                <a href="{{ url_for('guiapi.function_tasks', uuid=func['function_uuid']) }}" style="margin-right: 10px;">Tasks</a>
             </div>
             <div class="col" style="display:flex; justify-content:flex-end; padding-left: 0px;">
                 <a href="{{ url_for('guiapi.functions') }}">Back to Functions</a>
             </div>
         </div>
     </section>
-    <dl id="VIEW-INFO" class="container">
+    <dl class="container VIEW-INFO">
         <dt>Name: </dt><dd>{{ func['function_name'] }}</dd>
         {% if func['description'] != "" %}
             <dt>Description: </dt>
@@ -26,6 +27,6 @@
         <dt>UUID: </dt><dd>{{ func['function_uuid'] }}</dd>
     </dl>
     <section class="container">
-        <pre id="FUNC-CODE" class="python"><code style="padding: 0;">{{ func['function_code'] }}</code></pre>
+        <pre class="python FUNC-CODE"><code style="padding: 0;">{{ func['function_code'] }}</code></pre>
     </section>
 {% endblock %}
