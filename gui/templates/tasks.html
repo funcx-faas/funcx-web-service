@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Tasks</h1>
+    {% if tasks|length < 1 %}
+        <div class="container" style="padding: 0;">
+            <span>You currently have no tasks. Create a new task here!</span>
+        </div>
+    {% else %}
+        <table class="container">
+            <tr class="TASKS-TABLE-LABELS row">
+                <th class="col-4">Total no. of tasks:</th>
+                <th class="col">{{ tasks_total }}</th>
+            </tr>
+        </table>
+        <br/>
+        <table class="container">
+            <tr class="TASKS-TABLE-LABELS row">
+                <th class="col">Create a new task here!</th>
+            </tr>
+        </table>
+        <br/>
+        <table class="container">
+            <tr class="TASKS-TABLE-LABELS row">
+                <th class="col">Task ID</th>
+                <th class="col">Status</th>
+                <th class="col">Result</th>
+            </tr>
+        </table>
+        <table class="container TASKS-TABLE">
+            {% for tasks in tasks %}
+            <tr class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col TASKS-TABLE-C">{{ tasks.task_id }}</th>
+                <th class="col TASKS-TABLE-C">{{ tasks.status }}</th>
+                <th class="col TASKS-TABLE-C">{{ tasks.result }}</th>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}

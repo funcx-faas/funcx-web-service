@@ -229,7 +229,7 @@ blockquote {
 
 /* View & Edit Pages */
 
-#VIEW-INFO {
+.VIEW-INFO {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
     border-radius: 5px;
@@ -261,7 +261,7 @@ dd {
     resize: both;
 }
 
-#FUNC-CODE {
+.FUNC-CODE {
     border: 2px solid rgb(221,221,221);
     border-radius: 5px;
     font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
@@ -334,5 +334,85 @@ dd {
 }
 
 .ENDPOINTS-TABLE-C:last-child {
+    padding-right: 0px;
+}
+
+/* TASKS */
+
+.TASKS-TABLE {
+    background-color: rgb(245,245,245);
+    border: 1px solid rgb(221,221,221);
+    border-bottom: none;
+    /*padding-top: 50px;*/
+}
+
+.TASKS-TABLE-LABELS {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+.TASKS-TABLE-LABELS:first-child {
+    padding-left: 0px;
+}
+
+.TASKS-TABLE-LABELS:last-child {
+    padding-right: 0px;
+}
+
+.TASKS-TABLE-R {
+    border-bottom: 1px solid rgb(221,221,221);
+    color:rgb(118,118,118);
+    padding: 5px 14px;
+}
+
+.TASKS-TABLE-C:first-child {
+    padding-left: 0px;
+}
+
+.TASKS-TABLE-C:last-child {
+    padding-right: 0px;
+}
+
+/* View Tasks */
+
+#VIEW-TASKS-TEXT {
+    padding-left: 14px;
+    padding-right: 14px;
+    font-weight: bold;
+}
+
+#VIEW-TASKS-TABLE {
+    background-color: rgb(245,245,245);
+    border: 1px solid rgb(221,221,221);
+    border-bottom: none;
+    /*padding-top: 50px;*/
+}
+
+#VIEW-TASKS-TABLE-LABELS {
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+#VIEW-TASKS-TABLE-LABELS:first-child {
+    padding-left: 0px;
+}
+
+#VIEW-TASKS-TABLE-LABELS:last-child {
+    padding-right: 0px;
+}
+
+.VIEW-TASKS-TABLE-R {
+    border-bottom: 1px solid rgb(221,221,221);
+    color:rgb(118,118,118);
+    padding: 5px 14px;
+}
+
+.VIEW-TASKS-TABLE-C:first-child {
+    padding-left: 0px;
+}
+
+.VIEW-TASKS-TABLE-C:last-child {
     padding-right: 0px;
 }

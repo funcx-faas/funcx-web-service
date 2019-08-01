@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Tasks for function '{{ func_name }}'</h1>
+    {% if func_tasks|length < 1 %}
+        <div class="container" style="padding: 0;">
+            <span>You currently have no tasks. Run your function here (link to view function)!</span>
+        </div>
+    {% else %}
+        <div class="container" style="padding: 0;">
+            <p>Run your function <a href="{{ url_for('guiapi.view', uuid=func_tasks['function_uuid']) }}" style="margin-right: 10px;">here</a> !</p>
+
+        </div>
+        <table class="container">
+            <tr class="TASKS-TABLE-LABELS row">
+                <th class="col-2">Total no. of tasks:</th>
+                <th class="col">{{ tasks_total }}</th>
+            </tr>
+        </table>
+        <br/>
+        <table class="container">
+            <tr class="row TASKS-TABLE-LABELS">
+                <th class="col">Endpoint Name</th>
+                <th class="col">Status</th>
+                <th class="col">Date Started</th>
+            </tr>
+        </table>
+
+        <table class="container TASKS-TABLE">
+            {% for func_tasks in func_tasks %}
+            <tr class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                <th class="col TASKS-TABLE-C">{{ func_tasks.endpoint_name }}</th>
+                <th class="col TASKS-TABLE-C">{{ func_tasks.status }}</th>
+<!--                    {% if func_tasks["status"] == 'ONLINE' %}-->
+<!--                        <th class="col-2 TASKS-TABLE-C text-success">{{ func_tasks.status }}</th>-->
+<!--                    {% elif func_tasks["status"] == 'OFFLINE' %}-->
+<!--                        <th class="col-2 TASKS-TABLE-C text-danger">{{ func_tasks.status }}</th>-->
+<!--                    {% else %}-->
+<!--                        <th class="col-2 TASKS-TABLE-C text-primary">{{ func_tasks.status }}</th>-->
+<!--                    {% endif %}-->
+                <th class="col TASKS-TABLE-C">{{ func_tasks['created_at'].date() }} {{ func_tasks['created_at'].strftime('%X') }}</th>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}

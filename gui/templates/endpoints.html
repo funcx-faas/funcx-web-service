@@ -3,7 +3,7 @@
     <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Endpoints</h1>
     {% if endpoints|length < 1 %}
         <div class="container" style="padding: 0;">
-            <span>You currently have no endpoints. Create a new endpoint here!
+            <span>You currently have no endpoints. Create a new endpoint here!</span>
         </div>
     {% else %}
         <table class="container">
@@ -22,12 +22,6 @@
         </table>
         <br/>
         <table class="container">
-            <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col">Create a new endpoint here!</th>
-            </tr>
-        </table>
-        <br/>
-        <table class="container">
             <tr id="ENDPOINTS-TABLE-LABELS" class="row">
                 <th class="col-2">Endpoint Name</th>
                 <th class="col-5">Endpoint UUID</th>
@@ -35,6 +29,7 @@
                 <th class="col">Date Created</th>
             </tr>
         </table>
+
         <table class="container" id="ENDPOINTS-TABLE">
             {% for sites in endpoints %}
             <tr class="row ENDPOINTS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
