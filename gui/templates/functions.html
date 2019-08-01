@@ -6,12 +6,6 @@
             <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
         </div>
     {% else %}
-{#        {% set current_page = 1 %}#}
-{#        <nav>#}
-{#            <a href="#">Previous</a>#}
-{#            <input type="text" value="{{ current_page }}">#}
-{#            <a>Next</a>#}
-{#        </nav>#}
         <table class="container">
             <tr class="FUNCTIONS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
                 <th class="col-4">Total no. of functions:</th>
@@ -27,6 +21,19 @@
         </table>
         <br/>
 
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
         <table class="container">
             <tr id="FUNCTIONS-TABLE-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
                 <th class="col-6">Function</th>
@@ -34,16 +41,47 @@
                 <th class="col-3">Date Edited</th>
             </tr>
         </table>
-        <table class="container" id="FUNCTIONS-TABLE">
-            {% for func in functions %}
-                <tr class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                    <th class="col-6 FUNCTIONS-TABLE-C">
-                        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">{{ func['function_name'] }}</a>
-                    </th>
-                    <th class="col-3 FUNCTIONS-TABLE-C">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</th>
-                    <th class="col-3 FUNCTIONS-TABLE-C">{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</th>
-                </tr>
-            {% endfor %}
-        </table>
+        <section class="container FUNCTIONS-TABLE" style="padding: 0;">
+            <div class="tab-content">
+                {% set num = [0] %}
+                {% set bound = numPages + 1 %}
+                {% for page in range(1, bound) %}
+                    {% if page == 1 %}
+                        {% set status = "active" %}
+                    {% else %}
+                        {% set status = "" %}
+                    {% endif %}
+                    <section class="tab-pane {{ status }}" id="page{{ page }}">
+                        {% for results in range(30) %}
+                            {% if num[0] < functions_total %}
+                                {% set func = functions[num[0]] %}
+                                <section class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                                    <div class="col-6 FUNCTIONS-TABLE-C">
+                                        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}" style="font-weight: bold;">{{ func['function_name'] }}</a>
+                                    </div>
+                                    <div class="col-3 FUNCTIONS-TABLE-C">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</div>
+                                    <div class="col-3 FUNCTIONS-TABLE-C">{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</div>
+                                </section>
+                                {% if num.append(num.pop() + 1) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+{#            <a href="#">Previous</a>#}
+            <div class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                    {% for page in range(numPages) %}
+                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                    {% endfor %}
+                </menu>
+            </div>
+{#            <a href="#">Next</a>#}
+        </nav>
+
     {% endif %}
 {% endblock %}
