@@ -25,21 +25,21 @@
 {#            </div>#}
         </header>
 
-        <section class="row" style="margin-left: 0; margin-right: 0;">
+        <section class="row SIDE-MARGIN-0">
             <div class="col-1"></div>
             <div class="col-2 CENTER">
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/1_circled.png') }}">
                 <span class="STEP-DESC">Deploy an Endpoint</span>
             </div>
             <div class="col-2 CENTER">
-                <img class="" src="{{ url_for('static', filename='imgs/design/arrow.png') }}" style="margin-top: 0px; width: 90%;">
+                <img class="STEP-ARROW" src="{{ url_for('static', filename='imgs/design/arrow.png') }}">
             </div>
             <div class="col-2 CENTER">
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/2_circled.png') }}">
                 <span class="STEP-DESC">Register a Function</span>
             </div>
             <div class="col-2 CENTER">
-                <img class="" src="{{ url_for('static', filename='imgs/design/arrow.png') }}" style="margin-top: 0px; width: 90%;">
+                <img class="STEP-ARROW" src="{{ url_for('static', filename='imgs/design/arrow.png') }}">
             </div>
             <div class="col-2 CENTER">
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/3_circled.png') }}">
@@ -49,7 +49,7 @@
 
 {#        <div class="DIVIDE"></div>#}
 
-        <span style="background-color: rgb(250,250,250); display: inline-block; margin: 100px 0 60px; padding: 40px 0; text-align: center; width: 100%;">
+        <span id="BANNER-SHADED">
             <button class="btn BTN-OUTLINE-DARK" onclick="window.location.href = 'https://mybinder.org/v2/gh/funcx-faas/funcx/master?filepath=examples%2Fintroduction.ipynb';" style="font-size:2em; padding-left: 60px; padding-right: 80px; text-align: center;">
                     <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try funcX</button>
         </span>
