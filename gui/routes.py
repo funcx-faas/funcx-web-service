@@ -15,15 +15,15 @@ def start():
     return render_template('start.html')
 
 
-@guiapi.route('/debug')
-def debug():
-    session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
-        # username='aschwartz417@uchicago.edu',
-        # name='Avery Schwartz'
-    )
-    return jsonify({'username': session.get("username")})
+# @guiapi.route('/debug')
+# def debug():
+#     session.update(
+#         username='ryan@globusid.org',
+#         name='Ryan Chard'
+#         # username='aschwartz417@uchicago.edu',
+#         # name='Avery Schwartz'
+#     )
+#     return jsonify({'username': session.get("username")})
 
 
 @guiapi.route('/home')
