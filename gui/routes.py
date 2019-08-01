@@ -171,23 +171,6 @@ def tasks():
 
         tasks_total = len(tasks)
 
-        # and task.user_id = users.id and users.username = % s",
-        # (session.get("username"),)
-
-
-
-        # cur.execute(
-        #     "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' and endpoint_uuid is not null",
-        #     (session.get("username"),))
-        # endpoints_online_all = cur.fetchall()
-        # endpoints_online = len(endpoints_online_all)
-        #
-        # cur.execute(
-        #     "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' and endpoint_uuid is not null",
-        #     (session.get("username"),))
-        # endpoints_offline_all = cur.fetchall()
-        # endpoints_offline = len(endpoints_offline_all)
-
     except:
         flash('There was an issue handling your request', 'danger')
         # return redirect(url_for('guiapi.home'))
@@ -206,3 +189,31 @@ def view_tasks(task_id):
     tasks = cur.fetchone()
     name = tasks['task_id']
     return render_template('view_tasks.html', user=session.get('name'), title=f'View "{name}"', tasks=tasks)
+
+
+@guiapi.route('/function_tasks/<uuid>')
+#@authenticated
+def function_tasks(uuid):
+
+    conn, cur = get_db_connection()
+    cur.execute(
+        "SELECT cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+        "FROM tasks, sites, users, functions "
+        "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
+        "AND tasks.function_id = %s", (uuid,))
+
+    try:
+        func_tasks = cur.fetchall()
+        func = func_tasks[0]
+        func_name = func['function_name']
+
+        print(func_tasks)
+        tasks_total = len(func_tasks)
+
+
+    except:
+        flash('There was an issue handling your request', 'danger')
+        # return redirect(url_for('guiapi.home'))
+    return render_template('function_tasks.html', title='Tasks of (function_name)', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name,)
+
+

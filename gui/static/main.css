@@ -339,7 +339,7 @@ dd {
 
 /* TASKS */
 
-#TASKS-TABLE {
+.TASKS-TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
     border-bottom: none;
@@ -353,11 +353,11 @@ dd {
     padding-right: 14px;
 }
 
-#TASKS-TABLE-LABELS:first-child {
+.TASKS-TABLE-LABELS:first-child {
     padding-left: 0px;
 }
 
-#TASKS-TABLE-LABELS:last-child {
+.TASKS-TABLE-LABELS:last-child {
     padding-right: 0px;
 }
 
