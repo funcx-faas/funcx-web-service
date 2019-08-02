@@ -1,47 +1,44 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Your Functions</h1>
+    <h1 class="container PAGE-TITLE">Your Functions</h1>
     {% if functions|length < 1 %}
-        <div class="container" style="padding: 0;">
+        <div class="container PADDING-0">
             <span>You currently have no functions. <a href="{{ url_for('guiapi.new') }}">Create one here!</a></span>
         </div>
     {% else %}
-        <table class="container">
-            <tr class="FUNCTIONS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col-4">Total no. of functions:</th>
-                <th class="col">{{ functions_total }}</th>
-            </tr>
-        </table>
-        <br/>
 
-        <table class="container">
-            <tr class="FUNCTIONS-TABLE-LABELS row" style="margin-left: 0px; margin-right: 0px;">
-                <th class="col">Create a new function <a href="{{ url_for('guiapi.new') }}">here</a>!</th>
-            </tr>
-        </table>
-        <br/>
+{#        <div class="container PADDING-0">#}
+{#            <a href="{{ url_for('guiapi.new') }}">New Function &Gt;</a>#}
+{#        </div>#}
 
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
-{#            <a href="#">Previous</a>#}
-            <div class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
-                    {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
-                    {% endfor %}
-                </menu>
+        <div class="container PADDING-0" style="margin-bottom: 14px; margin-top: 28px;">
+            <div class="row SIDE-MARGIN-0">
+                <div class="col PADDING-0">
+                    <span style="margin-left: 14px;">You have {{ functions_total }} functions. <a href="{{ url_for('guiapi.new') }}">Write new function &Gt;</a></span>
+                </div>
+                <nav class="col PADDING-0 FLEX-END">
+        {#            <a href="#">Previous</a>#}
+                    <div class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                        <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
+                            {% for page in range(numPages) %}
+                                <a class="PAGE-DROPDOWN-OPTION" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
+                            {% endfor %}
+                        </menu>
+                    </div>
+        {#            <a href="#">Next</a>#}
+                </nav>
             </div>
-{#            <a href="#">Next</a>#}
-        </nav>
+        </div>
 
         <table class="container">
-            <tr id="FUNCTIONS-TABLE-LABELS" class="row" style="margin-left: 0px; margin-right: 0px;">
+            <tr id="FUNCTIONS-TABLE-LABELS" class="row SIDE-MARGIN-0">
                 <th class="col-6">Function</th>
                 <th class="col-3">Date Created</th>
                 <th class="col-3">Date Edited</th>
             </tr>
         </table>
-        <section class="container FUNCTIONS-TABLE" style="padding: 0;">
+        <section class="container FUNCTIONS-TABLE PADDING-0">
             <div class="tab-content">
                 {% set num = [0] %}
                 {% set bound = numPages + 1 %}
@@ -55,7 +52,7 @@
                         {% for results in range(30) %}
                             {% if num[0] < functions_total %}
                                 {% set func = functions[num[0]] %}
-                                <section class="row FUNCTIONS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
+                                <section class="row FUNCTIONS-TABLE-R SIDE-MARGIN-0">
                                     <div class="col-6 FUNCTIONS-TABLE-C">
                                         <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}" style="font-weight: bold;">{{ func['function_name'] }}</a>
                                     </div>
@@ -70,13 +67,13 @@
             </div>
         </section>
 
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+        <nav class="container PADDING-0 FLEX-END">
 {#            <a href="#">Previous</a>#}
             <div class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
                     {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                        <a class="PAGE-DROPDOWN-OPTION" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
                     {% endfor %}
                 </menu>
             </div>
