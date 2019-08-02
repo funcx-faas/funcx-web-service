@@ -8,8 +8,7 @@
     {% else %}
         <table class="container">
             <tr class="TASKS-TABLE-LABELS row">
-                <th class="col-4">Total no. of tasks:</th>
-                <th class="col">{{ tasks_total }}</th>
+                <th class="col">Total no. of tasks: {{ tasks_total }}</th>
             </tr>
         </table>
         <br/>
@@ -36,8 +35,10 @@
         <table class="container">
             <tr class="TASKS-TABLE-LABELS row">
                 <th class="col">Task ID</th>
+                <th class="col">Function</th>
                 <th class="col">Status</th>
 {#                <th class="col">Result</th>#}
+                <th class="col">Endpoint</th>
             </tr>
         </table>
 
@@ -56,9 +57,25 @@
                             {% if num[0] < tasks_total %}
                                 {% set task = tasks[num[0]] %}
                                 <section class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                                    <div class="col TASKS-TABLE-C">{{ task.task_id }}</div>
-                                    <div class="col TASKS-TABLE-C" style="font-weight: bold;">{{ task.status }}</div>
+                                    <div class="col TASKS-TABLE-C">
+                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}" style="font-weight: bold;">{{ task.task_id }}</a></div>
+                                        <div class="col TASKS-TABLE-C" style="font-weight: bold;">
+                                            <a href="{{ url_for('guiapi.view', uuid=task['function_id']) }}" style="font-weight: bold;">{{ task.function_name }}</a></div>
+                                        {% if task["status"] == 'SUCCEEDED' %}
+                                            <div class="col TASKS-TABLE-C text-success" style="font-weight: bold;">{{ task.status }}</div>
+                                        {% elif task["status"] == 'FAILED' %}
+                                            <div class="col TASKS-TABLE-C text-danger" style="font-weight: bold;">{{ task.status }}</div>
+                                        {% elif task["status"] == 'ACTIVE' %}
+                                            <div class="col TASKS-TABLE-C text-primary" style="font-weight: bold;">{{ task.status }}</div>
+                                        {% elif task["status"] == 'PENDING' %}
+                                            <div class="col TASKS-TABLE-C text-warning" style="font-weight: bold;">{{ task.status }}</div>
+                                        {% elif task["status"] == 'UNKNOWN' %}
+                                            <div class="col TASKS-TABLE-C text-info" style="font-weight: bold;">{{ task.status }}</div>
+                                        {% else %}}
+                                            <div class="col TASKS-TABLE-C">{{ task.status }}</div>
+                                        {% endif %}
                     {#                <div class="col TASKS-TABLE-C">{{ task.result }}</div>#}
+                                    <div class="col TASKS-TABLE-C" style="font-weight: bold;">{{ task.endpoint_name }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
