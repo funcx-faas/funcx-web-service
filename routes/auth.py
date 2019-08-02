@@ -1,5 +1,5 @@
 from authentication.auth import get_auth_client
-from flask import request, flash, redirect, session, url_for, Blueprint
+from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
 
@@ -38,6 +38,9 @@ def callback():
         id_token = tokens.decode_id_token(client)
         session.update(
             tokens=tokens.by_resource_server,
+            username=id_token.get('preferred_username'),
+            name=id_token.get('name'),
+            email=id_token.get('email'),
             is_authenticated=True
         )
 
@@ -68,13 +71,11 @@ def logout():
     # Destroy the session state
     session.clear()
 
-    redirect_uri = url_for('home', _external=True)
-
     ga_logout_url = list()
     ga_logout_url.append('https://auth.globus.org/v2/web/logout')
     ga_logout_url.append('?client=6a47fd0c-6423-4851-80a2-c0947c1d884d')
-    ga_logout_url.append('&redirect_uri={}'.format(redirect_uri))
-    ga_logout_url.append('&redirect_name=https://funcx.org')
+    ga_logout_url.append('&redirect_uri=https://dev.funcx.org')
+    ga_logout_url.append('&redirect_name=https://dev.funcx.org')
 
     # Redirect the user to the Globus Auth logout page
     return redirect(''.join(ga_logout_url))

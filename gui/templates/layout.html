@@ -6,24 +6,32 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.8/styles/vs.min.css">
-        <title>{{ title }} | FuncX</title>
+        <title>{{ title }} | funcX</title>
     </head>
     <body class="BODY_MAIN">
         <header class="container-fluid">
             <nav class="row navbar navbar-expand-sm navbar-dark fixed-top" id="NAVBAR">
                 <a href="{{ url_for('guiapi.start') }}">
-                    <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="FuncX" id="NAV-LOGO">
+                    <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="NAV-LOGO">
                 </a>
                 <div class="col">
                     <ul class="navbar-nav INLINE-BLOCK">
                         <li class="nav-item INLINE-BLOCK">
                             <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.home') }}">Home</a>
                         </li>
+
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
+                            <a class="nav-link NAV-LINK" data-toggle="dropdown" href="#">Functions</a>
+                            <div class="dropdown-menu" style="box-shadow: 4px 4px 10px rgba(136,136,136,0.5);">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
+                            </div>
                         </li>
                         <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.endpoints') }}">Endpoints</a>
+                        </li>
+                        <li class="nav-item INLINE-BLOCK">
+                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.tasks') }}">Tasks</a>
                         </li>
                     </ul>
                 </div>
@@ -39,8 +47,11 @@
                                 <img src="{{ url_for('static', filename='imgs/logos/readthedocs_logo.png') }}" alt="Read the Docs" class="NAV-EXTERNAL-IMG">
                             </a>
                         </li>
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('auth_api.login') }}">Login</a>
+                        <li class="nav-item INLINE-BLOCK" style="margin-left: 10px; text-align: right;">
+                            <span style="color:rgb(247,247,247); display: block; margin: 0px 2px -4px 2px;">Welcome, {{ user }}!</span><!--
+                            --><span style="display: inline-block;">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('auth_api.logout') }}" style="font-size: 0.8em; padding: 0; text-align: left;">Log Out</a>
+                            </span>
                         </li>
                     </ul>
                 </div>
@@ -59,6 +70,18 @@
         </div>
         {% block content %}
         {%  endblock %}
+        <div class="DIVIDE"></div>
+        <footer class="row" style="margin: 0 160px 40px 160px; text-align: center;">
+            <a class="col-4" href="https://labs.globus.org" alt="Globus Labs">
+                <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.png') }}" style="height: 48px;">
+            </a>
+            <a class="col-4" href="https://www.uchicago.edu" alt="University of Chicago">
+                <img src="{{ url_for('static', filename='imgs/logos/uc_logo.png') }}" style="height: 48px;">
+            </a>
+            <a class="col-4" href="https://www.anl.gov" alt="Argonne National Laboratory">
+                <img src="{{ url_for('static', filename='imgs/logos/anl_logo.png') }}" style="height: 80px; margin-left: -30px; margin-top: -18px;">
+            </a>
+        </footer>
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
