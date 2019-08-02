@@ -48,16 +48,33 @@ This route is for liveness checking. Will return "pong" string when you do a GET
 Architecture and Notes
 ----------------------
 
-The endpoint registers and receives the information
- 
-```
-                                       TaskQ ResultQ
-                                          |    |
-REST       /register--> Forwarder----->Executor Client
-             ^                            |    ^
-             |                            |    |
-             |                            v    |
-             |          +-------------> Interchange
-User ----> Endpoint ----|
-                        +--> Provider
-```
+The endpoint registers and receives the information::
+
+  Endpoint / Forwarder Interaction
+                                          TaskQ ResultQ
+                                             |    |
+  REST       /register--> Forwarder----->Executor Client
+                ^                            |    ^
+                |                            |    |
+                |                            v    |
+                |          +-------------> Interchange
+   User ----> Endpoint ----|
+                           +--> Provider
+
+
+
+Debugging
+=========
+
+You can run the forwareder-service in debug mode on your local system and skip the web-service entirely.
+For this, make sure you have the redis package installed and running. You can check this by running:
+
+>>> redis-cli
+
+This should output a prompt that says : 127.0.0.1:6379. This string needs to match.
+
+Now, you can start the forwarder service for testing:
+
+>>> forwarder-service --address 127.0.0.1 --port 50005 --debug
+
+Once you have this running, we can update the endpoint configs to point to this local service.
