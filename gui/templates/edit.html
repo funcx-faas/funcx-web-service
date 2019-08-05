@@ -8,12 +8,12 @@
             {% else %}
                 <legend class="container h1 PAGE-TITLE">Edit Function</legend>
             {% endif %}
-            <dl id="VIEW-INFO" class="container">
+            <dl class="container VIEW-INFO">
                 <dt>Name: </dt>
                 {% if form.name.errors %}
                     <dd>{{ form.name(class="form-control FORM-FIELD is-invalid", placeholder="Enter function name") }}</dd>
                     {% for error in form.name.errors %}
-                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                        <div class="text-danger INVALID-MESSAGE">{{ error }}</div>
                     {% endfor %}
                 {% else %}
                     <dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter function name") }}</dd>
@@ -22,16 +22,16 @@
                 {% if form.desc.errors %}
                     <dd>{{ form.desc(class="form-control is-invalid", id="FUNC-DESC", placeholder="Enter description") }}</dd>
                     {% for error in form.desc.errors %}
-                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                        <div class="text-danger INVALID-MESSAGE">{{ error }}</div>
                     {% endfor %}
                 {% else %}
-                    <dd>{{ form.desc(class="form-control", id="FUNC-DESC", placeholder="Enter description") }}</dd>
+                    <dd>{{ form.desc(class="form-control", id="FORM-DESC", placeholder="Enter description") }}</dd>
                 {% endif %}
                 <dt>Entry Point: </dt>
                 {% if form.entry_point.errors %}
                     <dd>{{ form.entry_point(class="form-control FORM-FIELD is-invalid", placeholder="Enter entry point") }}</dd>
                     {% for error in form.entry_point.errors %}
-                        <div class="text-danger" style="margin-bottom: 12px;">{{ error }}</div>
+                        <div class="text-danger INVALID-MESSAGE">{{ error }}</div>
                     {% endfor %}
                 {% else %}
                     <dd>{{ form.entry_point(class="form-control FORM-FIELD", placeholder="Enter entry point") }}</dd>
@@ -44,9 +44,9 @@
                 {% endif %}
             </dl>
             <section class="container">
-                {{ form.code(id="FUNC-CODE", placeholder="Enter code here...") }}
+                {{ form.code(class="FUNC-CODE", placeholder="Enter code here...") }}
             </section>
-            <div class="container" style="padding-left: 0;">
+            <div class="container PADDING-0">
                 {{ form.submit }}
                 {% if title == 'New Function' %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">

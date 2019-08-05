@@ -6,57 +6,67 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.8/styles/vs.min.css">
-        <title>{{ title }} | funcX</title>
+        {% if title != "Start" %}
+            <title>{{ title }} | funcX</title>
+        {% else %}
+            <title>funcX</title>
+        {% endif %}
     </head>
-    <body class="BODY_MAIN">
-        <header class="container-fluid">
-            <nav class="row navbar navbar-expand-sm navbar-dark fixed-top" id="NAVBAR">
-                <a href="{{ url_for('guiapi.start') }}">
-                    <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="NAV-LOGO">
-                </a>
-                <div class="col">
-                    <ul class="navbar-nav INLINE-BLOCK">
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.home') }}">Home</a>
-                        </li>
+    {% if title != "Start" %}
+        <body class="BODY_MAIN">
 
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" data-toggle="dropdown" href="#">Functions</a>
-                            <div class="dropdown-menu" style="box-shadow: 4px 4px 10px rgba(136,136,136,0.5);">
-                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
-                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
-                            </div>
-                        </li>
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.endpoints') }}">Endpoints</a>
-                        </li>
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.tasks') }}">Tasks</a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col">
-                    <ul class="navbar-nav" style="justify-content: flex-end; align-items: center;">
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK NAV-EXTERNAL-LINK" href="https://github.com/funcx-faas">
-                                <img src="{{ url_for('static', filename='imgs/logos/github_logo.png') }}" alt="GitHub" class="NAV-EXTERNAL-IMG">
-                            </a>
-                        </li>
-                        <li class="nav-item INLINE-BLOCK">
-                            <a class="nav-link NAV-LINK NAV-EXTERNAL-LINK" href="https://funcx.readthedocs.io/en/latest/">
-                                <img src="{{ url_for('static', filename='imgs/logos/readthedocs_logo.png') }}" alt="Read the Docs" class="NAV-EXTERNAL-IMG">
-                            </a>
-                        </li>
-                        <li class="nav-item INLINE-BLOCK" style="margin-left: 10px; text-align: right;">
-                            <span style="color:rgb(247,247,247); display: block; margin: 0px 2px -4px 2px;">Welcome, {{ user }}!</span><!--
-                            --><span style="display: inline-block;">
-                                <a class="nav-link NAV-LINK" href="{{ url_for('auth_api.logout') }}" style="font-size: 0.8em; padding: 0; text-align: left;">Log Out</a>
-                            </span>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-        </header>
+            <header class="container-fluid">
+                <nav class="row navbar navbar-expand-sm navbar-dark fixed-top" id="NAVBAR">
+                    <a href="{{ url_for('guiapi.start') }}">
+                        <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="NAV-LOGO">
+                    </a>
+                    <div class="col">
+                        <ul class="navbar-nav INLINE-BLOCK">
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.home') }}">Home</a>
+                            </li>
+
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK" data-toggle="dropdown" href="#">Functions</a>
+                                <div class="dropdown-menu SHADOW">
+                                    <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.functions') }}">Your Functions</a>
+                                    <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.new') }}">New Function</a>
+                                </div>
+                            </li>
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.endpoints') }}">Endpoints</a>
+                            </li>
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK" href="{{ url_for('guiapi.tasks') }}">Tasks</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col">
+                        <ul class="navbar-nav" style="justify-content: flex-end; align-items: center;">
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK NAV-EXTERNAL-LINK" href="https://github.com/funcx-faas">
+                                    <img src="{{ url_for('static', filename='imgs/logos/github_logo.png') }}" alt="GitHub" class="NAV-EXTERNAL-IMG">
+                                </a>
+                            </li>
+                            <li class="nav-item INLINE-BLOCK">
+                                <a class="nav-link NAV-LINK NAV-EXTERNAL-LINK" href="https://funcx.readthedocs.io/en/latest/">
+                                    <img src="{{ url_for('static', filename='imgs/logos/readthedocs_logo.png') }}" alt="Read the Docs" class="NAV-EXTERNAL-IMG">
+                                </a>
+                            </li>
+                            <li id="USER-INFO" class="nav-item">
+                                <span id="USER-CREDENTIAL">Welcome, {{ user }}!</span><!--
+                                --><span class="INLINE-BLOCK">
+                                    <a id="USER-LOGOUT" class="nav-link NAV-LINK" href="{{ url_for('auth_api.logout') }}">Log Out</a>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </header>
+    {% else %}
+        <body>
+    {% endif %}
+
         <div class="container" style="padding-left: 0; padding-right: 0;">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -68,10 +78,12 @@
                 {% endif %}
             {% endwith %}
         </div>
+
         {% block content %}
         {%  endblock %}
+
         <div class="DIVIDE"></div>
-        <footer class="row" style="margin: 0 160px 40px 160px; text-align: center;">
+        <footer class="row FOOTER">
             <a class="col-4" href="https://labs.globus.org" alt="Globus Labs">
                 <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.png') }}" style="height: 48px;">
             </a>
@@ -82,6 +94,7 @@
                 <img src="{{ url_for('static', filename='imgs/logos/anl_logo.png') }}" style="height: 80px; margin-left: -30px; margin-top: -18px;">
             </a>
         </footer>
+
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>

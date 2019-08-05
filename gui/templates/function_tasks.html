@@ -1,42 +1,49 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Tasks for function
-<!--        {% set task = func_tasks[0] %}-->
-        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}" style="margin-right: 10px;">'{{ func_name }}'</a></h1>
+    <h1 class="container PAGE-TITLE">
+        Tasks for function <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">"{{ func['function_name'] }}"</a>
+    </h1>
+
     {% if func_tasks|length < 1 %}
-        <div class="container" style="padding: 0;">
-            <span>You currently have no tasks. </span>
+        <div class="container PADDING-0">
+            <span>You do not have any tasks for this function.</span>
         </div>
     {% else %}
-        <table class="container">
-            <tr class="TASKS-TABLE-LABELS row">
-                <th class="col">Total no. of tasks: {{ tasks_total }}</th>
-            </tr>
-        </table>
-        <br/>
 
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
-{#            <a href="#">Previous</a>#}
-            <div class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
-                    {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
-                    {% endfor %}
-                </menu>
+        <section class="container TABLE-INFO PADDING-0">
+            <div class="row SIDE-MARGIN-0">
+                <div class="col PADDING-0">
+                    {% if func_tasks|length == 1 %}
+                        <span class="TABLE-TOTAL">You have 1 task for this function.</span>
+                    {% else %}
+                        <span class="TABLE-TOTAL">You have {{ tasks_total }} tasks for this function.</span>
+                    {% endif %}
+                </div>
+
+                <nav class="col PADDING-0 FLEX-RIGHT FLEX-BOTTOM">
+        {#            <a href="#">Previous</a>#}
+                    <div class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                        <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
+                            {% for page in range(numPages) %}
+                                <a class="PAGE-DROPDOWN-ITEM" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
+                            {% endfor %}
+                        </menu>
+                    </div>
+        {#            <a href="#">Next</a>#}
+                </nav>
             </div>
-{#            <a href="#">Next</a>#}
-        </nav>
+        </section>
 
-        <table class="container">
-            <tr class="row TASKS-TABLE-LABELS">
-                <th class="col-5">Endpoint Name</th>
-                <th class="col">Status</th>
-                <th class="col-4">Date Started</th>
-            </tr>
-        </table>
+        <section class="container PADDING-0">
+            <div class="row TABLE-LABELS SIDE-MARGIN-0">
+                <div class="col-5">Endpoint Name</div>
+                <div class="col">Status</div>
+                <div class="col-4">Date Started</div>
+            </div>
+        </section>
 
-        <section class="container TASKS-TABLE" style="padding: 0;">
+        <section class="container TABLE PADDING-0">
             <div class="tab-content">
                 {% set num = [0] %}
                 {% set bound = numPages + 1 %}
@@ -50,26 +57,26 @@
                         {% for results in range(30) %}
                             {% if num[0] < tasks_total %}
                                 {% set task = func_tasks[num[0]] %}
-                                <section class="row TASKS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                                    <div class="col-5 TASKS-TABLE-C" style="font-weight: bold;">
-                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}" style="font-weight: bold;">
+                                <section class="row TABLE-ROW SIDE-MARGIN-0">
+                                    <div class="col-5 TABLE-COL-B">
+                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}">
                                             {{ task.endpoint_name }}
                                         </a>
                                     </div>
-                                        {% if task["status"] == 'SUCCEEDED' %}
-                                            <div class="col TASKS-TABLE-C text-success" style="font-weight: bold;">{{ task.status }}</div>
-                                        {% elif task["status"] == 'FAILED' %}
-                                            <div class="col TASKS-TABLE-C text-danger" style="font-weight: bold;">{{ task.status }}</div>
-                                        {% elif task["status"] == 'ACTIVE' %}
-                                            <div class="col TASKS-TABLE-C text-primary" style="font-weight: bold;">{{ task.status }}</div>
-                                        {% elif task["status"] == 'PENDING' %}
-                                            <div class="col TASKS-TABLE-C text-warning" style="font-weight: bold;">{{ task.status }}</div>
-                                        {% elif task["status"] == 'UNKNOWN' %}
-                                            <div class="col TASKS-TABLE-C text-info" style="font-weight: bold;">{{ task.status }}</div>
-                                        {% else %}}
-                                            <div class="col TASKS-TABLE-C">{{ task.status }}</div>
-                                        {% endif %}
-                                    <div class="col-4 TASKS-TABLE-C">{{ task['created_at'].date() }} {{ task['created_at'].strftime('%X') }}</div>
+                                    {% if task["status"] == 'SUCCEEDED' %}
+                                        <div class="col TABLE-COL-B text-success">{{ task.status }}</div>
+                                    {% elif task["status"] == 'FAILED' %}
+                                        <div class="col TABLE-COL-B text-danger">{{ task.status }}</div>
+                                    {% elif task["status"] == 'ACTIVE' %}
+                                        <div class="col TABLE-COL-B text-primary">{{ task.status }}</div>
+                                    {% elif task["status"] == 'PENDING' %}
+                                        <div class="col TABLE-COL-B text-warning">{{ task.status }}</div>
+                                    {% elif task["status"] == 'UNKNOWN' %}
+                                        <div class="col TABLE-COL-B text-info">{{ task.status }}</div>
+                                    {% else %}}
+                                        <div class="col TABLE-COL-B">{{ task.status }}</div>
+                                    {% endif %}
+                                    <div class="col-4 TABLE-COL">{{ task['created_at'].date() }} {{ task['created_at'].strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
@@ -79,13 +86,13 @@
             </div>
         </section>
 
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+        <nav class="container PADDING-0 FLEX-RIGHT">
 {#            <a href="#">Previous</a>#}
             <div class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
                     {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                        <a class="PAGE-DROPDOWN-ITEM" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
                     {% endfor %}
                 </menu>
             </div>

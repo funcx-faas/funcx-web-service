@@ -1,49 +1,40 @@
 {% extends 'layout.html' %}
 {% block content %}
     <h1 class="container PAGE-TITLE">Tasks</h1>
-    {% if tasks|length < 1 %}
-        <div class="container" style="padding: 0;">
-            <span>You currently have no tasks. Run your function here (link to view function)!</span>
-        </div>
-    {% else %}
-      <section class="container" style="padding-left: 0px; padding-right: 0px;">
-            <div class="row">
-                <div class="col">
-                    <a href="{{ url_for('guiapi.function_tasks', uuid=tasks['function_id']) }}" style="margin-right: 10px;">View Other Tasks</a>
-                </div>
-                <div class="col" style="display:flex; justify-content:flex-end; padding-left: 0px;">
-                    <a href="{{ url_for('guiapi.functions', uuid=tasks['function_uuid']) }}">View All Tasks</a>
-                </div>
+    <section class="container PADDING-0">
+        <div class="row">
+            <div class="col">
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=task['function_id']) }}">View Other Tasks</a>
             </div>
-        </section>
+            <div class="col FLEX-RIGHT">
+                <a href="{{ url_for('guiapi.functions', uuid=task['function_uuid']) }}">View All Tasks</a>
+            </div>
+        </div>
+    </section>
 
-        <dl class="container VIEW-INFO">
-            <dt>Function: </dt><dd><a href="{{ url_for('guiapi.view', uuid=tasks['function_id']) }}"><b>{{ tasks['function_name'] }}</b></a></dd>
-            <dt>Endpoint: </dt><dd>{{ tasks['endpoint_name'] }}</dd>
-            <dt>Status: </dt>
-                <dd>
-                    {% if tasks["status"] == 'SUCCEEDED' %}
-                         <div class="col TASKS-TABLE-C text-success" style="font-weight: bold;">{{ tasks.status }}</div>
-                    {% elif tasks["status"] == 'FAILED' %}
-                        <div class="col TASKS-TABLE-C text-danger" style="font-weight: bold;">{{ tasks.status }}</div>
-                    {% elif tasks["status"] == 'ACTIVE' %}
-                        <div class="col TASKS-TABLE-C text-primary" style="font-weight: bold;">{{ tasks.status }}</div>
-                    {% elif tasks["status"] == 'PENDING' %}
-                        <div class="col TASKS-TABLE-C text-warning" style="font-weight: bold;">{{ tasks.status }}</div>
-                    {% elif tasks["status"] == 'UNKNOWN' %}
-                        <div class="col TASKS-TABLE-C text-info" style="font-weight: bold;">{{ tasks.status }}</div>
-                    {% else %}
-                        <div class="col TASKS-TABLE-C">{{ tasks.status }}</div>
-                    {% endif %}
-                </dd>
-            <dt>Date Started: </dt><dd>{{ tasks['created_at'].date() }} {{ tasks['created_at'].strftime('%X') }}</dd>
-            <dt>Date Completed: </dt><dd>{{ tasks['modified_at'].date() }} {{ tasks['modified_at'].strftime('%X') }}</dd>
-            <dt>Task UUID: </dt><dd>{{ tasks['task_id'] }}</dd>
-        </dl>
-        <br/>
-        <section class="container" style="word-wrap: break-word;">
-            <p><b>Results:</b></p>
-            <pre class="python FUNC-CODE">{{ tasks['result'] }}</pre>
-        </section>
-    {% endif %};
+    <dl class="container VIEW-INFO">
+        <dt>Function: </dt><dd class="VIEW-FIELD"><a href="{{ url_for('guiapi.view', uuid=task['function_id']) }}">{{ task['function_name'] }}</a></dd>
+        <dt>Endpoint: </dt><dd class="VIEW-FIELD">{{ task['endpoint_name'] }}</dd>
+        <dt>Status: </dt>
+        {% if task["status"] == 'SUCCEEDED' %}
+            <dd class="VIEW-FIELD-B text-success">{{ task.status }}</dd>
+        {% elif task["status"] == 'FAILED' %}
+            <dd class="VIEW-FIELD-B text-danger">{{ task.status }}</dd>
+        {% elif task["status"] == 'ACTIVE' %}
+            <dd class="VIEW-FIELD-B text-primary">{{ task.status }}</dd>
+        {% elif task["status"] == 'PENDING' %}
+            <dd class="VIEW-FIELD-B text-warning">{{ task.status }}</dd>
+        {% elif task["status"] == 'UNKNOWN' %}
+            <dd class="VIEW-FIELD-B text-info">{{ task.status }}</dd>
+        {% else %}
+            <dd class="VIEW-FIELD-B">{{ task.status }}</dd>
+        {% endif %}
+        <dt>Date Started: </dt><dd class="VIEW-FIELD">{{ task['created_at'].date() }} {{ task['created_at'].strftime('%X') }}</dd>
+        <dt>Date Completed: </dt><dd class="VIEW-FIELD">{{ task['modified_at'].date() }} {{ task['modified_at'].strftime('%X') }}</dd>
+        <dt>Task UUID: </dt><dd class="VIEW-FIELD">{{ task['task_id'] }}</dd>
+    </dl>
+    <section class="container PADDING-0">
+        <div>Result:</div>
+        <pre class="VIEW-RESULT">{{ task['result'] }}</pre>
+    </section>
 {% endblock %}
