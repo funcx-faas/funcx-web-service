@@ -43,7 +43,7 @@ def error():
 def functions():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False", (session.get("username"),))
+        cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False ORDER by functions.id desc", (session.get("username"),))
         functions = cur.fetchall()
         functions_total = len(functions)
         numPages = ceil(functions_total / 30)
@@ -133,18 +133,18 @@ def delete(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
         cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' and endpoint_uuid is not null",
+            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
             (session.get("username"),))
         endpoints_online_all = cur.fetchall()
         endpoints_online = len(endpoints_online_all)
 
         cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' and endpoint_uuid is not null",
+            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
             (session.get("username"),))
         endpoints_offline_all = cur.fetchall()
         endpoints_offline = len(endpoints_offline_all)
@@ -162,9 +162,11 @@ def tasks():
     try:
         conn, cur = get_db_connection()
 
-        cur.execute("SELECT users.id, cast(tasks.user_id as integer), tasks.task_id, result, status "
-                    "FROM results, tasks, users "
-                    "WHERE results.task_id = tasks.task_id AND users.id = cast(tasks.user_id as integer) AND users.username = %s",
+        cur.execute("SELECT tasks.id, users.id, cast(tasks.user_id as integer), tasks.task_id, results.result, tasks.status, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
+                    "FROM results, tasks, users, functions, sites "
+                    "WHERE results.task_id = tasks.task_id AND users.id = cast(tasks.user_id as integer) AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id  "
+                    "AND function_id IS NOT NULL AND users.username = %s "
+                    "ORDER by tasks.id desc",
                     (session.get("username"),))
         tasks = cur.fetchall()
 
@@ -179,14 +181,20 @@ def tasks():
 @guiapi.route('/view_tasks/<task_id>')
 # @authenticated
 def view_tasks(task_id):
-    conn, cur = get_db_connection()
-    cur.execute("SELECT tasks.id, tasks.user_id, tasks.task_id, tasks.status, results.result, tasks.created_at, tasks.modified_at, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
-                "FROM tasks, results, sites, functions "
-                "WHERE results.task_id = tasks.task_id AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id AND tasks.task_id = %s "
-                "AND function_id IS NOT NULL;",
-                (task_id,))
-    tasks = cur.fetchone()
-    name = tasks['task_id']
+
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT tasks.id, tasks.user_id, tasks.task_id, tasks.status, results.result, tasks.created_at, tasks.modified_at, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
+                    "FROM tasks, results, sites, functions "
+                    "WHERE results.task_id = tasks.task_id AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id AND tasks.task_id = %s "
+                    "AND function_id IS NOT NULL;",
+                    (task_id,))
+        tasks = cur.fetchone()
+        name = tasks['task_id']
+
+    except:
+        flash('There was an issue handling your request', 'danger')
+        # return redirect(url_for('guiapi.tasks'))
     return render_template('view_tasks.html', user=session.get('name'), title=f'View "{name}"', tasks=tasks)
 
 
@@ -195,14 +203,25 @@ def view_tasks(task_id):
 def function_tasks(uuid):
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_name FROM functions WHERE function_uuid = %s", (uuid,))
+        cur.execute("SELECT function_uuid, function_name FROM functions WHERE function_uuid = %s", (uuid,))
         func = cur.fetchone()
         func_name = func['function_name']
+
+    except:
+        flash('There was an issue handling your request', 'danger')
+        return redirect(url_for('guiapi.view', uuid=uuid))
+
+    try:
+        # conn, cur = get_db_connection()
+        # cur.execute("SELECT function_name FROM functions WHERE function_uuid = %s", (uuid,))
+        # func = cur.fetchone()
+        # func_name = func['function_name']
         cur.execute(
-            "SELECT cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+            "SELECT tasks.task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
             "FROM tasks, sites, users, functions "
             "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
-            "AND tasks.function_id = %s", (uuid,))
+            "AND tasks.function_id = %s"
+            "ORDER by tasks.task_id desc", (uuid,))
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.view', uuid=uuid))
@@ -212,6 +231,6 @@ def function_tasks(uuid):
         numPages = ceil(tasks_total / 30)
     except:
         return render_template('function_tasks.html', title=f'Tasks of {func_name}')
-    return render_template('function_tasks.html', title=f'Tasks of {func_name}', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name, numPages=numPages)
+    return render_template('function_tasks.html', title=f'Tasks of {func_name}', func_tasks=func_tasks, tasks_total=tasks_total, func_name=func_name, numPages=numPages, func=func)
 
 

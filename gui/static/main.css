@@ -456,3 +456,8 @@ dd {
 .VIEW-TASKS-TABLE-C:last-child {
     padding-right: 0px;
 }
+
+/* tasks and function_tasks*/
+.TABLE-LINK section:hover{
+    background-color: #ffffff;
+}
