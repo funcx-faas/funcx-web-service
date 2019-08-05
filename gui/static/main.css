@@ -345,8 +345,8 @@ blockquote {
     padding: 10px 0px;
 }
 
-.TABLE-LINK section:hover {
-    background-color: #ffffff;
+.TABLE-ROW:hover {
+    background-color: rgb(250,250,250);
 }
 
 .TABLE-COL {
@@ -356,6 +356,11 @@ blockquote {
 .TABLE-COL-B {
     font-weight: bold;
     padding: 0 14px;
+}
+
+.TABLE-DELETE {
+    display: inline-block;
+    width: 20px;
 }
 
 
@@ -370,9 +375,8 @@ blockquote {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
     border-radius: 5px;
-    cursor: auto;
+    /*cursor: auto;*/
     margin-bottom: 20px;
-    /*margin-left: 20px;*/
     margin-top: 5px;
     padding-bottom: 8px !important;
     padding-top: 5px !important;
@@ -390,8 +394,8 @@ blockquote {
 }
 
 .FORM-FIELD {
-    font-size: 1rem !important;
-    line-height: 1rem !important;
+    /*font-size: 1rem !important;*/
+    /*line-height: 1rem !important;*/
     width: 225px !important;
 }
 
@@ -400,6 +404,7 @@ blockquote {
     line-height: 1em !important;
     min-height: 62px;
     min-width: 225px !important;
+    width: 225px;
     overflow: scroll;
     resize: both;
 }

@@ -18,8 +18,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        # username='ryan@globusid.org',
-        # name='Ryan Chard'
+        username='ryan@globusid.org',
+        name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='skluzacek@uchicago.edu',
@@ -193,10 +193,9 @@ def view_tasks(task_id):
                     (task_id,))
         task = cur.fetchone()
         name = task['task_id']
-
     except:
         flash('There was an issue handling your request', 'danger')
-        # return redirect(url_for('guiapi.tasks'))
+        return redirect(url_for('guiapi.tasks'))
     return render_template('view_tasks.html', user=session.get('name'), title=f'View "{name}"', task=task)
 
 

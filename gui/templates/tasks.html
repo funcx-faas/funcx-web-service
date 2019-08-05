@@ -51,32 +51,32 @@
                     {% else %}
                         {% set status = "" %}
                     {% endif %}
-                    <section class="tab-pane {{ status }} TABLE-LINK" id="page{{ page }}">
+                    <section class="tab-pane {{ status }}" id="page{{ page }}">
                         {% for results in range(30) %}
                             {% if num[0] < tasks_total %}
                                 {% set task = tasks[num[0]] %}
-                                <section class="row clickable TABLE-ROW SIDE-MARGIN-0" onclick="window.location='{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}'">
+                                <a class="row TABLE-ROW SIDE-MARGIN-0" href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}" style="display: block;">
                                     <div class="col-4 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}">{{ task.task_id }}</a>
+                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">{{ task.task_id }}</a>
                                     </div>
                                     <div class="col-3 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view', uuid=task['function_id']) }}">{{ task.function_name }}</a>
+                                        <a href="{{ url_for('guiapi.view', uuid=task.function_id) }}">{{ task.function_name }}</a>
                                     </div>
-                                    {% if task["status"] == 'SUCCEEDED' %}
+                                    {% if task.status == 'SUCCEEDED' %}
                                         <div class="col-2 TABLE-COL-B text-success">{{ task.status }}</div>
-                                    {% elif task["status"] == 'FAILED' %}
+                                    {% elif task.status == 'FAILED' %}
                                         <div class="col-2 TABLE-COL-B text-danger">{{ task.status }}</div>
-                                    {% elif task["status"] == 'ACTIVE' %}
+                                    {% elif task.status == 'ACTIVE' %}
                                         <div class="col-2 TABLE-COL-B text-primary">{{ task.status }}</div>
-                                    {% elif task["status"] == 'PENDING' %}
+                                    {% elif task.status == 'PENDING' %}
                                         <div class="col-2 TABLE-COL-B text-warning">{{ task.status }}</div>
-                                    {% elif task["status"] == 'UNKNOWN' %}
+                                    {% elif task.status == 'UNKNOWN' %}
                                         <div class="col-2 TABLE-COL-B text-info">{{ task.status }}</div>
                                     {% else %}}
                                         <div class="col-2 TABLE-COL-B">{{ task.status }}</div>
                                     {% endif %}
                                     <div class="col-3 TABLE-COL-B">{{ task.endpoint_name }}</div>
-                                </section>
+                                </a>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
                         {% endfor %}
@@ -98,6 +98,5 @@
 {#            <a href="#">Next</a>#}
         </nav>
 
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     {% endif %}
 {% endblock %}

@@ -59,10 +59,10 @@
                                 {% set func = functions[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
                                     <div class="col-6 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">{{ func['function_name'] }}</a>
+                                        <a href="{{ url_for('guiapi.view', uuid=func.function_uuid) }}">{{ func.function_name }}</a>
                                     </div>
-                                    <div class="col-3 TABLE-COL">{{ func['timestamp'].date() }} {{ func['timestamp'].strftime('%X') }}</div>
-                                    <div class="col-3 TABLE-COL">{{ func['modified_at'].date() }} {{ func['modified_at'].strftime('%X') }}</div>
+                                    <div class="col-3 TABLE-COL">{{ func.timestamp.date() }} {{ func.timestamp.strftime('%X') }}</div>
+                                    <div class="col-3 TABLE-COL">{{ func.modified_at.date() }} {{ func.modified_at.strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}

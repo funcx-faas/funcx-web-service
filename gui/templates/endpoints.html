@@ -56,22 +56,21 @@
                     <section class="tab-pane {{ status }}" id="page{{ page }}">
                         {% for results in range(30) %}
                             {% if num[0] < endpoints_total %}
-                                {% set sites = endpoints[num[0]] %}
+                                {% set site = endpoints[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
-                                    <div class="col-2 TABLE-COL-B">{{ sites.endpoint_name }}</div>
-                                    <div class="col-5 TABLE-COL">{{ sites.endpoint_uuid }}</div>
-                                        {% if sites["status"] == 'ONLINE' %}
-                                            <div class="col-2 TABLE-COL-B text-success">{{ sites.status }}</div>
-                                        {% elif sites["status"] == 'OFFLINE' %}
-                                            <div class="col-2 TABLE-COL-B text-danger">{{ sites.status }}</div>
+                                    <div class="col-2 TABLE-COL-B">{{ site.endpoint_name }}</div>
+                                    <div class="col-5 TABLE-COL">{{ site.endpoint_uuid }}</div>
+                                        {% if site.status == 'ONLINE' %}
+                                            <div class="col-2 TABLE-COL-B text-success">{{ site.status }}</div>
+                                        {% elif site.status == 'OFFLINE' %}
+                                            <div class="col-2 TABLE-COL-B text-danger">{{ site.status }}</div>
                                         {% else %}
-                                            <div class="col-2 TABLE-COL-B text-primary">{{ sites.status }}</div>
+                                            <div class="col-2 TABLE-COL-B text-primary">{{ site.status }}</div>
                                         {% endif %}
-                                    <div class="col TABLE-COL">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
-                                    <div class="col-1 TABLE-COL">
-<!--                                        <button type="button" class="close" data-dismiss="modal">-->
+                                    <div class="col TABLE-COL">{{ site.created_at.date() }} {{ site.created_at.strftime('%X') }}</div>
+                                    <div class="col-1 TABLE-COL" style="text-align: center;">
                                         <a href="">
-                                            <img src="{{ url_for('static', filename='imgs/design/button_x.png') }}" style="display: inline-block; height: 20px;width: 20px">
+                                            <img class="TABLE-DELETE" src="{{ url_for('static', filename='imgs/design/button_x.png') }}">
                                         </a>
                                     </div>
                                 </section>

@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
     <h1 class="container PAGE-TITLE">
-        Tasks for function <a href="{{ url_for('guiapi.view', uuid=func['function_uuid']) }}">"{{ func['function_name'] }}"</a>
+        Tasks for function <a href="{{ url_for('guiapi.view', uuid=func.function_uuid) }}">"{{ func.function_name }}"</a>
     </h1>
 
     {% if func_tasks|length < 1 %}
@@ -59,24 +59,24 @@
                                 {% set task = func_tasks[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
                                     <div class="col-5 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}">
+                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">
                                             {{ task.endpoint_name }}
                                         </a>
                                     </div>
-                                    {% if task["status"] == 'SUCCEEDED' %}
+                                    {% if task.status == 'SUCCEEDED' %}
                                         <div class="col TABLE-COL-B text-success">{{ task.status }}</div>
-                                    {% elif task["status"] == 'FAILED' %}
+                                    {% elif task.status == 'FAILED' %}
                                         <div class="col TABLE-COL-B text-danger">{{ task.status }}</div>
-                                    {% elif task["status"] == 'ACTIVE' %}
+                                    {% elif task.status == 'ACTIVE' %}
                                         <div class="col TABLE-COL-B text-primary">{{ task.status }}</div>
-                                    {% elif task["status"] == 'PENDING' %}
+                                    {% elif task.status == 'PENDING' %}
                                         <div class="col TABLE-COL-B text-warning">{{ task.status }}</div>
-                                    {% elif task["status"] == 'UNKNOWN' %}
+                                    {% elif task.status == 'UNKNOWN' %}
                                         <div class="col TABLE-COL-B text-info">{{ task.status }}</div>
                                     {% else %}}
                                         <div class="col TABLE-COL-B">{{ task.status }}</div>
                                     {% endif %}
-                                    <div class="col-4 TABLE-COL">{{ task['created_at'].date() }} {{ task['created_at'].strftime('%X') }}</div>
+                                    <div class="col-4 TABLE-COL">{{ task.created_at.date() }} {{ task.created_at.strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
