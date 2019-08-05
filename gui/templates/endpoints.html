@@ -69,6 +69,7 @@
                                         {% endif %}
                                     <div class="col TABLE-COL">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
                                     <div class="col-1 TABLE-COL">
+<!--                                        <button type="button" class="close" data-dismiss="modal">-->
                                         <a href="">
                                             <img src="{{ url_for('static', filename='imgs/design/button_x.png') }}" style="display: inline-block; height: 20px;width: 20px">
                                         </a>
