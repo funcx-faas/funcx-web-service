@@ -51,11 +51,11 @@
                     {% else %}
                         {% set status = "" %}
                     {% endif %}
-                    <section class="tab-pane {{ status }}" id="page{{ page }}">
+                    <section class="tab-pane {{ status }} TABLE-LINK" id="page{{ page }}">
                         {% for results in range(30) %}
                             {% if num[0] < tasks_total %}
                                 {% set task = tasks[num[0]] %}
-                                <section class="row TABLE-ROW SIDE-MARGIN-0">
+                                <section class="row clickable TABLE-ROW SIDE-MARGIN-0" onclick="window.location='{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}'">
                                     <div class="col-4 TABLE-COL-B">
                                         <a href="{{ url_for('guiapi.view_tasks', task_id=task['task_id']) }}">{{ task.task_id }}</a>
                                     </div>
@@ -98,5 +98,6 @@
 {#            <a href="#">Next</a>#}
         </nav>
 
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     {% endif %}
 {% endblock %}

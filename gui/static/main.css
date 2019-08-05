@@ -345,6 +345,10 @@ blockquote {
     padding: 10px 0px;
 }
 
+.TABLE-LINK section:hover {
+    background-color: #ffffff;
+}
+
 .TABLE-COL {
     padding: 0 14px;
 }
