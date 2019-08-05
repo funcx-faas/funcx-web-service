@@ -36,7 +36,7 @@
         <table class="container">
             <tr class="row ENDPOINTS-TABLE-LABELS">
                 <th class="col-2">Endpoint Name</th>
-                <th class="col-5">Endpoint UUID</th>
+                <th class="col-4">Endpoint UUID</th>
                 <th class="col-2">Status</th>
                 <th class="col">Date Created</th>
             </tr>
@@ -58,7 +58,7 @@
                                 {% set sites = endpoints[num[0]] %}
                                 <section class="row ENDPOINTS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
                                     <div class="col-2 ENDPOINTS-TABLE-C" style="font-weight: bold;">{{ sites.endpoint_name }}</div>
-                                    <div class="col-5 ENDPOINTS-TABLE-C">{{ sites.endpoint_uuid }}</div>
+                                    <div class="col-4 ENDPOINTS-TABLE-C">{{ sites.endpoint_uuid }}</div>
                                         {% if sites["status"] == 'ONLINE' %}
                                             <div class="col-2 ENDPOINTS-TABLE-C text-success" style="font-weight: bold;">{{ sites.status }}</div>
                                         {% elif sites["status"] == 'OFFLINE' %}
@@ -66,7 +66,12 @@
                                         {% else %}
                                             <div class="col-2 ENDPOINTS-TABLE-C text-primary" style="font-weight: bold;">{{ sites.status }}</div>
                                         {% endif %}
-                                    <div class="col ENDPOINTS-TABLE-C">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
+                                    <div class="col-3 ENDPOINTS-TABLE-C">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
+                                    <div class="col-1 ENDPOINTS-TABLE-C">
+                                        <a href="">
+                                            <img src="{{ url_for('static', filename='imgs/design/button_x.png') }}" style="display: inline-block; height: 20px;width: 20px">
+                                        </a>
+                                    </div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}

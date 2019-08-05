@@ -41,9 +41,9 @@
             <dt>Task UUID: </dt><dd>{{ tasks['task_id'] }}</dd>
         </dl>
         <br/>
-        <section class="container">
+        <section class="container" style="word-wrap: break-word;">
             <p><b>Results:</b></p>
             <pre class="python FUNC-CODE">{{ tasks['result'] }}</pre>
         </section>
-    {% endif %}
+    {% endif %};
 {% endblock %}
