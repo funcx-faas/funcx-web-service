@@ -1,48 +1,49 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1 class="container PAGE-TITLE" style="padding-left: 0px;">Endpoints</h1>
+    <h1 class="container PAGE-TITLE">Endpoints</h1>
     {% if endpoints|length < 1 %}
-        <div class="container" style="padding: 0;">
-            <span>You currently have no endpoints. </span>
+        <div class="container PADDING-0">
+            <span>You do not have any endpoints. </span>
         </div>
     {% else %}
-        <table class="container">
-            <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">No. of online endpoints: {{ endpoints_online }}</th>
-{#                <th class="col">{{ endpoints_online }}</th>#}
-            </tr>
-            <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">No. of offline endpoints: {{ endpoints_offline }}</th>
-{#                <th class="col">{{ endpoints_offline }}</th>#}
-            </tr>
-            <tr class="ENDPOINTS-TABLE-LABELS row">
-                <th class="col-4">Total no. of endpoints: {{ endpoints_total }}</th>
-{#                <th class="col">{{ endpoints_total }}</th>#}
-            </tr>
-        </table>
-        <br/>
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
-{#            <a href="#">Previous</a>#}
-            <div class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
-                    {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
-                    {% endfor %}
-                </menu>
-            </div>
-{#            <a href="#">Next</a>#}
-        </nav>
-        <table class="container">
-            <tr class="row ENDPOINTS-TABLE-LABELS">
-                <th class="col-2">Endpoint Name</th>
-                <th class="col-5">Endpoint UUID</th>
-                <th class="col-2">Status</th>
-                <th class="col">Date Created</th>
-            </tr>
-        </table>
 
-        <section class="container ENDPOINTS-TABLE" style="padding: 0;">
+        <section class="container TABLE-INFO PADDING-0">
+            <div class="row SIDE-MARGIN-0">
+                <div class="col PADDING-0">
+                    {% if endpoints|length == 1 %}
+                        <span class="TABLE-TOTAL">You have 1 endpoint.</span>
+                    {% else %}
+                        <span class="TABLE-TOTAL">You have {{ endpoints_total }} endpoints.</span>
+                    {% endif %}
+                    <span class="TABLE-SUBTOTAL">Online: {{ endpoints_online }}</span>
+                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_offline }}</span>
+                </div>
+
+                <nav class="col PADDING-0 FLEX-RIGHT FLEX-BOTTOM">
+        {#            <a href="#">Previous</a>#}
+                    <div class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
+                        <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
+                            {% for page in range(numPages) %}
+                                <a class="PAGE-DROPDOWN-ITEM" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
+                            {% endfor %}
+                        </menu>
+                    </div>
+        {#            <a href="#">Next</a>#}
+                </nav>
+            </div>
+        </section>
+
+        <section class="container PADDING-0">
+            <div class="row TABLE-LABELS SIDE-MARGIN-0">
+                <div class="col-2">Endpoint Name</div>
+                <div class="col-5">Endpoint UUID</div>
+                <div class="col-2">Status</div>
+                <div class="col">Date Created</div>
+            </div>
+        </section>
+
+        <section class="container TABLE PADDING-0">
             <div class="tab-content">
                 {% set num = [0] %}
                 {% set bound = numPages + 1 %}
@@ -56,17 +57,17 @@
                         {% for results in range(30) %}
                             {% if num[0] < endpoints_total %}
                                 {% set sites = endpoints[num[0]] %}
-                                <section class="row ENDPOINTS-TABLE-R" style="margin-left: 0px; margin-right: 0px;">
-                                    <div class="col-2 ENDPOINTS-TABLE-C" style="font-weight: bold;">{{ sites.endpoint_name }}</div>
-                                    <div class="col-5 ENDPOINTS-TABLE-C">{{ sites.endpoint_uuid }}</div>
+                                <section class="row TABLE-ROW SIDE-MARGIN-0">
+                                    <div class="col-2 TABLE-COL-B">{{ sites.endpoint_name }}</div>
+                                    <div class="col-5 TABLE-COL">{{ sites.endpoint_uuid }}</div>
                                         {% if sites["status"] == 'ONLINE' %}
-                                            <div class="col-2 ENDPOINTS-TABLE-C text-success" style="font-weight: bold;">{{ sites.status }}</div>
+                                            <div class="col-2 TABLE-COL-B text-success">{{ sites.status }}</div>
                                         {% elif sites["status"] == 'OFFLINE' %}
-                                            <div class="col-2 ENDPOINTS-TABLE-C text-danger" style="font-weight: bold;">{{ sites.status }}</div>
+                                            <div class="col-2 TABLE-COL-B text-danger">{{ sites.status }}</div>
                                         {% else %}
-                                            <div class="col-2 ENDPOINTS-TABLE-C text-primary" style="font-weight: bold;">{{ sites.status }}</div>
+                                            <div class="col-2 TABLE-COL-B text-primary">{{ sites.status }}</div>
                                         {% endif %}
-                                    <div class="col ENDPOINTS-TABLE-C">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
+                                    <div class="col TABLE-COL">{{ sites['created_at'].date() }} {{ sites['created_at'].strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
@@ -75,17 +76,19 @@
                 {% endfor %}
             </div>
         </section>
-        <nav class="container" style="display: flex; justify-content: flex-end; margin: 10px auto;">
+
+        <nav class="container PADDING-0 FLEX-RIGHT">
 {#            <a href="#">Previous</a>#}
             <div class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
-                <menu class="dropdown-menu" style="height: 10rem; overflow: scroll;">
+                <menu class="dropdown-menu PAGE-DROPDOWN-MENU">
                     {% for page in range(numPages) %}
-                        <a class="dropdown-itemx" data-toggle="tab" href="#page{{ loop.index }}" style="display: block;">{{ loop.index }}</a>
+                        <a class="PAGE-DROPDOWN-ITEM" data-toggle="tab" href="#page{{ loop.index }}">{{ loop.index }}</a>
                     {% endfor %}
                 </menu>
             </div>
 {#            <a href="#">Next</a>#}
         </nav>
+
     {% endif %}
 {% endblock %}

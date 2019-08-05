@@ -48,9 +48,14 @@ header {
     padding: 0 !important;
 }
 
-.FLEX-END {
-    display:flex;
+.FLEX-RIGHT {
+    display: flex;
     justify-content: flex-end;
+}
+
+.FLEX-BOTTOM {
+    display: flex;
+    align-items: flex-end;
 }
 
 .DEV-NOTE {
@@ -297,54 +302,65 @@ blockquote {
 
 
 
-/* Functions Page */
+/* Tables Page */
+
+.TABLE-INFO {
+    margin-bottom: 14px;
+    margin-top: 28px;
+}
+
+.TABLE-TOTAL {
+    display: block;
+    margin-left: 14px;
+}
+
+.TABLE-SUBTOTAL {
+    display: block;
+    margin-left: 24px;
+}
 
 .PAGE-DROPDOWN-MENU {
     max-height: 10rem;
     overflow: scroll;
 }
 
-.PAGE-DROPDOWN-OPTION {
+.PAGE-DROPDOWN-ITEM {
     display: block;
 }
 
-.FUNCTIONS-TABLE {
+.TABLE-LABELS {
+    font-weight: bold;
+}
+
+.TABLE {
     background-color: rgb(245,245,245);
     border: 1px solid rgb(221,221,221);
     border-bottom: none;
     margin-bottom: 10px;
 }
 
-#FUNCTIONS-TABLE-LABELS {
-    padding-left: 14px;
-    padding-right: 14px;
-}
-
-#FUNCTIONS-TABLE-LABELS:first-child {
-    padding-left: 0px;
-}
-
-#FUNCTIONS-TABLE-LABELS:last-child {
-    padding-right: 0px;
-}
-
-.FUNCTIONS-TABLE-R {
+.TABLE-ROW {
     border-bottom: 1px solid rgb(221,221,221);
     color: rgb(118,118,118);
-    padding: 10px 14px;
+    padding: 10px 0px;
 }
 
-.FUNCTIONS-TABLE-C:first-child {
-    padding-left: 0px;
+.TABLE-COL {
+    padding: 0 14px;
 }
 
-.FUNCTIONS-TABLE-C:last-child {
-    padding-right: 0px;
+.TABLE-COL-B {
+    font-weight: bold;
+    padding: 0 14px;
 }
 
 
 
 /* View & Edit Pages */
+
+.VIEW-OPTION {
+    margin-right: 12px;
+}
 
 .VIEW-INFO {
     background-color: rgb(245,245,245);
@@ -358,18 +374,24 @@ blockquote {
     padding-top: 5px !important;
 }
 
-dd {
+.VIEW-FIELD {
     display: inline-block;
-    margin-bottom: 0.5em;
+    margin-bottom: 0.5rem;
+}
+
+.VIEW-FIELD-B {
+    display: inline-block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
 }
 
 .FORM-FIELD {
-    font-size: 1em !important;
-    line-height: 1em !important;
+    font-size: 1rem !important;
+    line-height: 1rem !important;
     width: 225px !important;
 }
 
-#FUNC-DESC {
+#FORM-DESC {
     font-size: 1em !important;
     line-height: 1em !important;
     min-height: 62px;
@@ -378,18 +400,43 @@ dd {
     resize: both;
 }
 
+.INVALID-MESSAGE {
+    margin-bottom: 12px !important;
+}
+
 .FUNC-CODE {
     border: 2px solid rgb(221,221,221);
     border-radius: 5px;
     font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-    font-size: 87.5%;
+    font-size: 0.875rem;
     height: 24em;
+    min-height: 24em;
     margin-bottom: 16px;
-    margin-left: -14px;
+    margin-left: 0 !important;
     overflow: scroll;
     padding: 0.5em;
     resize: both;
     width: 48em;
+    min-width: 48em;
+    max-width: 960px;
+}
+
+.VIEW-RESULT {
+    border: 2px solid rgb(221,221,221);
+    border-radius: 5px;
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 0.875rem;
+    height: 12em;
+    min-height: 12em;
+    margin-bottom: 16px;
+    margin-left: 0 !important;
+    overflow: scroll;
+    padding: 0.5em;
+    resize: both;
+    width: 48em;
+    min-width: 48em;
+    max-width: 100%;
+    word-wrap: break-word;
 }
 
 
@@ -414,128 +461,4 @@ dd {
     font-size: 15px;
     line-height: 1.5em;
     /*margin-left: 20px;*/
-}
-
-
-
-/* Endpoints */
-
-.ENDPOINTS-TABLE {
-    background-color: rgb(245,245,245);
-    border: 1px solid rgb(221,221,221);
-    border-bottom: none;
-    /*padding-top: 50px;*/
-}
-
-.ENDPOINTS-TABLE-LABELS {
-    margin-left: 0px !important;
-    margin-right: 0px !important;
-    padding-left: 14px;
-    padding-right: 14px;
-}
-
-/*.ENDPOINTS-TABLE-LABELS:first-child {*/
-/*    padding-left: 0px;*/
-/*}*/
-
-.ENDPOINTS-TABLE-LABELS:last-child {
-    padding-right: 0px;
-}
-
-.ENDPOINTS-TABLE-R {
-    border-bottom: 1px solid rgb(221,221,221);
-    color:rgb(118,118,118);
-    padding: 5px 14px;
-}
-
-.ENDPOINTS-TABLE-C:first-child {
-    padding-left: 0px;
-}
-
-.ENDPOINTS-TABLE-C:last-child {
-    padding-right: 0px;
-}
-
-
-
-/* Tasks Page */
-
-.TASKS-TABLE {
-    background-color: rgb(245,245,245);
-    border: 1px solid rgb(221,221,221);
-    border-bottom: none;
-    /*padding-top: 50px;*/
-}
-
-.TASKS-TABLE-LABELS {
-    margin-left: 0px !important;
-    margin-right: 0px !important;
-    padding-left: 14px;
-    padding-right: 14px;
-}
-
-.TASKS-TABLE-LABELS:first-child {
-    padding-left: 0px;
-}
-
-.TASKS-TABLE-LABELS:last-child {
-    padding-right: 0px;
-}
-
-.TASKS-TABLE-R {
-    border-bottom: 1px solid rgb(221,221,221);
-    color:rgb(118,118,118);
-    padding: 5px 14px;
-}
-
-.TASKS-TABLE-C:first-child {
-    padding-left: 0px;
-}
-
-.TASKS-TABLE-C:last-child {
-    padding-right: 0px;
-}
-
-
-
-/* View Tasks Page */
-
-#VIEW-TASKS-TEXT {
-    padding-left: 14px;
-    padding-right: 14px;
-    font-weight: bold;
-}
-
-#VIEW-TASKS-TABLE {
-    background-color: rgb(245,245,245);
-    border: 1px solid rgb(221,221,221);
-    border-bottom: none;
-    /*padding-top: 50px;*/
-}
-
-#VIEW-TASKS-TABLE-LABELS {
-    padding-left: 14px;
-    padding-right: 14px;
-}
-
-#VIEW-TASKS-TABLE-LABELS:first-child {
-    padding-left: 0px;
-}
-
-#VIEW-TASKS-TABLE-LABELS:last-child {
-    padding-right: 0px;
-}
-
-.VIEW-TASKS-TABLE-R {
-    border-bottom: 1px solid rgb(221,221,221);
-    color:rgb(118,118,118);
-    padding: 5px 14px;
-}
-
-.VIEW-TASKS-TABLE-C:first-child {
-    padding-left: 0px;
-}
-
-.VIEW-TASKS-TABLE-C:last-child {
-    padding-right: 0px;
 }
