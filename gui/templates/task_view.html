@@ -13,7 +13,7 @@
     </section>
 
     <dl class="container VIEW-INFO">
-        <dt>Function: </dt><dd class="VIEW-FIELD"><a href="{{ url_for('guiapi.view', uuid=task.function_id) }}">{{ task.function_name }}</a></dd>
+        <dt>Function: </dt><dd class="VIEW-FIELD"><a href="{{ url_for('guiapi.function_view', uuid=task.function_id) }}">{{ task.function_name }}</a></dd>
         <dt>Endpoint: </dt><dd class="VIEW-FIELD">{{ task.endpoint_name }}</dd>
         <dt>Status: </dt>
         {% if task.status == 'SUCCEEDED' %}

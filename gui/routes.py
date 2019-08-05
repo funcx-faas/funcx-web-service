@@ -61,22 +61,22 @@ def getUUID():
 
 @guiapi.route('/function/new', methods=['GET', 'POST'])
 # @authenticated
-def new():
+def function_new():
     form = EditForm()
     if form.validate_on_submit():
         name = form.name.data
         try:
             uuid = register_function(session.get('username'), name, form.desc.data, form.code.data, form.entry_point.data, None)
             flash(f'Saved Function "{name}"!', 'success')
-            return redirect(url_for('guiapi.view', uuid=uuid))
+            return redirect(url_for('guiapi.function_view', uuid=uuid))
         except:
             flash('There was an issue handling your request', 'danger')
     return render_template('function_edit.html', user=session.get('name'), title='New Function', form=form, cancel_route="functions")
 
 
-@guiapi.route('/edit/<uuid>', methods=['GET', 'POST'])
+@guiapi.route('/function/<uuid>/edit', methods=['GET', 'POST'])
 # @authenticated
-def edit(uuid):
+def function_edit(uuid):
     conn, cur = get_db_connection()
     cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
@@ -87,7 +87,7 @@ def edit(uuid):
             cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE uuid = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, uuid))
             conn.commit()
             flash(f'Saved Function "{name}"!', 'success')
-            return redirect(url_for('guiapi.view', uuid=uuid))
+            return redirect(url_for('guiapi.function_view', uuid=uuid))
         except:
             flash('There was an issue handling your request.', 'danger')
     form.name.data = func['function_name']
@@ -97,9 +97,9 @@ def edit(uuid):
     return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
-@guiapi.route('/view/<uuid>')
+@guiapi.route('/function/<uuid>/view')
 # @authenticated
-def view(uuid):
+def function_view(uuid):
     conn, cur = get_db_connection()
     cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
@@ -107,9 +107,9 @@ def view(uuid):
     return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func)
 
 
-@guiapi.route('/delete/<uuid>', methods=['POST'])
+@guiapi.route('/function/<uuid>/delete', methods=['POST'])
 #@authenticated
-def delete(uuid):
+def function_delete(uuid):
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT function_name, username, functions.deleted FROM functions, users WHERE uuid = %s AND function.user_id = users.id", (uuid,))
@@ -176,13 +176,13 @@ def tasks():
         numPages = ceil(tasks_total / 30)
     except:
         flash('There was an issue handling your request', 'danger')
-        # return redirect(url_for('guiapi.home'))
+        return redirect(url_for('guiapi.home'))
     return render_template('tasks.html', user=session.get('name'), title='Tasks', tasks=tasks, tasks_total=tasks_total, numPages=numPages)
 
 
-@guiapi.route('/view_tasks/<task_id>')
+@guiapi.route('/task/<task_id>/view')
 # @authenticated
-def view_tasks(task_id):
+def task_view(task_id):
 
     try:
         conn, cur = get_db_connection()
@@ -199,7 +199,7 @@ def view_tasks(task_id):
     return render_template('task_view.html', user=session.get('name'), title=f'View "{name}"', task=task)
 
 
-@guiapi.route('/function_tasks/<uuid>')
+@guiapi.route('/function/<uuid>/tasks')
 #@authenticated
 def function_tasks(uuid):
     try:
@@ -217,12 +217,12 @@ def function_tasks(uuid):
         tasks_total = len(func_tasks)
     except:
         flash('There was an issue handling your request', 'danger')
-        return redirect(url_for('guiapi.view', user=session.get('name'), func=func))
+        return redirect(url_for('guiapi.function_view', func=func))
 
     try:
         numPages = ceil(tasks_total / 30)
     except:
-        return render_template('function_tasks.html', title=f'Tasks of "{func_name}"')
+        return render_template('function_tasks.html', user=session.get('name'), title=f'Tasks of "{func_name}"')
     return render_template('function_tasks.html', user=session.get('name'), title=f'Tasks of "{func_name}"', func_tasks=func_tasks, tasks_total=tasks_total, func=func, numPages=numPages)
 
 
