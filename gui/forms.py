@@ -9,3 +9,9 @@ class EditForm(FlaskForm):
     entry_point = StringField('Entry Point', validators=[DataRequired()])
     code = TextAreaField('Code')
     submit = SubmitField('Save')
+
+class ExecuteForm(FlaskForm):
+    name = StringField('Task Name', validators=[DataRequired(), Length(min=1, max=20)])
+    endpoint = StringField('Endpoint', validators=[DataRequired()])
+    payload = StringField('Payload', validators=[DataRequired()])
+    submit = SubmitField('Save')
