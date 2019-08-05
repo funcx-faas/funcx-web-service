@@ -59,7 +59,7 @@ def getUUID():
     return str(uuid.uuid4())
 
 
-@guiapi.route('/new', methods=['GET', 'POST'])
+@guiapi.route('/function/new', methods=['GET', 'POST'])
 # @authenticated
 def new():
     form = EditForm()
@@ -71,7 +71,7 @@ def new():
             return redirect(url_for('guiapi.view', uuid=uuid))
         except:
             flash('There was an issue handling your request', 'danger')
-    return render_template('edit.html', user=session.get('name'), title='New Function', form=form, cancel_route="functions")
+    return render_template('function_edit.html', user=session.get('name'), title='New Function', form=form, cancel_route="functions")
 
 
 @guiapi.route('/edit/<uuid>', methods=['GET', 'POST'])
@@ -94,7 +94,7 @@ def edit(uuid):
     form.desc.data = func['description']
     form.entry_point.data = func['entry_point']
     form.code.data = func['function_code']
-    return render_template('edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
+    return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
 @guiapi.route('/view/<uuid>')
@@ -104,7 +104,7 @@ def view(uuid):
     cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
     name = func['function_name']
-    return render_template('view.html', user=session.get('name'), title=f'View "{name}"', func=func)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func)
 
 
 @guiapi.route('/delete/<uuid>', methods=['POST'])
@@ -196,7 +196,7 @@ def view_tasks(task_id):
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.tasks'))
-    return render_template('view_tasks.html', user=session.get('name'), title=f'View "{name}"', task=task)
+    return render_template('task_view.html', user=session.get('name'), title=f'View "{name}"', task=task)
 
 
 @guiapi.route('/function_tasks/<uuid>')
