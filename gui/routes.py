@@ -18,8 +18,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
+        # username='ryan@globusid.org',
+        # name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='skluzacek@uchicago.edu',
@@ -224,6 +224,6 @@ def function_tasks(uuid):
         numPages = ceil(tasks_total / 30)
     except:
         return render_template('function_tasks.html', title=f'Tasks of "{func_name}"')
-    return render_template('function_tasks.html', title=f'Tasks of "{func_name}"', func_tasks=func_tasks, tasks_total=tasks_total, func=func, numPages=numPages)
+    return render_template('function_tasks.html', user=session.get('name'), title=f'Tasks of "{func_name}"', func_tasks=func_tasks, tasks_total=tasks_total, func=func, numPages=numPages)
 
 
