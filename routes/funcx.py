@@ -279,8 +279,8 @@ def get_version():
     try:
         from version import VERSION
         cmd = shlex.split('git rev-parse --short HEAD')
-        head = subprocess.check_output(cmd, env=env).strip().decode('utf-8')
-        diff = subprocess.check_output(shlex.split('git diff HEAD'), env=env)
+        head = subprocess.check_output(cmd).strip().decode('utf-8')
+        diff = subprocess.check_output(shlex.split('git diff HEAD'))
         status = 'dirty' if diff else 'clean'
         version = '{v}-{head}-{status}'.format(v=VERSION, head=head, status=status)
 
