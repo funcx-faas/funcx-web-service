@@ -1,0 +1,32 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <h1 class="container PAGE-TITLE">{{ func.function_name }}</h1>
+    <section class="container PADDING-0">
+        <div class="row">
+            <div class="col">
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_edit', uuid=func.function_uuid) }}">Edit</a>
+                <a class="VIEW-OPTION" href="">Run</a>
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=func.function_uuid) }}">Tasks</a>
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_delete', uuid=func.function_uuid) }}">Delete</a>
+            </div>
+            <div class="col FLEX-RIGHT">
+                <a href="{{ url_for('guiapi.functions') }}">Back to Functions &Gt;</a>
+            </div>
+        </div>
+    </section>
+    <dl class="container VIEW-INFO">
+        <dt>Name: </dt><dd class="VIEW-FIELD">{{ func.function_name }}</dd>
+        {% if func.description != "" %}
+            <dt>Description: </dt>
+            <dd class="VIEW-FIELD">{{ func.description }}</dd>
+        {% endif %}
+        <dt>Entry Point: </dt><dd class="VIEW-FIELD">{{ func.entry_point }}</dd>
+        <dt>Created By: </dt><dd class="VIEW-FIELD">{{ func.username }}</dd>
+        <dt>Date Created: </dt><dd class="VIEW-FIELD">{{ func.timestamp.date() }} {{ func.timestamp.strftime('%X') }}</dd>
+        <dt>Date Edited: </dt><dd class="VIEW-FIELD">{{ func.modified_at.date() }} {{ func.modified_at.strftime('%X') }}</dd>
+        <dt>UUID: </dt><dd class="VIEW-FIELD">{{ func.function_uuid }}</dd>
+    </dl>
+    <section class="container PADDING-0">
+        <pre class="python FUNC-CODE"><code class="PADDING-0">{{ func.function_code }}</code></pre>
+    </section>
+{% endblock %}

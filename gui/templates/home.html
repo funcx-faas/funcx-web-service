@@ -1,20 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="container">
-        <pre style="background-color: rgb(245,245,245); border-radius: 1rem; padding: 8px;">
-New Changes: 8/01/19
-- New and improved start page! Thanks for the feedback!
-- Your Functions and New Functions have been condensed in the navbar to be a dropdown.
-- Tasks Page with tasks
-- A page that shows all of your tasks for a specific function. Access on the view page!
-- You can view specific tasks. Currently, use "/view_tasks/&lt;uuid&gt;" to access.
-- Functions, Endpoints, Tasks, and Function Tasks pages now have pagination. No more scrolling through 2300 tasks (Ryan)!
-    - Avery and Teresa</pre>
+        <p class="DEV-NOTE">
+New Changes: 8/06/19<br>
+- We changed routes and urls for most of the pages to be more hierarchical, so saved links may need to be replaced.<br>
+- Improved page navigation.<br>
+- Many minor changes were made to table and view pages to make them function properly and look slicker than a [insert odd metaphor here].<br>
+- Endpoints have a very WIP delete button.<br>
+- Fixed some text on the Start Page.<br>
+<br>
+    - Avery and Teresa</p>
         <div class="row HOME-ROW">
             <a href="{{ url_for('guiapi.functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }});">
                 <div class="container-fluid IMG-LINK-COL-CAPTION">View Your Functions</div>
             </a>
-            <a href="{{ url_for('guiapi.new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
+            <a href="{{ url_for('guiapi.function_new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
                 <div class="container-fluid IMG-LINK-COL-CAPTION">Write a Function</div>
             </a>
         </div>
@@ -24,7 +24,7 @@ New Changes: 8/01/19
                     &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot
                 </blockquote>
             </div>
-            <div class="col-8" style="display:flex; justify-content: flex-end;">
+            <div class="col-8 FLEX-RIGHT">
                 <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>
             </div>
         </div>
