@@ -1,14 +1,15 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="container">
-        <pre class="DEV-NOTE">
-New Changes: 8/06/19
-- We changed routes and urls for most of the pages to be more hierarchical, so saved links may need to be replaced.
-- Improved page navigation.
-- Many minor changes were made to table and view pages to make them function properly and look slicker than a [insert odd metaphor here].
-- Endpoints have a very WIP delete button.
-- Fixed some text on the Start Page.
-    - Avery and Teresa</pre>
+        <p class="DEV-NOTE">
+New Changes: 8/06/19<br>
+- We changed routes and urls for most of the pages to be more hierarchical, so saved links may need to be replaced.<br>
+- Improved page navigation.<br>
+- Many minor changes were made to table and view pages to make them function properly and look slicker than a [insert odd metaphor here].<br>
+- Endpoints have a very WIP delete button.<br>
+- Fixed some text on the Start Page.<br>
+<br>
+    - Avery and Teresa</p>
         <div class="row HOME-ROW">
             <a href="{{ url_for('guiapi.functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }});">
                 <div class="container-fluid IMG-LINK-COL-CAPTION">View Your Functions</div>
