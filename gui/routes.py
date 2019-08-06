@@ -18,8 +18,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
+        # username='ryan@globusid.org',
+        # name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='skluzacek@uchicago.edu',
@@ -52,7 +52,7 @@ def functions():
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('functions.html', user=session.get('name'), title='Your Functions', functions=functions, functions_total=functions_total, numPages = numPages)
+    return render_template('functions.html', user=session.get('name'), title='Your Functions', functions=functions, functions_total=functions_total, numPages=numPages)
 
 
 def getUUID():
