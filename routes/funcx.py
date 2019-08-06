@@ -92,7 +92,7 @@ def execute(user_name):
                         'user_id': user_id,
                         'created_at': time.time(),
                         'status': task_status}
-        
+
         rc.set(f"task:{task_id}", json.dumps(task_payload))
 
         # Add the task to the redis queue
@@ -131,7 +131,7 @@ def status(user_name, task_id):
         rc = get_redis_client()
 
         details = {}
-        
+
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
