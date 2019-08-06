@@ -1,28 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <title>funcX</title>
-    </head>
-    <body>
+{% extends "layout.html" %}
+{% block content %}
         <header class="container-fluid" id="START-HEADER">
             <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="START-LOGO">
-            <div class="col" id="START-HEADER-COL">
+            <div class="col START-HEADER-COL">
                 <h1>funcX</h1>
                 <h2 class="h4" style="margin-bottom: 16px;">Serverless Supercomputing</h2>
                 <button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://github.com/funcx-faas';" style="margin-right: 8px;">GitHub</button><!--
                 --><button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://funcx.readthedocs.io/en/latest/';">Read the Docs</button>
             </div>
-{#            <div class="col" id="START-HEADER-COL" style="margin-top: 28px; text-align: center;">#}
+            <div class="col START-HEADER-COL" style="margin-top: 28px; text-align: center;">
 {#                <button class="btn BTN-OUTLINE-LIGHT" style="font-size:2em; padding-left: 3px; text-align: center;">#}
 {#                    <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try funcX</button>#}
 {#                <div style="font-size: 1.5em;">or</div>#}
-{#                <button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = '{{ url_for('auth_api.login') }}';" style="font-size:2em;">#}
+{#                <button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = '{{ url_for('auth_api.login') }}';" style="font-size: 2em;">#}
 {#                    <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo.png') }}" style="width: 40px; margin-bottom: 4px; margin-right: 4px;">Log In</button>#}
-{#            </div>#}
+            </div>
         </header>
 
         <section class="row SIDE-MARGIN-0">
@@ -47,18 +39,14 @@
             </div>
         </section>
 
-{#        <div class="DIVIDE"></div>#}
-
         <span id="BANNER-SHADED">
-            <button class="btn BTN-OUTLINE-DARK" onclick="window.location.href = 'https://mybinder.org/v2/gh/funcx-faas/funcx/master?filepath=examples%2Fintroduction.ipynb';" style="font-size:2em; padding-left: 60px; padding-right: 80px; text-align: center;">
+            <button class="btn BTN-OUTLINE-DARK" onclick="window.location.href = 'https://mybinder.org/v2/gh/funcx-faas/funcx/master?filepath=examples%2Fintroduction.ipynb';" style="font-size:2em; padding-left: 60px; padding-right: 80px;">
                     <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try funcX</button>
         </span>
 
-{#        <div class="DIVIDE"></div>#}
-
-        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+        <section class="row START-ROW">
             <div class="col-6 START-SECTION-POINT">
-                <h3 class="START-SECTION-HEADER">Turn any resource into a function-serving platform</h3>
+                <h3 class="START-SECTION-HEADER">Turn any resource into a function-serving endpoint</h3>
                 <p class="text-muted START-SECTION-TEXT">Deploying a funcX endpoint transforms clouds, clusters, and supercomputers into a high performance function-serving platform.</p>
             </div>
             <div class="col-6">
@@ -68,7 +56,7 @@
 
         <div class="DIVIDE"></div>
 
-        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+        <section class="row START-ROW">
             <div class="col-6">
                 <img class="START-IMG" src="{{ url_for('static', filename='imgs/pictures/notebook.png') }}" style="width: 550px;">
             </div>
@@ -80,7 +68,7 @@
 
         <div class="DIVIDE"></div>
 
-        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+        <section class="row START-ROW">
             <div class="col-6 START-SECTION-POINT">
                 <h3 class="START-SECTION-HEADER">Execute millions of functions across thousands of nodes</h3>
                 <p class="text-muted START-SECTION-TEXT">funcX efficiently manages connected resources by elastically deploying workers and containers across nodes.</p>
@@ -92,7 +80,7 @@
 
         <div class="DIVIDE"></div>
 
-        <section class="row ROW CENTER" style="margin-left: 5%; margin-right: 5%;">
+        <section class="row START-ROW">
             <div class="col-6">
                 <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/globus_logo_full.png') }}" style="display: block; margin: 0 auto 20px auto; width: 480px;">
                 <img class="START-IMG" src="{{ url_for('static', filename='imgs/logos/singularity_logo.png') }}" style="width: 120px;">
@@ -104,22 +92,4 @@
                 <p class="text-muted START-SECTION-TEXT">Log in using hundreds of supported identity providers. funcX implements fine-grained access control to endpoints and function executions are isolated within containers.</p>
             </div>
         </section>
-
-        <div class="DIVIDE"></div>
-
-        <footer class="row" style="margin: 0 160px 40px 160px; text-align: center;">
-            <a class="col-4" href="https://labs.globus.org" alt="Globus Labs">
-                <img src="{{ url_for('static', filename='imgs/logos/glabs_logo.png') }}" style="height: 48px;">
-            </a>
-            <a class="col-4" href="https://www.uchicago.edu" alt="University of Chicago">
-                <img src="{{ url_for('static', filename='imgs/logos/uc_logo.png') }}" style="height: 48px;">
-            </a>
-            <a class="col-4" href="https://www.anl.gov" alt="Argonne National Laboratory">
-                <img src="{{ url_for('static', filename='imgs/logos/anl_logo.png') }}" style="height: 80px; margin-left: -30px; margin-top: -18px;">
-            </a>
-        </footer>
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    </body>
-</html>
+{% endblock %}
