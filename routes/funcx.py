@@ -1,6 +1,7 @@
 import uuid
 import json
 import time
+import os
 import requests
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
@@ -273,7 +274,12 @@ def register_with_hub(address, endpoint_id):
 
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return jsonify(1)
+    try:
+        from version import VERSION
+    except Exception as e:
+        return jsonify("Caught some exception {}".format(e))
+    else:
+        return jsonify(VERSION)
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
