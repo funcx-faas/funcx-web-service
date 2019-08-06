@@ -6,6 +6,8 @@ import shlex
 import subprocess
 import requests
 
+from version import VERSION
+
 from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
     get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
@@ -276,18 +278,7 @@ def register_with_hub(address, endpoint_id):
 
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    try:
-        from version import VERSION
-        cmd = shlex.split('git rev-parse --short HEAD')
-        head = subprocess.check_output(cmd).strip().decode('utf-8')
-        diff = subprocess.check_output(shlex.split('git diff HEAD'))
-        status = 'dirty' if diff else 'clean'
-        version = '{v}-{head}-{status}'.format(v=VERSION, head=head, status=status)
-
-    except Exception as e:
-        return jsonify("Caught some exception {}".format(e))
-    else:
-        return jsonify(version)
+    return jsonify(VERSION)
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
