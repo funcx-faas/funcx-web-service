@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 import redis
 import datetime
@@ -215,6 +216,7 @@ def resolve_function(user_id, function_uuid):
         The uuid of the container image to use
     """
 
+    start = time.time()
     function_code = None
     function_entry = None
     container_uuid = None
@@ -239,6 +241,8 @@ def resolve_function(user_id, function_uuid):
     except Exception as e:
         print(e)
         app.logger.error(e)
+    delta = time.time() - start
+    app.logger.info("Time to fetch function {0:.1f}ms".format(delta*1000))
     return function_code, function_entry, container_uuid
 
 
