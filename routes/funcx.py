@@ -2,6 +2,7 @@ import uuid
 import json
 import time
 import os
+import subprocess
 import requests
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
@@ -276,10 +277,16 @@ def register_with_hub(address, endpoint_id):
 def get_version():
     try:
         from version import VERSION
+        cmd = shlex.split('git rev-parse --short HEAD')
+        head = subprocess.check_output(cmd, env=env).strip().decode('utf-8')
+        diff = subprocess.check_output(shlex.split('git diff HEAD'), env=env)
+        status = 'dirty' if diff else 'clean'
+        version = '{v}-{head}-{status}'.format(v=VERSION, head=head, status=status)
+
     except Exception as e:
         return jsonify("Caught some exception {}".format(e))
     else:
-        return jsonify(VERSION)
+        return jsonify(version)
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
