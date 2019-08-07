@@ -13,6 +13,7 @@ from models.utils import register_endpoint, register_function, get_container, re
     get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
+from flask import Response
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -21,6 +22,35 @@ funcx_api = Blueprint("routes", __name__)
 endpoint_cache = {}
 
 caching = True
+
+@funcx_api.route('/submit', methods=['POST'])
+@authenticated
+def submit(user_name):
+    """Puts the task request into Redis and returns a task UUID
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    POST payload
+    ------------
+    {
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"Submit invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    return Response(jsonify({'status': 'Failed',
+                             'reason': 'Not Implemented'}),
+                    status=405,
+                    mimetype='application/json')
 
 
 @funcx_api.route('/execute', methods=['POST'])
