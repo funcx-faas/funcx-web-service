@@ -75,10 +75,13 @@ class RedisQueue(object):
 
         return task_id, task_info
 
-    def put(self, key, payload):
+    def put(self, endpoint_id, key, payload):
         """ Put's the key:payload into a dict and pushes the key onto a queue
         Parameters
         ----------
+        endpoint_id : str
+            Target endpoint id
+
         key : str
             The task_id to be pushed
 
