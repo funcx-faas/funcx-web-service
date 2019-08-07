@@ -177,7 +177,7 @@ class Forwarder(Process):
                 continue
 
             # TODO: We are piping down a mock task. This needs to be fixed.
-            task_id = str(uuid.uuid4())
+            # task_id = str(uuid.uuid4())
 
             # NOTE: We expect to get a function buffer from the databases
             # and the (args, kwargs) payload
