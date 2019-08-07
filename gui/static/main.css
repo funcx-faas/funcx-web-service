@@ -303,15 +303,12 @@ header {
     margin-bottom: 24px;
 }
 
-section#HOME-NEWS {
-    /*background-color: rgb(245,245,245);*/
+section.HOME-NEWS {
     border: 1px solid rgb(221,221,221);
-    margin-left: 16px;
-    margin-right: 16px;
     padding: 16px;
 }
 
-article#HOME-NEWS {
+article.HOME-NEWS {
     margin-left: 1rem;
 }
 

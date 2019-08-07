@@ -1,20 +1,20 @@
 {% extends 'layout.html' %}
 {% block content %}
     <div class="container">
-        {% if title == 'Page Not Found' %}
+        {% if title == '404 Page Not Found' %}
             <div id="ERROR-HEADING">Error 404:</div>
-        {% elif title == 'Forbidden' %}
+        {% elif title == '403 Forbidden' %}
             <div id="ERROR-HEADING">Error 403:</div>
         {% endif %}
         <div id="ERROR-MAIN">
             f<span style="color:#a31621;">(X)</span>?
         </div>
-        {% if title == 'Page Not Found' %}
+        {% if title == '404 Page Not Found' %}
             <div id="ERROR-MESSAGE">
                 &lt;p>Sorry, the requested URL cannot be found.&lt;/p><br>
                 &lt;p>You may return to your <a href ="{{ url_for('guiapi.home') }}"><u>home page</u></a>.&lt;/p>
             </div>
-        {% elif title == 'Forbidden' %}
+        {% elif title == '403 Forbidden' %}
             <div id="ERROR-MESSAGE">
                 &lt;p>You do not have access to the requested URL.&lt;/p><br>
                 &lt;p>You may return to your <a href ="{{ url_for('guiapi.home') }}"><u>home page</u></a>.&lt;/p>

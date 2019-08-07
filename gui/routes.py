@@ -62,7 +62,7 @@ def home():
 
 @guiapi.route('/error')
 def error():
-    return render_template('error.html', user=session.get('name'), title='Page Not Found')
+    return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
 
 
 
@@ -148,9 +148,9 @@ def function_delete(uuid):
                 flash(f'Deleted Function "{name}".', 'success')
             else:
                 flash('There was an issue handling your request.', 'danger')
-                return render_template('error.html', user=session.get('name'), title='Page Not Found')
+                return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
         else:
-            return render_template('error.html', user=session.get('name'), title='Forbidden')
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))

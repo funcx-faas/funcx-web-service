@@ -21,9 +21,9 @@
             </a>
         </section>
 
-        <section id="HOME-NEWS" class="HOME-SECTION">
+        <section class="HOME-SECTION HOME-NEWS">
             <h2 class="HOME-SECTION-TITLE">News & Updates</h2>
-            <article id="HOME-NEWS">
+            <article class="HOME-NEWS">
                 <h3>New Changes: 8/06/19</h3>
                 <p>
 - We changed routes and urls for most of the pages to be more hierarchical, so saved links may need to be replaced.<br>
@@ -34,7 +34,17 @@
 <span style="margin-left: 2rem;">- Avery and Teresa</span>
                 </p>
             </article>
-            <div class="DIVIDE"></div>
+        </section>
+
+        <section class="row HOME-SECTION">
+            <div class="col-4">
+                <blockquote class="text-muted">
+                    &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot
+                </blockquote>
+            </div>
+            <div class="col-8 FLEX-RIGHT">
+                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>
+            </div>
         </section>
 
         <h2 class="HOME-SECTION-TITLE">Your User Statistics:</h2>
@@ -58,17 +68,6 @@
                 </figure>
             </div>
         </section>
-
-{#        <section class="row HOME-ROW">#}
-{#            <div class="col-4">#}
-{#                <blockquote class="text-muted">#}
-{#                    &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot#}
-{#                </blockquote>#}
-{#            </div>#}
-{#            <div class="col-8 FLEX-RIGHT">#}
-{#                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>#}
-{#            </div>#}
-{#        </section>#}
 
     </div>
 {% endblock %}
