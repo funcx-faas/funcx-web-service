@@ -15,6 +15,8 @@ from models.utils import register_endpoint, register_function, get_container, re
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import Response
+from flask import g
+from redis_q import RedisQueue
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -48,10 +50,28 @@ def submit(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    # Parse out the function info
+    try:
+        post_req = request.json
+        endpoint = post_req['endpoint']
+        function_uuid = post_req['func']
+        input_data = post_req['data']
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': str(e)})
 
-    return jsonify({'status': 'Failed',
-                    'funcx_version': funcx.__version__,
-                    'reason': 'Not Implemented'})
+    task_id = str(uuid.uuid4())
+    # TODO: Check if the user can use the endpoint
+    if 'redis_task_queue' not in g:
+        g.redis_task_queue = RedisQueue("task",
+                                        hostname=app.config['REDIS_HOST'],
+                                        port=app.config['REDIS_PORT'])
+
+    payload = 'Hello world'
+    g.redis_task_queue.put(task_id, payload)
+
+    return jsonify({'status': 'Success',
+                    'task_uuid': task_id})
 
 
 @funcx_api.route('/execute', methods=['POST'])
