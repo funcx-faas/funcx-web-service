@@ -5,7 +5,7 @@
         <div class="row">
             <div class="col">
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.edit', uuid=func.function_uuid) }}">Edit</a>
-                <a class="VIEW-OPTION" href="">Run</a>
+                <a class="VIEW-OPTION" data-toggle="modal" data-target="#myModal" href="">Run</a>
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=func.function_uuid) }}">Tasks</a>
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.delete', uuid=func.function_uuid) }}">Delete</a>
             </div>
@@ -14,6 +14,62 @@
             </div>
         </div>
     </section>
+
+
+    <!-- The Modal/ Pop-up window -->
+    <div class="modal" id="myModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Run function '{{ func.function_name}}'</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="container modal-body EXECUTE-TITLE">
+              <dt>Function Name: </dt>
+                <div class="EXECUTE-FIELD">{{ func.function_name }}</div>
+              <dt>Function UUID: </dt>
+                <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
+              <dt>Endpoint Name and UUID: </dt>
+                <div class="EXECUTE-FIELD">(drop-down menu to choose endpoints)</div>
+
+<!--                <a class="nav-link EXECUTE-ENDPOINT-DROPDOWN PAGE-DROPDOWN-MENU" data-toggle="dropdown" href="#">Endpoints</a>-->
+<!--                    <div class="dropdown-menu SHADOW EXECUTE-ENDPOINT-DROPDOWN PAGE-DROPDOWN-MENU">-->
+<!--                        <div class="nav-link EXECUTE-ENDPOINT-DROPDOWN">Endpoint 1</div>-->
+<!--                        <div class="nav-link EXECUTE-ENDPOINT-DROPDOWN">Endpoint 2</div>-->
+<!--                    </div>-->
+
+              <select name="list_status">
+                  {% for each in listStatus %}
+                  <option value="{{each}}"> {{each}}</option>
+                  {% endfor %}
+              </select>
+
+              <select id="ENDPOINTS">
+                  {% for each in endpoints_list %}
+                  <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>
+                  {% endfor %}
+              </select>
+
+              <dt>Payload: </dt>
+                <dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter input") }}</dd>
+          </div>
+
+          <!-- Modal footer -->
+          <div class="modal-footer">
+              <button class="btn EXECUTE-BTN-OUTLINE-BLUE" data-dismiss="modal">Run</button>
+              <button class="btn EXECUTE-BTN-OUTLINE-RED" data-dismiss="modal">Close</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+
     <dl class="container VIEW-INFO">
         <dt>Name: </dt><dd class="VIEW-FIELD">{{ func.function_name }}</dd>
         {% if func.description != "" %}

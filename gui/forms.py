@@ -12,6 +12,6 @@ class EditForm(FlaskForm):
 
 class ExecuteForm(FlaskForm):
     name = StringField('Task Name', validators=[DataRequired(), Length(min=1, max=20)])
-    endpoint = StringField('Endpoint', validators=[DataRequired()])
-    payload = StringField('Payload', validators=[DataRequired()])
+    endpoint = SelectField('Endpoint', choices=[('endpoint 1', 'Endpoint 1'), ('endpoint 2', 'Endpoint 2')], validators=[DataRequired()])
+    payload = TextAreaField('Payload', validators=[DataRequired()])
     submit = SubmitField('Run')

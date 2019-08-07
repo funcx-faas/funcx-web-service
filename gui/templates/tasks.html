@@ -55,7 +55,7 @@
                         {% for results in range(30) %}
                             {% if num[0] < tasks_total %}
                                 {% set task = tasks[num[0]] %}
-                                <a class="row TABLE-ROW SIDE-MARGIN-0" href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}" style="display: block;">
+                                <section class="row TABLE-ROW SIDE-MARGIN-0" href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">
                                     <div class="col-4 TABLE-COL-B">
                                         <a href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">{{ task.task_id }}</a>
                                     </div>
@@ -76,7 +76,7 @@
                                         <div class="col-2 TABLE-COL-B">{{ task.status }}</div>
                                     {% endif %}
                                     <div class="col-3 TABLE-COL-B">{{ task.endpoint_name }}</div>
-                                </a>
+                                </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
                         {% endfor %}
