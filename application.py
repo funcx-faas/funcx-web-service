@@ -11,7 +11,7 @@ from logging.config import dictConfig
 dictConfig({
         'version': 1,
         'formatters': {'default': {
-                    'format': '[%(asctime)s] %(name)s:%(lineno)d [%(levelname)s]: %(message)s',
+                    'format': '%(module)s:%(lineno)d [%(levelname)s]: %(message)s',
                 }},
         'handlers': {'wsgi': {
                     'class': 'logging.StreamHandler',
