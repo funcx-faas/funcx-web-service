@@ -5,6 +5,7 @@ import os
 import shlex
 import subprocess
 import requests
+import funcx
 
 from version import VERSION
 from errors import *
@@ -49,7 +50,8 @@ def submit(user_name):
 
 
     return jsonify({'status': 'Failed',
-                             'reason': 'Not Implemented'})
+                    'funcx_version': funcx.__version__,
+                    'reason': 'Not Implemented'})
 
 
 @funcx_api.route('/execute', methods=['POST'])
