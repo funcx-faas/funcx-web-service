@@ -66,6 +66,7 @@ def submit(user_name):
         g.redis_task_queue = RedisQueue("task",
                                         hostname=app.config['REDIS_HOST'],
                                         port=app.config['REDIS_PORT'])
+        g.redis_task_queue.connect()
 
     payload = 'Hello world'
     g.redis_task_queue.put(task_id, payload)

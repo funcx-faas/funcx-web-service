@@ -1,6 +1,5 @@
 import os
 from flask import Flask
-from flask import g
 
 from routes.funcx import funcx_api
 from routes.automate import automate_api
@@ -38,5 +37,4 @@ application.register_blueprint(guiapi)
 
 
 if __name__ == "__main__":
-    g.redis_queues = {}
     application.run(debug=True, host="0.0.0.0")
