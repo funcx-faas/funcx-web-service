@@ -2,7 +2,7 @@ from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
 import uuid
 from math import *
-from gui.forms import EditForm
+from gui.forms import EditForm, ExecuteForm
 from models.utils import get_db_connection, register_function
 from authentication.auth import authenticated
 
@@ -20,6 +20,8 @@ def debug():
     session.update(
         # username='ryan@globusid.org',
         # name='Ryan Chard'
+        # username='t-9lee3@uchicago.edu',
+        # name='Teresa Lee'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='skluzacek@uchicago.edu',
@@ -101,10 +103,19 @@ def function_edit(uuid):
 # @authenticated
 def function_view(uuid):
     conn, cur = get_db_connection()
-    cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
+    cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
     name = func['function_name']
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func)
+    user_id = func['id']
+    form = ExecuteForm()
+    # if form.validate_on_submit():
+
+    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;", (user_id,))
+    endpoints_list = cur.fetchall()
+
+    # endpoints_form = request.form("endpoints")
+
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, endpoints_list=endpoints_list)
 
 
 @guiapi.route('/function/<uuid>/delete', methods=['POST'])
@@ -196,7 +207,7 @@ def task_view(task_id):
     except:
         flash('There was an issue handling your request', 'danger')
         return redirect(url_for('guiapi.tasks'))
-    return render_template('task_view.html', user=session.get('name'), title=f'View "{name}"', task=task)
+    return render_template('task_view.html', user=session.get('name'), title='View Task', task=task)
 
 
 @guiapi.route('/function/<uuid>/tasks')
