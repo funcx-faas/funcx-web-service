@@ -69,7 +69,7 @@ def submit(user_name):
         g.redis_task_queue.connect()
 
     payload = 'Hello world'
-    g.redis_task_queue.put(task_id, payload)
+    g.redis_task_queue.put(endpoint, task_id, payload)
 
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
