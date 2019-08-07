@@ -7,7 +7,7 @@ import psycopg2
 import psycopg2.extras
 
 from flask import request, current_app as app
-
+from errors import *
 
 def create_task(task):
     """Insert a task into the database.
@@ -153,6 +153,7 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
         The uuid of the endpoint
     """
     user_id = resolve_user(user_name)
+
     try:
         conn, cur = get_db_connection()
         if endpoint_uuid:
@@ -194,6 +195,7 @@ def resolve_user(user_name):
         return row['id']
     except Exception as e:
         app.logger.error(f"Failed to find user identity {user_name}. {e}")
+        raise UserNotFound("User ID could not be resolved for user_name: {}".format(user_name))
 
 
 def resolve_function(user_id, function_uuid):
