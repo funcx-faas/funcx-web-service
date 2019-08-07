@@ -47,10 +47,9 @@ def submit(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
-    return Response(jsonify({'status': 'Failed',
-                             'reason': 'Not Implemented'}),
-                    status=405,
-                    mimetype='application/json')
+
+    return jsonify({'status': 'Failed',
+                             'reason': 'Not Implemented'})
 
 
 @funcx_api.route('/execute', methods=['POST'])
