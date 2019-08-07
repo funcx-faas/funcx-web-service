@@ -16,7 +16,7 @@ from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import Response
 from flask import g
-from redis_q import RedisQueue
+from .redis_q import RedisQueue
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
