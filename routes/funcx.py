@@ -70,7 +70,8 @@ def submit(user_name):
 
     payload = 'Hello world'
     g.redis_task_queue.put(endpoint, task_id, payload)
-
+    app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
+    app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
 
