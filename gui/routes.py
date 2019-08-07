@@ -55,7 +55,7 @@ def home():
                 count += time
             stats[2] = round((count.total_seconds() / 3600.0), 2)
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
     return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
@@ -76,7 +76,7 @@ def functions():
         functions_total = len(functions)
         numPages = ceil(functions_total / 30)
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
     return render_template('functions.html', user=session.get('name'), title='Your Functions', functions=functions, functions_total=functions_total, numPages=numPages)
 
@@ -96,7 +96,7 @@ def function_new():
             flash(f'Saved Function "{name}"!', 'success')
             return redirect(url_for('guiapi.function_view', uuid=uuid))
         except:
-            flash('There was an issue handling your request', 'danger')
+            flash('There was an issue handling your request.', 'danger')
     return render_template('function_edit.html', user=session.get('name'), title='New Function', form=form, cancel_route="functions")
 
 
@@ -188,7 +188,7 @@ def endpoints():
 
         numPages = ceil(endpoints_total / 30)
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
     return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
 
@@ -210,7 +210,7 @@ def tasks():
         tasks_total = len(tasks)
         numPages = ceil(tasks_total / 30)
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
     return render_template('tasks.html', user=session.get('name'), title='Tasks', tasks=tasks, tasks_total=tasks_total, numPages=numPages)
 
@@ -229,7 +229,7 @@ def task_view(task_id):
         task = cur.fetchone()
         name = task['task_id']
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.tasks'))
     return render_template('task_view.html', user=session.get('name'), title='View Task', task=task)
 
@@ -251,7 +251,7 @@ def function_tasks(uuid):
         func_tasks = cur.fetchall()
         tasks_total = len(func_tasks)
     except:
-        flash('There was an issue handling your request', 'danger')
+        flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.function_view', func=func))
 
     try:
