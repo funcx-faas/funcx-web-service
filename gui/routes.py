@@ -2,6 +2,7 @@ from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
 import uuid
 from math import *
+from datetime import datetime, timedelta
 from gui.forms import EditForm, ExecuteForm
 from models.utils import get_db_connection, register_function
 from authentication.auth import authenticated
@@ -18,12 +19,12 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        # username='ryan@globusid.org',
-        # name='Ryan Chard'
-        # username='t-9lee3@uchicago.edu',
-        # name='Teresa Lee'
+        username='ryan@globusid.org',
+        name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
+        # username='t-9lee3@uchicago.edu',
+        # name='Teresa Lee'
         # username='skluzacek@uchicago.edu',
         # name='Tyler Skluzacek'
     )
@@ -33,12 +34,35 @@ def debug():
 @guiapi.route('/home')
 # @authenticated
 def home():
-    return render_template('home.html', user=session.get('name'), title='Home')
+    stats = [0 for i in range(3)]
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT count(functions.id) FROM functions, users WHERE functions.user_id = users.id AND users.username = %s", (session.get("username"),))
+        executions = cur.fetchone()
+        stats[0] = executions['count']
+
+        cur.execute(
+            "SELECT tasks.created_at, tasks.modified_at FROM tasks, users WHERE cast(tasks.user_id as integer) = users.id AND users.username = %s",
+            (session.get("username"),))
+        tasks = cur.fetchall()
+        stats[1] = len(tasks)
+        if len(tasks) != 0:
+            times = list()
+            for task in tasks:
+                times.append(task['modified_at'] - task['created_at'])
+            count = timedelta(hours=0)
+            for time in times:
+                count += time
+            stats[2] = round((count.total_seconds() / 3600.0), 2)
+    except:
+        flash('There was an issue handling your request', 'danger')
+        return redirect(url_for('guiapi.start'))
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
 @guiapi.route('/error')
 def error():
-    return render_template('error.html', user=session.get('name'), title='Page Not Found')
+    return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
 
 
 
@@ -133,9 +157,9 @@ def function_delete(uuid):
                 flash(f'Deleted Function "{name}".', 'success')
             else:
                 flash('There was an issue handling your request.', 'danger')
-                return render_template('error.html', user=session.get('name'), title='Page Not Found')
+                return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
         else:
-            return render_template('error.html', user=session.get('name'), title='Forbidden')
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
     except:
         flash('There was an issue handling your request.', 'danger')
     return redirect(url_for('functions'))
