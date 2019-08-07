@@ -2,19 +2,18 @@
 {% block content %}
     <div class="container">
         <pre class="DEV-NOTE">
-New Changes: 8/01/19
-- New and improved start page! Thanks for the feedback!
-- Your Functions and New Functions have been condensed in the navbar to be a dropdown.
-- Tasks Page with tasks
-- A page that shows all of your tasks for a specific function. Access on the view page!
-- You can view specific tasks. Currently, use "/view_tasks/&lt;uuid&gt;" to access.
-- Functions, Endpoints, Tasks, and Function Tasks pages now have pagination. No more scrolling through 2300 tasks (Ryan)!
+New Changes: 8/06/19
+- We changed routes and urls for most of the pages to be more hierarchical, so saved links may need to be replaced.
+- Improved page navigation.
+- Many minor changes were made to table and view pages to make them function properly and look slicker than a [insert odd metaphor here].
+- Endpoints have a very WIP delete button.
+- Fixed some text on the Start Page.
     - Avery and Teresa</pre>
         <div class="row HOME-ROW">
             <a href="{{ url_for('guiapi.functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }});">
                 <div class="container-fluid IMG-LINK-COL-CAPTION">View Your Functions</div>
             </a>
-            <a href="{{ url_for('guiapi.new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
+            <a href="{{ url_for('guiapi.function_new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
                 <div class="container-fluid IMG-LINK-COL-CAPTION">Write a Function</div>
             </a>
         </div>

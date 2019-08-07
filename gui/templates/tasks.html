@@ -57,10 +57,10 @@
                                 {% set task = tasks[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0" href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">
                                     <div class="col-4 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view_tasks', task_id=task.task_id) }}">{{ task.task_id }}</a>
+                                        <a href="{{ url_for('guiapi.task_view', task_id=task.task_id) }}">{{ task.task_id }}</a>
                                     </div>
                                     <div class="col-3 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.view', uuid=task.function_id) }}">{{ task.function_name }}</a>
+                                        <a href="{{ url_for('guiapi.function_view', uuid=task.function_id) }}">{{ task.function_name }}</a>
                                     </div>
                                     {% if task.status == 'SUCCEEDED' %}
                                         <div class="col-2 TABLE-COL-B text-success">{{ task.status }}</div>

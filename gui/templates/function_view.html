@@ -4,10 +4,10 @@
     <section class="container PADDING-0">
         <div class="row">
             <div class="col">
-                <a class="VIEW-OPTION" href="{{ url_for('guiapi.edit', uuid=func.function_uuid) }}">Edit</a>
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_edit', uuid=func.function_uuid) }}">Edit</a>
                 <a class="VIEW-OPTION" data-toggle="modal" data-target="#myModal" href="">Run</a>
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=func.function_uuid) }}">Tasks</a>
-                <a class="VIEW-OPTION" href="{{ url_for('guiapi.delete', uuid=func.function_uuid) }}">Delete</a>
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_delete', uuid=func.function_uuid) }}">Delete</a>
             </div>
             <div class="col FLEX-RIGHT">
                 <a href="{{ url_for('guiapi.functions') }}">Back to Functions &Gt;</a>

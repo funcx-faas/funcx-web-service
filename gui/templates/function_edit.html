@@ -51,7 +51,7 @@
                 {% if title == 'New Function' %}
                     <input type="button" onclick="window.location.href = '{{ url_for('guiapi.functions') }}';" value="Cancel">
                 {% else %}
-                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.view', uuid=func.function_uuid) }}';" value="Cancel">
+                    <input type="button" onclick="window.location.href = '{{ url_for('guiapi.function_view', uuid=func.function_uuid) }}';" value="Cancel">
                 {% endif %}
             </div>
         </fieldset>
