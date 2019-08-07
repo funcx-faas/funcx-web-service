@@ -6,4 +6,4 @@ zmq
 globus_nexus_client
 flask_wtf
 requests
-
+funcx==0.0.1a0
