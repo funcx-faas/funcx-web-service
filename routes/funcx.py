@@ -251,7 +251,7 @@ def reg_endpoint(user_name):
     try:
         endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
     except UserNotFound as e:
-        returj jsonify({'status': 'Failed',
+        return jsonify({'status': 'Failed',
                         'reason': str(e)})
 
     return jsonify({'endpoint_uuid': endpoint_uuid})
