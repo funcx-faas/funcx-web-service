@@ -482,6 +482,50 @@ blockquote {
     word-wrap: break-word;
 }
 
+.EXECUTE-TITLE {
+    margin-bottom: 20px;
+    margin-top: 5px;
+}
+
+.EXECUTE-FIELD {
+    margin-bottom: 1rem;
+}
+
+.EXECUTE-BTN-OUTLINE-BLUE {
+    background-color: green;
+    border: 1px solid green !important;
+    color: green !important;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+.EXECUTE-BTN-OUTLINE-BLUE:hover {
+    background-color: green;
+    color: rgb(250,250,250) !important;
+}
+
+.EXECUTE-BTN-OUTLINE-RED {
+    background-color: #dc3545;
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+.EXECUTE-BTN-OUTLINE-RED:hover {
+    background-color: #dc3545;
+    color: #ffffff !important;
+}
+
+.EXECUTE-ENDPOINT-DROPDOWN {
+    /*margin: 0px 0px 0px 0px;*/
+}
+
+.dropdown-menu .EXECUTE-ENDPOINT-DROPDOWN {
+    color: rgb(118, 118, 118) !important;
+}
+
+.dropdown-menu .EXECUTE-ENDPOINT-DROPDOWN:hover {
+    background-color: rgb(250, 250, 250);
+}
 
 
 /* Error Pages */
