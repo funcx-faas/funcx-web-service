@@ -356,6 +356,8 @@ blockquote {
 .PAGE-DROPDOWN-MENU {
     max-height: 10rem;
     overflow: scroll;
+    text-align: center !important;
+    min-width: 4rem !important;
 }
 
 .PAGE-DROPDOWN-ITEM {
@@ -393,8 +395,14 @@ blockquote {
 }
 
 .TABLE-DELETE {
-    display: inline-block;
-    width: 20px;
+    color: rgb(118,118,118);
+    font-size: 1.5rem;
+    line-height: 1rem;
+}
+
+.TABLE-DELETE:hover {
+    color: rgb(156,156,156);
+    text-decoration: none;
 }
 
 

@@ -15,3 +15,6 @@ class ExecuteForm(FlaskForm):
     endpoint = SelectField('Endpoint', choices=[('endpoint 1', 'Endpoint 1'), ('endpoint 2', 'Endpoint 2')], validators=[DataRequired()])
     payload = TextAreaField('Payload', validators=[DataRequired()])
     submit = SubmitField('Run')
+
+class DeleteForm(FlaskForm):
+    delete = SubmitField('Delete')

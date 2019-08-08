@@ -3,7 +3,7 @@ from flask import (abort, Blueprint, current_app as app, flash, jsonify,
 import uuid
 from math import *
 from datetime import datetime, timedelta
-from gui.forms import EditForm, ExecuteForm
+from gui.forms import EditForm, ExecuteForm, DeleteForm
 from models.utils import get_db_connection, register_function
 from authentication.auth import authenticated
 
@@ -19,8 +19,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
+        # username='ryan@globusid.org',
+        # name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='t-9lee3@uchicago.edu',
@@ -71,7 +71,7 @@ def error():
 def functions():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False ORDER by functions.id desc", (session.get("username"),))
+        cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False ORDER BY functions.id desc", (session.get("username"),))
         functions = cur.fetchall()
         functions_total = len(functions)
         numPages = ceil(functions_total / 30)
@@ -106,13 +106,15 @@ def function_edit(uuid):
     conn, cur = get_db_connection()
     cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
     func = cur.fetchone()
+    if func == None:
+        return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
     name = func['function_name']
     form = EditForm()
     if form.validate_on_submit():
         try:
-            cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE uuid = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, uuid))
+            cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, uuid))
             conn.commit()
-            flash(f'Saved Function "{name}"!', 'success')
+            flash(f'Saved Function "{form.name.data}"!', 'success')
             return redirect(url_for('guiapi.function_view', uuid=uuid))
         except:
             flash('There was an issue handling your request.', 'danger')
@@ -123,46 +125,51 @@ def function_edit(uuid):
     return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
-@guiapi.route('/function/<uuid>/view')
+@guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
 # @authenticated
 def function_view(uuid):
     conn, cur = get_db_connection()
-    cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
+    cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
     func = cur.fetchone()
+    if func == None:
+        return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
     name = func['function_name']
     user_id = func['id']
     form = ExecuteForm()
-    # if form.validate_on_submit():
+    delete_form = DeleteForm()
+    if delete_form.validate_on_submit():
+        # return redirect(url_for('guiapi.function_delete', uuid=func['function_uuid']))
+        function_delete(func['function_uuid'])
+        return redirect(url_for('guiapi.functions'))
 
     cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;", (user_id,))
     endpoints_list = cur.fetchall()
 
-    # endpoints_form = request.form("endpoints")
-
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, endpoints_list=endpoints_list)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form, endpoints_list=endpoints_list)
 
 
-@guiapi.route('/function/<uuid>/delete', methods=['POST'])
+# @guiapi.route('/function/<uuid>/delete', methods=['POST'])
 #@authenticated
 def function_delete(uuid):
-    try:
+    # try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_name, username, functions.deleted FROM functions, users WHERE uuid = %s AND function.user_id = users.id", (uuid,))
+        cur.execute("SELECT function_name, username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
         func = cur.fetchone()
         if func['username'] == session.get('username'):
             name = func['function_name']
             if func['deleted'] == False:
-                cur.execute("UPDATE functions SET deleted = True WHERE uuid = %s", (uuid,))
+                cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (uuid,))
                 conn.commit()
-                flash(f'Deleted Function "{name}".', 'success')
-            else:
-                flash('There was an issue handling your request.', 'danger')
-                return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
-        else:
-            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
-    except:
-        flash('There was an issue handling your request.', 'danger')
-    return redirect(url_for('functions'))
+        #         flash(f'Deleted Function "{name}".', 'success')
+        #     else:
+        #         flash('There was an issue handling your request.', 'danger')
+        #         return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+        # else:
+        #     return render_template('error.html', user=session.get('name'), title='403 Forbidden')
+    # except:
+    #     print("except")
+    #     flash('There was an issue handling your request.', 'danger')
+    # return redirect(url_for('functions'))
 
 
 @guiapi.route('/endpoints')
@@ -227,6 +234,8 @@ def task_view(task_id):
                     "AND function_id IS NOT NULL;",
                     (task_id,))
         task = cur.fetchone()
+        if task == None:
+            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
         name = task['task_id']
     except:
         flash('There was an issue handling your request.', 'danger')
@@ -241,6 +250,8 @@ def function_tasks(uuid):
         conn, cur = get_db_connection()
         cur.execute("SELECT function_uuid, function_name FROM functions WHERE function_uuid = %s", (uuid,))
         func = cur.fetchone()
+        if func == None:
+            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
         func_name = func['function_name']
         cur.execute(
             "SELECT tasks.task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
