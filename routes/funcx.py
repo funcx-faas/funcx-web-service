@@ -91,7 +91,7 @@ def submit(user_name):
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
     # At this point the packed function body and the args are concatable strings
-    payload = (fn_code + input_data).encode()
+    payload = fn_code + input_data
     app.logger.debug("Payload : {}".format(payload))
 
     g.redis_task_queue.put(endpoint, task_id, payload)
