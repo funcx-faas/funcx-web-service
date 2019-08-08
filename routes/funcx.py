@@ -64,10 +64,13 @@ def submit(user_name):
         post_req = request.json
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
-        input_data = post_req['data']
+        input_data = post_req['payload']
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
     except Exception as e:
         return jsonify({'status': 'Failed',
-                        'reason': str(e)})
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
@@ -83,8 +86,11 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
-    app.logger.debug("Got function body :{}".format(fn_body))
-    payload = 'Hello world'
+    app.logger.debug("Got function body :{}".format(fn_code))
+    app.logger.debug("Got function entry :{}".format(fn_entry))
+    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
+
+
     g.redis_task_queue.put(endpoint, task_id, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
