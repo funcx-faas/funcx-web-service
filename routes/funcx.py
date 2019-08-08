@@ -81,7 +81,7 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
-    app.logger.debug("Got function body :{}".format(fn_body)
+    app.logger.debug("Got function body :{}".format(fn_body))
     payload = 'Hello world'
     g.redis_task_queue.put(endpoint, task_id, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
