@@ -20,8 +20,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        # username='ryan@globusid.org',
-        # name='Ryan Chard'
+        username='ryan@globusid.org',
+        name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='t-9lee3@uchicago.edu',
