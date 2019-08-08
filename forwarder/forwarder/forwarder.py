@@ -6,6 +6,7 @@ import os
 import queue
 import time
 import zmq
+import pickle
 
 from multiprocessing import Queue
 from parsl.providers import LocalProvider
@@ -13,6 +14,7 @@ from parsl.channels import LocalChannel
 from parsl.app.errors import RemoteExceptionWrapper
 
 from funcx.executors import HighThroughputExecutor as HTEX
+from funcx.serialize import FuncXSerializer
 
 from multiprocessing import Process
 from forwarder.queues import RedisQueue
@@ -88,6 +90,7 @@ class Forwarder(Process):
         self.endpoint_id = endpoint_id
         self.internal_q = Queue()
         self.client_ports = None
+        self.fx_serializer = FuncXSerializer()
 
     def handle_app_update(self, task_id, future):
         """ Triggered when the executor sees a task complete.
@@ -107,6 +110,8 @@ class Forwarder(Process):
             logger.debug("Task:{} succeeded".format(task_id))
 
 
+    '''
+    # DEPRECATED
     def _debug_task_loop(self):
         """ A debug task loop
 
@@ -139,16 +144,17 @@ class Forwarder(Process):
             logger.info("[TASK_LOOP] connected {}".format(x))
 
             time.sleep(5)
+    '''
 
     def task_loop(self):
         """ Task Loop
-        
+
         The assumption is that we enter the task loop only once an endpoint is online.
         We expect the situation where the endpoint dies and reconnects to be infrequent.
         When it does go offline, the submit call will raise a zmq.error.Again which will
         cause the task to be pushed back into the queue, and the task_loop to break.
         """
-        
+
         while True:
 
             # Get a task
@@ -160,21 +166,40 @@ class Forwarder(Process):
                 # This exception catching isn't very general,
                 # Essentially any timeout exception should be caught and ignored
                 logger.debug("[TASKS] Task queue:{} is empty".format(self.task_q))
-                continue                
+                #*********************************
+                # WARNING . DO NOT SKIP CONTINUE.
+                # Skipping only for debugging
+                #*********************************
+                # continue
 
             except Exception:
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
             # TODO: We are piping down a mock task. This needs to be fixed.
-            task_id = str(uuid.uuid4())
+            # task_id = str(uuid.uuid4())
+
+            # NOTE: We expect to get a function buffer from the databases
+            # and the (args, kwargs) payload
+
             args = [5]
             kwargs = {}
             task_info = {'mock' : 'mock'}
+
+            fn_buf = self.fx_serializer.serialize(double)
+            args_buf = self.fx_serializer.serialize(args)
+            kwargs_buf = self.fx_serializer.serialize(kwargs)
+
+
+            # user_payload = args_buf + kwargs_buf
+            full_payload = pickle.dumps((fn_buf, args_buf, kwargs_buf))
+            # full_payload = self.fx_serializer.pack_buffers([fn_buf, args_buf, kwargs_buf])
+
             # We need to unpack task_info here.
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(double, *args, **kwargs)
+                fu = self.executor.submit(full_payload)
+
             except zmq.error.Again:
                 logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
                 self.task_q.put(task_id, task_info)
@@ -185,16 +210,17 @@ class Forwarder(Process):
                 logger.exception("[TASKS] Some unhandled error occurred")
                 self.task_q.put(task_id, task_info)
 
+            # The following block is only for debugging
             time.sleep(2)
             if fu.done():
                 logger.debug("[TASKS] Task done after 2 seconds : {}".format(fu.result()))
             else:
                 logger.debug("[TASK] Task not completed after 2 seconds")
-            
+
             # Task is now submitted. Tack a callback on that.
             fu.add_done_callback(partial(self.handle_app_update, task_id))
-            
-        
+
+
     def run(self):
         """ Process entry point.
         """

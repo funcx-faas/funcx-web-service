@@ -61,13 +61,14 @@ def home():
 
 
 @guiapi.route('/error')
+# @authenticated
 def error():
     return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
 
 
 
 @guiapi.route('/functions')
-#@authenticated
+# @authenticated
 def functions():
     try:
         conn, cur = get_db_connection()

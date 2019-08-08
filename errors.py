@@ -2,16 +2,18 @@ class FuncxError(Exception):
     """ Base class for all Forwarder exceptions
     """
 
+    def __init__(self, reason):
+        self.reason = reason
+
     def __str__(self):
         return self.__repr__()
 
-
-class RegistrationError(FuncxError):
-    """ Registering the endpoint has failed
+class UserNotFound(FuncxError):
+    """ Base class for all Forwarder exceptions
     """
 
     def __init__(self, reason):
         self.reason = reason
 
-    def __repr__(self):
-        return "Endpoint registration failed due to {}".format(self.reason)
+    def __str__(self):
+        return self.__repr__()

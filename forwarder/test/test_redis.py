@@ -18,6 +18,7 @@ def test(endpoint_id=None, hostname=None, port=None):
     for i in range(10):
         tasks_rq.put(i, {'task_id': i, 'payload': i})
 
+    """
     print("Getting tasks out")
     # Print getting task
     for i in range(10):
@@ -26,6 +27,7 @@ def test(endpoint_id=None, hostname=None, port=None):
 
     for i in range(10):
         print("Got task back: ", tasks_rq.get())
+    """
     res = results_rq.get(timeout=1)
     print("Result : ", res)
 
