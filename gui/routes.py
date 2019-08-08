@@ -1,5 +1,6 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
+import requests
 import uuid
 from math import *
 from datetime import datetime, timedelta
@@ -136,17 +137,34 @@ def function_view(uuid):
         return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
     name = func['function_name']
     user_id = func['id']
+
     form = ExecuteForm()
+    form.func.data = func['function_uuid']
+    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
+                (user_id,))
+    endpoints = cur.fetchall()
+    endpoint_uuids = list()
+    for endpoint in endpoints:
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
+    form.endpoint.choices = endpoint_uuids
+
+    if form.validate_on_submit() and form.submit.data:
+        print("Run: " + str(form.submit.data))
+        json = {'func': form.func.data, 'endpoint': form.endpoint.data, 'data': form.data.data}
+        print(json)
+        print(type(json))
+        token = "Bearer " + session.get("tokens")
+        task_id = requests.post("http://dev.funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
+        redirect(url_for('guiapi.task_view', task_id=task_id))
+
     delete_form = DeleteForm()
-    if delete_form.validate_on_submit():
+    if form.validate_on_submit() and delete_form.delete.data:
+        print("Delete: " + str(delete_form.delete.data))
         # return redirect(url_for('guiapi.function_delete', uuid=func['function_uuid']))
-        function_delete(func['function_uuid'])
+        # function_delete(func['function_uuid'])
         return redirect(url_for('guiapi.functions'))
 
-    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;", (user_id,))
-    endpoints_list = cur.fetchall()
-
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form, endpoints_list=endpoints_list)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form)
 
 
 # @guiapi.route('/function/<uuid>/delete', methods=['POST'])
