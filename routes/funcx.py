@@ -5,7 +5,8 @@ import os
 import shlex
 import subprocess
 import requests
-import funcx
+from requests.models import Response
+# import funcx
 
 from version import VERSION
 from errors import *
@@ -156,6 +157,15 @@ def execute(user_name):
         app.logger.error(e)
 
     return jsonify({'task_id': task_id})
+
+
+@funcx_api.route("/debug_post", methods=['POST'])
+def debug_post():
+    print("HELLO")
+    print(request.json)
+    r = Response()
+    r._content = request.json
+    return r
 
 
 @funcx_api.route("/<task_id>/status", methods=['GET'])
