@@ -227,6 +227,9 @@ def resolve_function(user_id, function_uuid):
         query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
         cur.execute(query, (function_uuid, user_id))
         r = cur.fetchone()
+        if not r:
+            raise MissingFunction(function_uuid)
+
         function_code = r['function_code']
         function_entry = r['entry_point']
         function_id = r['id']
@@ -236,8 +239,6 @@ def resolve_function(user_id, function_uuid):
                 "order by function_containers.id desc limit 1"
         cur.execute(query, (function_id,))
         r = cur.fetchone()
-        if not r:
-            raise MissingFunction(function_id)
 
         if 'container_uuid' not in r:
             r['container_uuid'] = None
