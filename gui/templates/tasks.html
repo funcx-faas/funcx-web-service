@@ -55,7 +55,7 @@
                         {% for results in range(30) %}
                             {% if num[0] < tasks_total %}
                                 {% set task = tasks[num[0]] %}
-                                <section class="row TABLE-ROW SIDE-MARGIN-0">
+                                <section class="row TABLE-ROW SIDE-MARGIN-0" href="{{ url_for('guiapi.task_view', task_id=task.task_id) }}">
                                     <div class="col-4 TABLE-COL-B">
                                         <a href="{{ url_for('guiapi.task_view', task_id=task.task_id) }}">{{ task.task_id }}</a>
                                     </div>

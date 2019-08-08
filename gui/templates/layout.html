@@ -63,21 +63,22 @@
                     </div>
                 </nav>
             </header>
+
+            <div class="container PADDING-0">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} ALERT">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
     {% else %}
         <body>
     {% endif %}
-
-        <div class="container" style="padding-left: 0; padding-right: 0;">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} ALERT">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
 
         {% block content %}
         {%  endblock %}
