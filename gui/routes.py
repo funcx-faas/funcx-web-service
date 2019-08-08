@@ -145,7 +145,7 @@ def function_view(uuid):
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
-        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_uuid'])) #second is meant to be name
     form.endpoint.choices = endpoint_uuids
 
     if form.validate_on_submit() and form.submit.data:
