@@ -61,8 +61,11 @@ header {
 .DEV-NOTE {
     background-color: rgb(245,245,245);
     border-radius: 1rem;
-    padding: 8px;
     overflow-wrap: break-spaces;
+    padding: 8px;
+    /*width: 100%;*/
+    word-wrap: break-spaces;
+    /*word-break: break-word;*/
 }
 
 
@@ -265,8 +268,8 @@ header {
 
 /* Home Page */
 
-.HOME-ROW {
-    display: flex;
+.HOME-SECTION {
+    /*display: flex;*/
     margin-bottom: 50px;
 }
 
@@ -292,8 +295,38 @@ header {
     transition: font-size .1s ease-in-out;
 }
 
-.IMG-LINK-COL:hover .IMG-LINK-COL-CAPTION{
+.IMG-LINK-COL:hover .IMG-LINK-COL-CAPTION {
     font-size: 1.4em;
+}
+
+.HOME-SECTION-TITLE {
+    margin-bottom: 24px;
+}
+
+section.HOME-NEWS {
+    border: 1px solid rgb(221,221,221);
+    padding: 16px;
+}
+
+article.HOME-NEWS {
+    margin-left: 1rem;
+}
+
+.USER-STATS {
+    border: 1px solid black;
+}
+
+.STAT-LABEL {
+    background-color: rgb(39,120,185);
+    border-bottom: 1px solid rgba(0,0,0, 0.2);
+    color: rgb(250,250,250);
+    font-size: 1.2rem;
+    line-height: 3rem;
+}
+
+.STAT-NUMBER {
+    font-size: 2.5rem;
+    /*line-height: 5rem;*/
 }
 
 blockquote {
@@ -303,7 +336,7 @@ blockquote {
 
 
 
-/* Tables Page */
+/* Table Pages */
 
 .TABLE-INFO {
     margin-bottom: 14px;
@@ -323,6 +356,8 @@ blockquote {
 .PAGE-DROPDOWN-MENU {
     max-height: 10rem;
     overflow: scroll;
+    text-align: center !important;
+    min-width: 4rem !important;
 }
 
 .PAGE-DROPDOWN-ITEM {
@@ -360,8 +395,14 @@ blockquote {
 }
 
 .TABLE-DELETE {
-    display: inline-block;
-    width: 20px;
+    color: rgb(118,118,118);
+    font-size: 1.5rem;
+    line-height: 1rem;
+}
+
+.TABLE-DELETE:hover {
+    color: rgb(156,156,156);
+    text-decoration: none;
 }
 
 
@@ -449,7 +490,33 @@ blockquote {
     word-wrap: break-word;
 }
 
+.EXECUTE-TITLE {
+    margin-bottom: 20px;
+    margin-top: 5px;
+}
 
+.EXECUTE-FIELD {
+    margin-bottom: 1rem;
+}
+
+.EXECUTE-ENDPOINT-DROPDOWN {
+    /*margin: 0px 0px 0px 0px;*/
+}
+
+.dropdown-menu .EXECUTE-ENDPOINT-DROPDOWN {
+    color: rgb(118, 118, 118) !important;
+}
+
+.dropdown-menu .EXECUTE-ENDPOINT-DROPDOWN:hover {
+    background-color: rgb(250, 250, 250);
+}
+
+.EXECUTE-PAYLOAD {
+    min-height: 62px;
+    min-width: 225px !important;
+    width: 225px;
+    overflow: scroll;
+}
 
 /* Error Pages */
 

@@ -1,6 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Length
+# from models.utils import get_db_connection
+# from flask import current_app as app
 
 class EditForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
@@ -11,7 +13,14 @@ class EditForm(FlaskForm):
     submit = SubmitField('Save')
 
 class ExecuteForm(FlaskForm):
+    # conn, cur = get_db_connection()
+    # cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
+    #             (user_id,))
+    # endpoints_list = cur.fetchall()
     name = StringField('Task Name', validators=[DataRequired(), Length(min=1, max=20)])
-    endpoint = StringField('Endpoint', validators=[DataRequired()])
-    payload = StringField('Payload', validators=[DataRequired()])
+    endpoint = SelectField('Endpoint', choices=[('endpoint 1', 'Endpoint 1'), ('endpoint 2', 'Endpoint 2')], validators=[DataRequired()])
+    payload = TextAreaField('Payload', validators=[DataRequired()])
     submit = SubmitField('Run')
+
+class DeleteForm(FlaskForm):
+    delete = SubmitField('Delete')

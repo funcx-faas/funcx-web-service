@@ -17,6 +17,18 @@
             </div>
         </header>
 
+        <div class="container-fluid PADDING-0">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} ALERT" style="margin: -90px 5% 80px;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
         <section class="row SIDE-MARGIN-0">
             <div class="col-1"></div>
             <div class="col-2 CENTER">
