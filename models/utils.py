@@ -9,6 +9,7 @@ import psycopg2.extras
 from flask import request, current_app as app
 from errors import *
 
+
 def create_task(task):
     """Insert a task into the database.
 
@@ -222,6 +223,7 @@ def resolve_function(user_id, function_uuid):
     function_code = None
     function_entry = None
     container_uuid = None
+
     try:
         conn, cur = get_db_connection()
         query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
@@ -236,15 +238,17 @@ def resolve_function(user_id, function_uuid):
                 "order by function_containers.id desc limit 1"
         cur.execute(query, (function_id,))
         r = cur.fetchone()
-        try:
-            container_uuid = r['container_uuid']
-        except:
-            pass
+        if r:
+            raise MissingFunction(function_id)
+
+        if 'container_uuid' not in r:
+            r['container_uuid'] = None
+
     except Exception as e:
-        print(e)
         app.logger.error(e)
+        raise
     delta = time.time() - start
-    app.logger.info("Time to fetch function {0:.1f}ms".format(delta*1000))
+    app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
     return function_code, function_entry, container_uuid
 
 
