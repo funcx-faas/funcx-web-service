@@ -236,7 +236,7 @@ def resolve_function(user_id, function_uuid):
                 "order by function_containers.id desc limit 1"
         cur.execute(query, (function_id,))
         r = cur.fetchone()
-        if r:
+        if not r:
             raise MissingFunction(function_id)
 
         if 'container_uuid' not in r:
