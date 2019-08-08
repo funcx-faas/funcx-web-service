@@ -123,7 +123,7 @@ def function_edit(uuid):
     return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
 
 
-@guiapi.route('/function/<uuid>/view')
+@guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
 # @authenticated
 def function_view(uuid):
     conn, cur = get_db_connection()

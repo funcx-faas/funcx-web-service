@@ -37,9 +37,10 @@
 
         <section class="container PADDING-0">
             <div class="row TABLE-LABELS SIDE-MARGIN-0">
-                <div class="col-5">Endpoint Name</div>
+                <div class="col-4">Task ID</div>
+                <div class="col-4">Endpoint Name</div>
                 <div class="col">Status</div>
-                <div class="col-4">Date Started</div>
+                <div class="col-2">Date Started</div>
             </div>
         </section>
 
@@ -58,11 +59,12 @@
                             {% if num[0] < tasks_total %}
                                 {% set task = func_tasks[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
-                                    <div class="col-5 TABLE-COL-B">
+                                    <div class="col-4 TABLE-COL-B">
                                         <a href="{{ url_for('guiapi.task_view', task_id=task.task_id) }}">
-                                            {{ task.endpoint_name }}
+                                            {{ task.task_id }}
                                         </a>
                                     </div>
+                                    <div class="col-4 TABLE-COL-B">{{ task.endpoint_name }}</div>
                                     {% if task.status == 'SUCCEEDED' %}
                                         <div class="col TABLE-COL-B text-success">{{ task.status }}</div>
                                     {% elif task.status == 'FAILED' %}
@@ -76,7 +78,7 @@
                                     {% else %}}
                                         <div class="col TABLE-COL-B">{{ task.status }}</div>
                                     {% endif %}
-                                    <div class="col-4 TABLE-COL">{{ task.created_at.date() }} {{ task.created_at.strftime('%X') }}</div>
+                                    <div class="col-2 TABLE-COL">{{ task.created_at.date() }} {{ task.created_at.strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
