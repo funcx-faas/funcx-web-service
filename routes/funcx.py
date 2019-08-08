@@ -10,8 +10,10 @@ import funcx
 from version import VERSION
 from errors import *
 
-from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
-    get_redis_client
+from models.utils import register_endpoint, register_function, get_container, resolve_user,
+from models.utils import register_container, get_redis_client
+from models.utils import resolve_function
+
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import Response
@@ -49,6 +51,11 @@ def submit(user_name):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
 
     # Parse out the function info
     try:
@@ -60,6 +67,12 @@ def submit(user_name):
         return jsonify({'status': 'Failed',
                         'reason': str(e)})
 
+    try:
+        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
+    except:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Function UUID:{} could not be resolved'.format(function_uuid)})
+
     task_id = str(uuid.uuid4())
     # TODO: Check if the user can use the endpoint
     if 'redis_task_queue' not in g:
@@ -68,6 +81,7 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
+    app.logger.debug("Got function body :{}".format(fn_body)
     payload = 'Hello world'
     g.redis_task_queue.put(endpoint, task_id, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
