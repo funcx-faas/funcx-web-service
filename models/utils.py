@@ -240,7 +240,7 @@ def resolve_function(user_id, function_uuid):
         cur.execute(query, (function_id,))
         r = cur.fetchone()
 
-        if 'container_uuid' in r:
+        if r and 'container_uuid' in r:
             container_uuid = r['container_uuid']
 
     except Exception as e:
