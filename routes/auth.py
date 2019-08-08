@@ -71,8 +71,6 @@ def logout():
     # Destroy the session state
     session.clear()
 
-    redirect_uri = url_for('home', _external=True)
-
     ga_logout_url = list()
     ga_logout_url.append('https://auth.globus.org/v2/web/logout')
     ga_logout_url.append('?client=6a47fd0c-6423-4851-80a2-c0947c1d884d')

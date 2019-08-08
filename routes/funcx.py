@@ -1,12 +1,22 @@
 import uuid
 import json
 import time
+import os
+import shlex
+import subprocess
 import requests
+import funcx
+
+from version import VERSION
+from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
     get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
+from flask import Response
+from flask import g
+from .redis_q import RedisQueue
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -15,6 +25,55 @@ funcx_api = Blueprint("routes", __name__)
 endpoint_cache = {}
 
 caching = True
+
+@funcx_api.route('/submit', methods=['POST'])
+@authenticated
+def submit(user_name):
+    """Puts the task request into Redis and returns a task UUID
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    POST payload
+    ------------
+    {
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"Submit invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    # Parse out the function info
+    try:
+        post_req = request.json
+        endpoint = post_req['endpoint']
+        function_uuid = post_req['func']
+        input_data = post_req['data']
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': str(e)})
+
+    task_id = str(uuid.uuid4())
+    # TODO: Check if the user can use the endpoint
+    if 'redis_task_queue' not in g:
+        g.redis_task_queue = RedisQueue("task",
+                                        hostname=app.config['REDIS_HOST'],
+                                        port=app.config['REDIS_PORT'])
+        g.redis_task_queue.connect()
+
+    payload = 'Hello world'
+    g.redis_task_queue.put(endpoint, task_id, payload)
+    app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
+    app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
+    return jsonify({'status': 'Success',
+                    'task_uuid': task_id})
 
 
 @funcx_api.route('/execute', methods=['POST'])
@@ -87,7 +146,7 @@ def execute(user_name):
                         'user_id': user_id,
                         'created_at': time.time(),
                         'status': task_status}
-        
+
         rc.set(f"task:{task_id}", json.dumps(task_payload))
 
         # Add the task to the redis queue
@@ -126,7 +185,7 @@ def status(user_name, task_id):
         rc = get_redis_client()
 
         details = {}
-        
+
         # Get the task from redis
         try:
             task = json.loads(rc.get(f"task:{task_id}"))
@@ -242,7 +301,12 @@ def reg_endpoint(user_name):
         endpoint_uuid = request.json["endpoint_uuid"]
 
     app.logger.debug(endpoint_name)
-    endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
+    try:
+        endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
+    except UserNotFound as e:
+        return jsonify({'status': 'Failed',
+                        'reason': str(e)})
+
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
 def register_with_hub(address, endpoint_id):
@@ -273,7 +337,9 @@ def register_with_hub(address, endpoint_id):
 
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return jsonify(1)
+    return jsonify(VERSION)
+
+
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
@@ -285,6 +351,8 @@ def register_endpoint_2(user_name):
     json
         A dict containing the endpoint details
     """
+    app.logger.debug("register_endpoint_2 triggered")
+
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
 
@@ -323,6 +391,15 @@ def reg_function(user_name):
     ----------
     user_name : str
         The primary identity of the user
+
+    POST Payload
+    ------------
+    { "function_name" : <FN_NAME>,
+      "entry_point" : <ENTRY_POINT>,
+      "function_code" : <ENCODED_FUNTION_BODY>,
+      "container_uuid" : <CONTAINER_UUID>,
+      "description" : <DESCRIPTION>
+    }
 
     Returns
     -------
