@@ -54,7 +54,8 @@ def submit(user_name):
                                "logged in to perform this function.")
     try:
         user_id = resolve_user(user_name)
-    except:
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
         return jsonify({'status': 'Failed',
                         'reason': 'Failed to resolve user_name:{}'.format(user_name)})
 
@@ -438,5 +439,13 @@ def reg_function(user_name):
 
     app.logger.debug(f"Registering function {function_name}")
 
-    function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
+    try:
+        function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
+    except Exception as e:
+        message = "Function registration failed for user:{} function_name:{}".format(user_name,
+                                                                                     function_name)
+        app.logger.error(message)
+        return jsonify({'status': 'Failed',
+                        'reason': message})
+
     return jsonify({'function_uuid': function_uuid})

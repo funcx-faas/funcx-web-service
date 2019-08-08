@@ -73,24 +73,22 @@ def register_function(user_name, function_name, description, function_code, entr
         The uuid of the function
     """
     user_id = resolve_user(user_name)
-    try:
-        conn, cur = get_db_connection()
-        function_uuid = str(uuid.uuid4())
-        query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                            function_uuid, function_code, entry_point))
 
-        if container_uuid is not None:
-            app.logger.debug(f'Inserting container mapping: {container_uuid}')
-            query = "INSERT INTO function_containers (container_id, function_id) values (" \
-                    "(SELECT id from containers where container_uuid = %s), " \
-                    "(SELECT id from functions where function_uuid = %s))"
-            cur.execute(query, (container_uuid, function_uuid))
+    conn, cur = get_db_connection()
+    function_uuid = str(uuid.uuid4())
+    query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
+            "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+    cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
+                        function_uuid, function_code, entry_point))
+
+    if container_uuid is not None:
+        app.logger.debug(f'Inserting container mapping: {container_uuid}')
+        query = "INSERT INTO function_containers (container_id, function_id) values (" \
+                "(SELECT id from containers where container_uuid = %s), " \
+                "(SELECT id from functions where function_uuid = %s))"
+        cur.execute(query, (container_uuid, function_uuid))
         conn.commit()
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
+
     return function_uuid
 
 
