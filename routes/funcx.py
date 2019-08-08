@@ -10,7 +10,7 @@ import funcx
 from version import VERSION
 from errors import *
 
-from models.utils import register_endpoint, register_function, get_container, resolve_user,
+from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
 from models.utils import resolve_function
 
@@ -27,6 +27,7 @@ funcx_api = Blueprint("routes", __name__)
 endpoint_cache = {}
 
 caching = True
+
 
 @funcx_api.route('/submit', methods=['POST'])
 @authenticated
