@@ -7,13 +7,33 @@
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_edit', uuid=func.function_uuid) }}">Edit</a>
                 <a class="VIEW-OPTION" data-toggle="modal" data-target="#myModal" href="">Run</a>
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=func.function_uuid) }}">Tasks</a>
-                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_delete', uuid=func.function_uuid) }}">Delete</a>
+                <a class="VIEW-OPTION" data-toggle="modal" data-target="#deleteModal" href="">Delete</a>
             </div>
             <div class="col FLEX-RIGHT">
                 <a href="{{ url_for('guiapi.functions') }}">Back to Functions &Gt;</a>
             </div>
         </div>
     </section>
+
+    <!-- Delete Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="container modal-body">
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        <fieldset>
+                            <legend style="font-size: 1.2rem;">Do you really want to delete the function "{{ func.function_name }}"?</legend>
+                            <div style="margin-top: 20px; text-align: right;">
+                                {{ delete_form.delete }}
+                                <button class="" data-dismiss="modal">Cancel</button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <form method="POST" action="">
     {{ form.hidden_tag() }}
