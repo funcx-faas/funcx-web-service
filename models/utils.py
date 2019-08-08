@@ -240,11 +240,11 @@ def resolve_function(user_id, function_uuid):
         cur.execute(query, (function_id,))
         r = cur.fetchone()
 
-        if 'container_uuid' not in r:
-            r['container_uuid'] = None
+        if 'container_uuid' in r:
+            container_uuid = r['container_uuid']
 
     except Exception as e:
-        app.logger.error(e)
+        app.logger.exception(e)
         raise
     delta = time.time() - start
     app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
