@@ -87,8 +87,8 @@ def register_function(user_name, function_name, description, function_code, entr
                 "(SELECT id from containers where container_uuid = %s), " \
                 "(SELECT id from functions where function_uuid = %s))"
         cur.execute(query, (container_uuid, function_uuid))
-        conn.commit()
 
+    conn.commit()
     return function_uuid
 
 
