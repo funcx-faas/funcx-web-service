@@ -35,6 +35,8 @@
         </div>
     </div>
 
+<form method="POST" action="">
+    {{ form.hidden_tag() }}
 
     <!-- The Modal/ Pop-up window -->
     <div class="modal" id="myModal">
@@ -53,35 +55,30 @@
                 <div class="EXECUTE-FIELD">{{ func.function_name }}</div>
               <dt>Function UUID: </dt>
                 <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
-              <dt>Endpoint Name and UUID: </dt>
-                <div class="EXECUTE-FIELD">(drop-down menu to choose endpoints)</div>
+              <dt>Endpoint Name: </dt>
+                <div class="EXECUTE-FIELD">
+<!--                    <select id="ENDPOINTS">-->
+<!--                      {% for each in endpoints_list %}-->
+<!--                      <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>-->
+<!--                      {% endfor %}-->
+<!--                    </select>-->
 
-<!--                <a class="nav-link EXECUTE-ENDPOINT-DROPDOWN PAGE-DROPDOWN-MENU" data-toggle="dropdown" href="#">Endpoints</a>-->
-<!--                    <div class="dropdown-menu SHADOW EXECUTE-ENDPOINT-DROPDOWN PAGE-DROPDOWN-MENU">-->
-<!--                        <div class="nav-link EXECUTE-ENDPOINT-DROPDOWN">Endpoint 1</div>-->
-<!--                        <div class="nav-link EXECUTE-ENDPOINT-DROPDOWN">Endpoint 2</div>-->
-<!--                    </div>-->
-
-              <select name="list_status">
-                  {% for each in listStatus %}
-                  <option value="{{each}}"> {{each}}</option>
-                  {% endfor %}
-              </select>
-
-              <select id="ENDPOINTS">
-                  {% for each in endpoints_list %}
-                  <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>
-                  {% endfor %}
-              </select>
-
+                    <select id="ENDPOINTS">
+                      {% for each in endpoints_list %}
+                      <option value="{{each.endpoint_name}}"> {{each.endpoint_name}}</option>
+                      {% endfor %}
+                    </select>
+                </div>
+              <dt>Endpoint UUID: </dt>
+                <div class="EXECUTE-FIELD"> {{ func.endpoint_uuid}} (Endpoint UUID will appear once the user chose the endpoint)</div>
               <dt>Payload: </dt>
-                <dd>{{ form.name(class="form-control FORM-FIELD", placeholder="Enter input") }}</dd>
+                <dd>{{ form.payload(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
           </div>
 
           <!-- Modal footer -->
           <div class="modal-footer">
-              <button class="btn EXECUTE-BTN-OUTLINE-BLUE" data-dismiss="modal">Run</button>
-              <button class="btn EXECUTE-BTN-OUTLINE-RED" data-dismiss="modal">Close</button>
+              <button class="btn btn-success" data-dismiss="modal">Run</button>
+              <button class="btn btn-danger" data-dismiss="modal">Close</button>
           </div>
 
         </div>
