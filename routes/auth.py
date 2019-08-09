@@ -23,7 +23,10 @@ def callback():
     # Set up our Globus Auth/OAuth2 state
     redirect_uri = 'https://dev.funcx.org/callback'
     client = get_auth_client()
-    client.oauth2_start_flow(redirect_uri, refresh_tokens=False)
+    requested_scopes = ['https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all', 'profile',
+                        'urn:globus:auth:scope:transfer.api.globus.org:all',
+                        'urn:globus:auth:scope:auth.globus.org:view_identities', 'openid']
+    client.oauth2_start_flow(redirect_uri, requested_scopes=requested_scopes, refresh_tokens=False)
 
     # If there's no "code" query string parameter, we're in this route
     # starting a Globus Auth login flow.
@@ -35,6 +38,7 @@ def callback():
         # and can start the process of exchanging an auth code for a token.
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
+        app.logger.debug(tokens)
         id_token = tokens.decode_id_token(client)
         session.update(
             tokens=tokens.by_resource_server,
