@@ -58,7 +58,7 @@ def home():
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
-    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=jsonify(session.get("tokens")))
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
 @guiapi.route('/error')
@@ -151,8 +151,6 @@ def function_view(uuid):
     if form.validate_on_submit() and form.submit.data:
         print("Run: " + str(form.submit.data))
         json = {'func': form.func.data, 'endpoint': "a92945a1-2778-4417-8cd1-4957bc35ce66", 'data': form.data.data}
-        print(json)
-        print(type(json))
         token = "Bearer " + session.get("tokens")
         jsonify(session.get("tokens"))
         task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
