@@ -160,7 +160,7 @@ def function_view(uuid):
         response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         task_id = response.json()['task_id']
         print(task_id)
-        redirect(url_for('guiapi.task_view', task_id=task_id))
+        return redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
     if form.validate_on_submit() and delete_form.delete.data:
