@@ -153,9 +153,10 @@ def function_view(uuid):
         json = {'func': form.func.data, 'endpoint': "a92945a1-2778-4417-8cd1-4957bc35ce66", 'data': form.data.data}
         print(json)
         print(type(json))
-        token = "Bearer " + session.get("tokens")
-        jsonify(session.get("tokens"))
-        task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
+        tokens = session.get("tokens")
+        auth_tokens = tokens['auth.globus.org']
+        access_token = "Bearer" + auth_tokens['access_token']
+        task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": access_token}, json=json)
         redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
