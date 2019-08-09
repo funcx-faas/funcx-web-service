@@ -146,11 +146,12 @@ def function_view(uuid):
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))  # Second Field is display name
+    endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     form.endpoint.choices = endpoint_uuids
 
     if form.validate_on_submit() and form.submit.data:
         print("Run: " + str(form.submit.data))
-        json = {'func': form.func.data, 'endpoint': "a92945a1-2778-4417-8cd1-4957bc35ce66", 'data': form.data.data}
+        json = {'func': form.func.data, 'endpoint': form.endpoint.data, 'data': form.data.data}
         print(json)
         print(type(json))
         tokens = session.get("tokens")
