@@ -138,32 +138,33 @@ def function_view(uuid):
     name = func['function_name']
     user_id = func['id']
 
-    form = ExecuteForm()
-    form.func.data = func['function_uuid']
+    execute_form = ExecuteForm()
+    execute_form.func.data = func['function_uuid']
     cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
-        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))  # Second Field is display name
-    form.endpoint.choices = endpoint_uuids
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
+    endpoint_uuids.append("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77")
+    execute_form.endpoint.choices = endpoint_uuids
 
-    if form.validate_on_submit() and form.submit.data:
-        print("Run: " + str(form.submit.data))
-        json = {'func': form.func.data, 'endpoint': "a92945a1-2778-4417-8cd1-4957bc35ce66", 'data': form.data.data}
+    if execute_form.validate_on_submit() and execute_form.submit.data:
+        print("Run: " + str(execute_form.submit.data))
+        json = {'func': execute_form.func.data, 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
         token = "Bearer " + session.get("tokens")
         jsonify(session.get("tokens"))
         task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
         redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
-    if form.validate_on_submit() and delete_form.delete.data:
+    if delete_form.validate_on_submit() and delete_form.delete.data:
         print("Delete: " + str(delete_form.delete.data))
         # return redirect(url_for('guiapi.function_delete', uuid=func['function_uuid']))
         # function_delete(func['function_uuid'])
         return redirect(url_for('guiapi.functions'))
 
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
 
 
 # @guiapi.route('/function/<uuid>/delete', methods=['POST'])
