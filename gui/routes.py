@@ -58,7 +58,7 @@ def home():
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
-    return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=jsonify(session.get("tokens")))
 
 
 @guiapi.route('/error')
@@ -145,16 +145,17 @@ def function_view(uuid):
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
-        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_uuid'])) #second is meant to be name
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))  # Second Field is display name
     form.endpoint.choices = endpoint_uuids
 
     if form.validate_on_submit() and form.submit.data:
         print("Run: " + str(form.submit.data))
-        json = {'func': form.func.data, 'endpoint': form.endpoint.data, 'data': form.data.data}
+        json = {'func': form.func.data, 'endpoint': "a92945a1-2778-4417-8cd1-4957bc35ce66", 'data': form.data.data}
         print(json)
         print(type(json))
         token = "Bearer " + session.get("tokens")
-        task_id = requests.post("http://dev.funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
+        jsonify(session.get("tokens"))
+        task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
         redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
