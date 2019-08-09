@@ -11,8 +11,10 @@ from requests.models import Response
 from version import VERSION
 from errors import *
 
-from models.utils import register_endpoint, register_function, get_container, resolve_user, register_container, \
-    get_redis_client
+from models.utils import register_endpoint, register_function, get_container, resolve_user
+from models.utils import register_container, get_redis_client
+from models.utils import resolve_function
+
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import Response
@@ -26,6 +28,7 @@ funcx_api = Blueprint("routes", __name__)
 endpoint_cache = {}
 
 caching = True
+
 
 @funcx_api.route('/submit', methods=['POST'])
 @authenticated
@@ -50,16 +53,31 @@ def submit(user_name):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
 
     # Parse out the function info
     try:
         post_req = request.json
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
-        input_data = post_req['data']
+        input_data = post_req['payload']
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
     except Exception as e:
         return jsonify({'status': 'Failed',
-                        'reason': str(e)})
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    try:
+        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
+    except:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Function UUID:{} could not be resolved'.format(function_uuid)})
 
     task_id = str(uuid.uuid4())
     # TODO: Check if the user can use the endpoint
@@ -69,7 +87,14 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
-    payload = 'Hello world'
+    app.logger.debug("Got function body :{}".format(fn_code))
+    app.logger.debug("Got function entry :{}".format(fn_entry))
+    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
+
+    # At this point the packed function body and the args are concatable strings
+    payload = fn_code + input_data
+    app.logger.debug("Payload : {}".format(payload))
+
     g.redis_task_queue.put(endpoint, task_id, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
@@ -198,7 +223,7 @@ def status(user_name, task_id):
 
         # Get the task from redis
         try:
-            task = json.loads(rc.get(f"task:{task_id}"))
+            task = json.loads(rc.get(f"results:{task_id}"))
         except:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
@@ -219,7 +244,8 @@ def status(user_name, task_id):
 
     except Exception as e:
         app.logger.error(e)
-        return jsonify({'InternalError': e})
+        return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
@@ -433,5 +459,13 @@ def reg_function(user_name):
 
     app.logger.debug(f"Registering function {function_name}")
 
-    function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
+    try:
+        function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
+    except Exception as e:
+        message = "Function registration failed for user:{} function_name:{}".format(user_name,
+                                                                                     function_name)
+        app.logger.error(message)
+        return jsonify({'status': 'Failed',
+                        'reason': message})
+
     return jsonify({'function_uuid': function_uuid})

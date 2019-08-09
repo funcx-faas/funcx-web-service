@@ -9,6 +9,7 @@ import psycopg2.extras
 from flask import request, current_app as app
 from errors import *
 
+
 def create_task(task):
     """Insert a task into the database.
 
@@ -72,24 +73,22 @@ def register_function(user_name, function_name, description, function_code, entr
         The uuid of the function
     """
     user_id = resolve_user(user_name)
-    try:
-        conn, cur = get_db_connection()
-        function_uuid = str(uuid.uuid4())
-        query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                            function_uuid, function_code, entry_point))
 
-        if container_uuid is not None:
-            app.logger.debug(f'Inserting container mapping: {container_uuid}')
-            query = "INSERT INTO function_containers (container_id, function_id) values (" \
-                    "(SELECT id from containers where container_uuid = %s), " \
-                    "(SELECT id from functions where function_uuid = %s))"
-            cur.execute(query, (container_uuid, function_uuid))
-        conn.commit()
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
+    conn, cur = get_db_connection()
+    function_uuid = str(uuid.uuid4())
+    query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
+            "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+    cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
+                        function_uuid, function_code, entry_point))
+
+    if container_uuid is not None:
+        app.logger.debug(f'Inserting container mapping: {container_uuid}')
+        query = "INSERT INTO function_containers (container_id, function_id) values (" \
+                "(SELECT id from containers where container_uuid = %s), " \
+                "(SELECT id from functions where function_uuid = %s))"
+        cur.execute(query, (container_uuid, function_uuid))
+
+    conn.commit()
     return function_uuid
 
 
@@ -222,11 +221,15 @@ def resolve_function(user_id, function_uuid):
     function_code = None
     function_entry = None
     container_uuid = None
+
     try:
         conn, cur = get_db_connection()
         query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
         cur.execute(query, (function_uuid, user_id))
         r = cur.fetchone()
+        if not r:
+            raise MissingFunction(function_uuid)
+
         function_code = r['function_code']
         function_entry = r['entry_point']
         function_id = r['id']
@@ -236,15 +239,15 @@ def resolve_function(user_id, function_uuid):
                 "order by function_containers.id desc limit 1"
         cur.execute(query, (function_id,))
         r = cur.fetchone()
-        try:
+
+        if r and 'container_uuid' in r:
             container_uuid = r['container_uuid']
-        except:
-            pass
+
     except Exception as e:
-        print(e)
-        app.logger.error(e)
+        app.logger.exception(e)
+        raise
     delta = time.time() - start
-    app.logger.info("Time to fetch function {0:.1f}ms".format(delta*1000))
+    app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
     return function_code, function_entry, container_uuid
 
 

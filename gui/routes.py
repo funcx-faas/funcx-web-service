@@ -1,5 +1,6 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
+import time
 import requests
 import uuid
 from math import *
@@ -146,16 +147,17 @@ def function_view(uuid):
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
-    endpoint_uuids.append("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77")
+    endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     execute_form.endpoint.choices = endpoint_uuids
-
     if execute_form.validate_on_submit() and execute_form.submit.data:
-        print("Run: " + str(execute_form.submit.data))
         json = {'func': execute_form.func.data, 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
-        token = "Bearer " + session.get("tokens")
-        jsonify(session.get("tokens"))
-        task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": token}, json=json)
-        redirect(url_for('guiapi.task_view', task_id=task_id))
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
+        response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
+        task_id = response.json()['task_id']
+        time.sleep(1)
+        return redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
     if delete_form.validate_on_submit() and delete_form.delete.data:
