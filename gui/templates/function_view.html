@@ -21,7 +21,7 @@
             <div class="modal-content">
                 <div class="container modal-body">
                     <form method="POST" action="">
-                        {{ form.hidden_tag() }}
+                        {{ delete_form.hidden_tag() }}
                         <fieldset>
                             <legend style="font-size: 1.2rem;">Do you really want to delete the function "{{ func.function_name }}"?</legend>
                             <div style="margin-top: 20px; text-align: right;">
@@ -57,27 +57,28 @@
                 <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
               <dt>Endpoint Name: </dt>
                 <div class="EXECUTE-FIELD">
-<!--                    <select id="ENDPOINTS">-->
-<!--                      {% for each in endpoints_list %}-->
-<!--                      <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>-->
-<!--                      {% endfor %}-->
-<!--                    </select>-->
-
-                    <select id="ENDPOINTS">
-                      {% for each in endpoints_list %}
-                      <option value="{{each.endpoint_name}}"> {{each.endpoint_name}}</option>
-                      {% endfor %}
-                    </select>
+                    {{ form.endpoint }}
+{#<!--                    <select id="ENDPOINTS">-->#}
+{#<!--                      {% for each in endpoints_list %}-->#}
+{#<!--                      <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>-->#}
+{#<!--                      {% endfor %}-->#}
+{#<!--                    </select>-->#}
+{##}
+{#                    <select id="ENDPOINTS">#}
+{#                      {% for each in endpoints_list %}#}
+{#                      <option value="{{each.endpoint_name}}"> {{each.endpoint_name}}</option>#}
+{#                      {% endfor %}#}
+{#                    </select>#}
                 </div>
               <dt>Endpoint UUID: </dt>
                 <div class="EXECUTE-FIELD"> {{ func.endpoint_uuid}} (Endpoint UUID will appear once the user chose the endpoint)</div>
               <dt>Payload: </dt>
-                <dd>{{ form.payload(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
+                <dd>{{ form.data(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
           </div>
 
           <!-- Modal footer -->
           <div class="modal-footer">
-              <button class="btn btn-success" data-dismiss="modal">Run</button>
+              {{ form.submit(class="btn btn-success") }}
               <button class="btn btn-danger" data-dismiss="modal">Close</button>
           </div>
 

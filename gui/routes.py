@@ -1,5 +1,7 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
+import time
+import requests
 import uuid
 from math import *
 from datetime import datetime, timedelta
@@ -57,7 +59,7 @@ def home():
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
-    return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=session.get("tokens"))
 
 
 @guiapi.route('/error')
@@ -136,17 +138,39 @@ def function_view(uuid):
         return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
     name = func['function_name']
     user_id = func['id']
+
     form = ExecuteForm()
+    form.func.data = func['function_uuid']
+    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
+                (user_id,))
+    endpoints = cur.fetchall()
+    endpoint_uuids = list()
+    for endpoint in endpoints:
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))  # Second Field is display name
+    endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
+    form.endpoint.choices = endpoint_uuids
+
+    if form.validate_on_submit() and form.submit.data:
+        print("Run: " + str(form.submit.data))
+        json = {'func': form.func.data, 'endpoint': form.endpoint.data, 'data': form.data.data}
+        print(json)
+        print(type(json))
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
+        response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
+        task_id = response.json()['task_id']
+        time.sleep(1)
+        return redirect(url_for('guiapi.task_view', task_id=task_id))
+
     delete_form = DeleteForm()
-    if delete_form.validate_on_submit():
+    if form.validate_on_submit() and delete_form.delete.data:
+        print("Delete: " + str(delete_form.delete.data))
         # return redirect(url_for('guiapi.function_delete', uuid=func['function_uuid']))
-        function_delete(func['function_uuid'])
+        # function_delete(func['function_uuid'])
         return redirect(url_for('guiapi.functions'))
 
-    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;", (user_id,))
-    endpoints_list = cur.fetchall()
-
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form, endpoints_list=endpoints_list)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form)
 
 
 # @guiapi.route('/function/<uuid>/delete', methods=['POST'])
