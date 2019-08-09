@@ -58,7 +58,7 @@ def home():
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
-    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=jsonify(session.get("tokens")))
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=session.get("tokens"))
 
 
 @guiapi.route('/error')
