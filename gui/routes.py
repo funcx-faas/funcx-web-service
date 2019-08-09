@@ -20,8 +20,8 @@ def start():
 @guiapi.route('/debug')
 def debug():
     session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
+        # username='ryan@globusid.org',
+        # name='Ryan Chard'
         # username='aschwartz417@uchicago.edu',
         # name='Avery Schwartz'
         # username='t-9lee3@uchicago.edu',
@@ -157,7 +157,7 @@ def function_view(uuid):
         tokens = session.get("tokens")
         auth_tokens = tokens['auth.globus.org']
         access_token = "Bearer" + auth_tokens['access_token']
-        task_id = requests.post("http://funcx.org/api/v1/execute", header={"Authorization": access_token}, json=json)
+        task_id = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
