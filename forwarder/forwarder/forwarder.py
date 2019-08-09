@@ -101,7 +101,7 @@ class Forwarder(Process):
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res = future.result()
-            self.result_q.put(task_id, res)
+            self.result_q.put(task_id, {'result': res, 'completion_t': time.time()})
         except Exception as e:
             logger.debug("Task:{} failed".format(task_id))
             # Todo : Since we caught an exception, we should wrap it here, and send it
@@ -145,7 +145,7 @@ class Forwarder(Process):
 
             # Convert the payload to bytes
             full_payload = task_info.encode()
-            
+
             try:
                 logger.debug("Submitting task to executor")
                 fu = self.executor.submit(full_payload)
