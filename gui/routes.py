@@ -1,5 +1,6 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
+import time
 import requests
 import uuid
 from math import *
@@ -159,7 +160,7 @@ def function_view(uuid):
         access_token = "Bearer " + funcx_tokens['access_token']
         response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         task_id = response.json()['task_id']
-        print(task_id)
+        time.sleep(1)
         return redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
