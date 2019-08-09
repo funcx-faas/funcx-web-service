@@ -223,7 +223,7 @@ def status(user_name, task_id):
 
         # Get the task from redis
         try:
-            task = json.loads(rc.get(f"task:{task_id}"))
+            task = json.loads(rc.get(f"results:{task_id}"))
         except:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
@@ -244,7 +244,8 @@ def status(user_name, task_id):
 
     except Exception as e:
         app.logger.error(e)
-        return jsonify({'InternalError': e})
+        return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
