@@ -109,43 +109,6 @@ class Forwarder(Process):
         else:
             logger.debug("Task:{} succeeded".format(task_id))
 
-
-    '''
-    # DEPRECATED
-    def _debug_task_loop(self):
-        """ A debug task loop
-
-        Only for debugging
-        """
-        count = 0
-        while True:
-
-            count += 1
-            logger.info("[TASK_LOOP] pushing a task")
-
-            task_id = str(uuid.uuid4())
-            args = [count]
-            kwargs = {}
-            try:
-                fu = self.executor.submit(double, *args, **kwargs)
-            except zmq.error.Again:
-                logger.error("[TASK_LOOP] No endpoint available for task dispatch")
-
-            else:
-                logger.info("[TASK_LOOP] pushed a task, waiting for result")
-                res = fu.result()
-                logger.info("[TASK_LOOP] got result :{}".format(res))
-                # fu.add_done_callback(partial(self.handle_app_update, task_id))
-
-            x = self.executor.outstanding
-            logger.info("[TASK_LOOP] outstanding {}".format(x))
-
-            x = self.executor.connected_workers
-            logger.info("[TASK_LOOP] connected {}".format(x))
-
-            time.sleep(5)
-    '''
-
     def task_loop(self):
         """ Task Loop
 
@@ -155,6 +118,7 @@ class Forwarder(Process):
         cause the task to be pushed back into the queue, and the task_loop to break.
         """
 
+        logger.info("[TASKS] Entering task loop")
         while True:
 
             # Get a task
@@ -170,32 +134,18 @@ class Forwarder(Process):
                 # WARNING . DO NOT SKIP CONTINUE.
                 # Skipping only for debugging
                 #*********************************
-                # continue
+                continue
 
             except Exception:
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
-            # TODO: We are piping down a mock task. This needs to be fixed.
-            # task_id = str(uuid.uuid4())
 
-            # NOTE: We expect to get a function buffer from the databases
-            # and the (args, kwargs) payload
+            logger.debug("Task_info block :{}".format(task_info))
 
-            args = [5]
-            kwargs = {}
-            task_info = {'mock' : 'mock'}
-
-            fn_buf = self.fx_serializer.serialize(double)
-            args_buf = self.fx_serializer.serialize(args)
-            kwargs_buf = self.fx_serializer.serialize(kwargs)
-
-
-            # user_payload = args_buf + kwargs_buf
-            full_payload = pickle.dumps((fn_buf, args_buf, kwargs_buf))
-            # full_payload = self.fx_serializer.pack_buffers([fn_buf, args_buf, kwargs_buf])
-
-            # We need to unpack task_info here.
+            # Convert the payload to bytes
+            full_payload = task_info.encode()
+            
             try:
                 logger.debug("Submitting task to executor")
                 fu = self.executor.submit(full_payload)
@@ -209,13 +159,6 @@ class Forwarder(Process):
                 # Broad catch to avoid repeating the task reput,
                 logger.exception("[TASKS] Some unhandled error occurred")
                 self.task_q.put(task_id, task_info)
-
-            # The following block is only for debugging
-            time.sleep(2)
-            if fu.done():
-                logger.debug("[TASKS] Task done after 2 seconds : {}".format(fu.result()))
-            else:
-                logger.debug("[TASK] Task not completed after 2 seconds")
 
             # Task is now submitted. Tack a callback on that.
             fu.add_done_callback(partial(self.handle_app_update, task_id))
@@ -298,7 +241,10 @@ def spawn_forwarder(address,
     if not task_q:
         task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
-        result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+        # result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+        # Change of design. We want all tasks to go to a results table and results_list queue
+        # This would allow any frontend service to access the results stream.
+        result_q = RedisQueue('results', redis_address)
 
     print("Logging_level: {}".format(logging_level))
     print("Task_q: {}".format(task_q))
