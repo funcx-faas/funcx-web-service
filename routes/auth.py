@@ -37,6 +37,7 @@ def callback():
         # and can start the process of exchanging an auth code for a token.
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
+        app.logger.debug(tokens)
         id_token = tokens.decode_id_token(client)
         session.update(
             tokens=tokens.by_resource_server,
