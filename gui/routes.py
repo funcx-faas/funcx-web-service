@@ -158,6 +158,7 @@ def function_view(uuid):
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer" + funcx_tokens['access_token']
         task_id = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
+        print(task_id)
         redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
