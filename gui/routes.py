@@ -171,9 +171,9 @@ def function_view(uuid):
             flash(f'Deleted Function "{name}".', 'success')
             return redirect(url_for('guiapi.functions'))
         elif result == 403:
-            return render_template('error.html', title='403 Forbidden')
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         else:
-            return render_template('error.html', title='404 Page Not Found')
+            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
 
     return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
 
@@ -238,9 +238,9 @@ def endpoint_view(endpoint_uuid):
             flash(f'Deleted Endpoint "{name}".', 'success')
             return redirect(url_for('guiapi.endpoints'))
         elif result == 403:
-            return render_template('error.html', title='403 Forbidden')
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         else:
-            return render_template('error.html', title='404 Not Found')
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
 
     return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint, delete_form=delete_form)
 
