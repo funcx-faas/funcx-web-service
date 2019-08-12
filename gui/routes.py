@@ -116,6 +116,7 @@ def function_edit(uuid):
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.function_view', uuid=uuid))
     name = func['function_name']
+
     form = EditForm()
     if form.validate_on_submit():
         json = {'func': func['function_uuid'], 'name': form.name.data, 'desc': form.desc.data, 'entry_point': form.entry_point.data, 'code': form.code.data}
@@ -135,13 +136,6 @@ def function_edit(uuid):
             flash('There was an issue handling your request.', 'danger')
             # return redirect(url_for('guiapi.function_view', uuid=uuid))
 
-        try:
-            cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, uuid))
-            conn.commit()
-            flash(f'Saved Function "{form.name.data}"!', 'success')
-            return redirect(url_for('guiapi.function_view', uuid=uuid))
-        except:
-            flash('There was an issue handling your request.', 'danger')
     form.name.data = func['function_name']
     form.desc.data = func['description']
     form.entry_point.data = func['entry_point']
