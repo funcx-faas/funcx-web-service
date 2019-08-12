@@ -242,7 +242,7 @@ def endpoint_view(endpoint_uuid):
         else:
             return render_template('error.html', title='404 Not Found')
 
-    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint)
+    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint, delete_form=delete_form)
 
 
 
