@@ -465,7 +465,7 @@ def reg_function(user_name):
 
 @funcx_api.route("/update_function", methods=['POST'])
 @authenticated
-def update_function(user_name):
+def upd_function(user_name):
     """Update the function.
 
         Parameters
