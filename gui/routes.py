@@ -15,8 +15,23 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    return render_template('start.html', title='Start')
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT tasks.created_at, tasks.modified_at FROM tasks;")
+        all_tasks = cur.fetchall()
+        times = list()
+        for task in all_tasks:
+            times.append(task['modified_at'] - task['created_at'])
+            count = timedelta(hours=0)
+        for time in times:
+            count += time
+            total_CPU = round((count.total_seconds() / 3600.0), 2)
 
+    except:
+        flash('There was an issue handling your request.', 'danger')
+
+    return render_template('start.html', title='Start', total_CPU=total_CPU)
 
 @guiapi.route('/debug')
 def debug():
