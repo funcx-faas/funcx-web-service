@@ -5,7 +5,7 @@
         <div class="row">
             <div class="col">
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_edit', uuid=func.function_uuid) }}">Edit</a>
-                <a class="VIEW-OPTION" data-toggle="modal" data-target="#myModal" href="">Run</a>
+                <a class="VIEW-OPTION" data-toggle="modal" data-target="#runModal" href="">Run</a>
                 <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=func.function_uuid) }}">Tasks</a>
                 <a class="VIEW-OPTION" data-toggle="modal" data-target="#deleteModal" href="">Delete</a>
             </div>
@@ -36,10 +36,10 @@
     </div>
 
 <form method="POST" action="">
-    {{ form.hidden_tag() }}
+    {{ execute_form.hidden_tag() }}
 
     <!-- The Modal/ Pop-up window -->
-    <div class="modal" id="myModal">
+    <div class="modal" id="runModal">
       <div class="modal-dialog">
         <div class="modal-content">
 
@@ -57,28 +57,17 @@
                 <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
               <dt>Endpoint Name: </dt>
                 <div class="EXECUTE-FIELD">
-                    {{ form.endpoint }}
-{#<!--                    <select id="ENDPOINTS">-->#}
-{#<!--                      {% for each in endpoints_list %}-->#}
-{#<!--                      <option value="{{each.endpoint_name}}, {{each.endpoint_uuid}}"> {{each.endpoint_name}}, {{each.endpoint_uuid}}</option>-->#}
-{#<!--                      {% endfor %}-->#}
-{#<!--                    </select>-->#}
-{##}
-{#                    <select id="ENDPOINTS">#}
-{#                      {% for each in endpoints_list %}#}
-{#                      <option value="{{each.endpoint_name}}"> {{each.endpoint_name}}</option>#}
-{#                      {% endfor %}#}
-{#                    </select>#}
+                    {{ execute_form.endpoint }}
                 </div>
               <dt>Endpoint UUID: </dt>
                 <div class="EXECUTE-FIELD"> {{ func.endpoint_uuid}} (Endpoint UUID will appear once the user chose the endpoint)</div>
               <dt>Payload: </dt>
-                <dd>{{ form.data(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
+                <dd>{{ execute_form.data(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
           </div>
 
           <!-- Modal footer -->
           <div class="modal-footer">
-              {{ form.submit(class="btn btn-success") }}
+              {{ execute_form.submit(class="btn btn-success") }}
               <button class="btn btn-danger" data-dismiss="modal">Close</button>
           </div>
 

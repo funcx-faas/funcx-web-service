@@ -58,7 +58,9 @@
                             {% if num[0] < endpoints_total %}
                                 {% set site = endpoints[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
-                                    <div class="col-2 TABLE-COL-B">{{ site.endpoint_name }}</div>
+                                    <div class="col-2 TABLE-COL-B">
+                                        <a href="{{ url_for('guiapi.endpoint_view', endpoint_uuid=site.endpoint_uuid) }}">{{ site.endpoint_name }}</a>
+                                    </div>
                                     <div class="col-5 TABLE-COL">{{ site.endpoint_uuid }}</div>
                                         {% if site.status == 'ONLINE' %}
                                             <div class="col-2 TABLE-COL-B text-success">{{ site.status }}</div>

@@ -1,43 +1,8 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="container">
-        <section class="row HOME-SECTION">
-            <a href="{{ url_for('guiapi.functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }});">
-                <div class="container-fluid IMG-LINK-COL-CAPTION">View Your Functions</div>
-            </a>
-            <a href="{{ url_for('guiapi.function_new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
-                <div class="container-fluid IMG-LINK-COL-CAPTION">Write a Function</div>
-            </a>
-        </section>
-
-        <section class="HOME-SECTION HOME-NEWS">
-            <h2 class="HOME-SECTION-TITLE">News & Updates</h2>
-            <article class="HOME-NEWS">
-                <h3>New Changes: 8/08/19</h3>
-                <ul>- The run button on the function view pages now brings up a popup with options for your task. They don't run quite yet though</ul>
-                <ul>- To celebrate almost being able to run your functions, you can now delete them! Bon voyage to all your hard work!</ul>
-                <ul>- Task UUIDs can now be viewed in the function tasks page.</ul>
-                <ul>- Endpoints have a new but still unfinished delete button.</ul>
-                <ul>- Redesigned the Home Page with a new spot for our messages (and other potential Globus/funcX news) and added statistic counters. Who has the most CPU hours?</ul>
-                <ul>- Ryan's talk about funcX has been removed for now and will be placed in a more appropriate location.</ul>
-                <span style="margin-left: 1rem;">- Avery and Teresa</span>
-                {{ token }}
-            </article>
-        </section>
-
-{#        <section class="row HOME-SECTION">#}
-{#            <div class="col-4">#}
-{#                <blockquote class="text-muted">#}
-{#                    &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot#}
-{#                </blockquote>#}
-{#            </div>#}
-{#            <div class="col-8 FLEX-RIGHT">#}
-{#                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>#}
-{#            </div>#}
-{#        </section>#}
-
-        <h2 class="HOME-SECTION-TITLE">Your User Statistics:</h2>
-        <section class="row HOME-SECTION CENTER">
+{#        <h2 class="HOME-SECTION-TITLE">Your User Statistics:</h2>#}
+        <section class="row HOME-SECTION CENTER" style="margin-bottom: 30px; margin-top: 60px;">
             <div class="col">
                 <figure class="USER-STATS">
                     <figcaption class="STAT-LABEL">Total Functions Created</figcaption>
@@ -57,6 +22,47 @@
                 </figure>
             </div>
         </section>
+
+        <section class="row HOME-SECTION">
+            <a href="{{ url_for('guiapi.functions') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/your_funcs_img.JPG') }});">
+                <div class="container-fluid IMG-LINK-COL-CAPTION">View Your Functions</div>
+            </a>
+            <a href="{{ url_for('guiapi.function_new') }}" class="col IMG-LINK-COL" style="background-image: url({{ url_for('static', filename='imgs/pictures/write_func_img.JPG') }});">
+                <div class="container-fluid IMG-LINK-COL-CAPTION">Write a Function</div>
+            </a>
+        </section>
+
+        <section class="HOME-SECTION HOME-NEWS">
+            <h2 class="HOME-SECTION-TITLE">News & Updates</h2>
+            <article class="HOME-NEWS" style="margin-bottom: 1rem;">
+                <h3>New Changes: 8/12/19</h3>
+                <ul>- Functions can now be executed from the view page!</ul>
+                <ul>- Functions may/may not be able to be deleted. Checking that out now.</ul>
+                <ul>- Endpoints have their own view pages with information. This is where they will be able to be deleted from.</ul>
+                <span style="margin-left: 1rem;">- Avery and Teresa</span>
+            </article>
+            <article class="HOME-NEWS">
+                <h3>New Changes: 8/08/19</h3>
+                <ul>- The run button on the function view pages now brings up a popup with options for your task. They don't run quite yet though</ul>
+                <ul>- To celebrate almost being able to run your functions, you can now delete them! Bon voyage to all your hard work!</ul>
+                <ul>- Task UUIDs can now be viewed in the function tasks page.</ul>
+                <ul>- Endpoints have a new but still unfinished delete button.</ul>
+                <ul>- Redesigned the Home Page with a new spot for our messages (and other potential Globus/funcX news) and added statistic counters. Who has the most CPU hours?</ul>
+                <ul>- Ryan's talk about funcX has been removed for now and will be placed in a more appropriate location.</ul>
+                <span style="margin-left: 1rem;">- Avery and Teresa</span>
+            </article>
+        </section>
+
+{#        <section class="row HOME-SECTION">#}
+{#            <div class="col-4">#}
+{#                <blockquote class="text-muted">#}
+{#                    &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot#}
+{#                </blockquote>#}
+{#            </div>#}
+{#            <div class="col-8 FLEX-RIGHT">#}
+{#                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>#}
+{#            </div>#}
+{#        </section>#}
 
     </div>
 {% endblock %}

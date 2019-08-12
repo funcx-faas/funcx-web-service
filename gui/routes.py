@@ -59,7 +59,7 @@ def home():
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
-    return render_template('home.html', user=session.get('name'), title='Home', stats=stats, token=session.get("tokens"))
+    return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
 @guiapi.route('/error')
@@ -139,22 +139,18 @@ def function_view(uuid):
     name = func['function_name']
     user_id = func['id']
 
-    form = ExecuteForm()
-    form.func.data = func['function_uuid']
+    execute_form = ExecuteForm()
+    # execute_form.func.data = func['function_uuid']
     cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
-        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))  # Second Field is display name
+        endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
     endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
-    form.endpoint.choices = endpoint_uuids
-
-    if form.validate_on_submit() and form.submit.data:
-        print("Run: " + str(form.submit.data))
-        json = {'func': form.func.data, 'endpoint': form.endpoint.data, 'data': form.data.data}
-        print(json)
-        print(type(json))
+    execute_form.endpoint.choices = endpoint_uuids
+    if execute_form.validate_on_submit() and execute_form.submit.data:
+        json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
         tokens = session.get("tokens")
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
@@ -164,17 +160,26 @@ def function_view(uuid):
         return redirect(url_for('guiapi.task_view', task_id=task_id))
 
     delete_form = DeleteForm()
-    if form.validate_on_submit() and delete_form.delete.data:
-        print("Delete: " + str(delete_form.delete.data))
-        # return redirect(url_for('guiapi.function_delete', uuid=func['function_uuid']))
-        # function_delete(func['function_uuid'])
-        return redirect(url_for('guiapi.functions'))
+    if delete_form.validate_on_submit() and delete_form.delete.data:
+        json = {'func': func['function_uuid']}
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
+        response = requests.post("http://dev.funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
+        result = response.json()['result']
+        if result == 200:
+            flash(f'Deleted Function "{name}".', 'success')
+            return redirect(url_for('guiapi.functions'))
+        elif result == 403:
+            return render_template('error.html', title='403 Forbidden')
+        else:
+            return render_template('error.html', title='404 Page Not Found')
 
-    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, form=form, delete_form=delete_form)
+    return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
 
 
-# @guiapi.route('/function/<uuid>/delete', methods=['POST'])
-#@authenticated
+@guiapi.route('/function/<uuid>/delete', methods=['GET'])
+@authenticated
 def function_delete(uuid):
     # try:
         conn, cur = get_db_connection()
@@ -202,7 +207,7 @@ def function_delete(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
@@ -223,6 +228,28 @@ def endpoints():
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
     return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
+
+
+@guiapi.route('/endpoints/<endpoint_uuid>/view')
+# @authenticated
+def endpoint_view(endpoint_uuid):
+
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT sites.id, sites.user_id, sites.created_at, sites.status, sites.endpoint_name, sites.endpoint_uuid, sites.public, sites.deleted "
+                    "FROM sites "
+                    "WHERE sites.endpoint_uuid = %s "
+                    "AND endpoint_name IS NOT NULL AND deleted = 'f';",
+                    (endpoint_uuid,))
+        endpoint = cur.fetchone()
+        if endpoint == None:
+            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+        endpoint_name = endpoint['endpoint_name']
+    except:
+        flash('There was an issue handling your request.', 'danger')
+        return redirect(url_for('guiapi.endpoints'))
+    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{endpoint_name}"', endpoint=endpoint, endpoint_name=endpoint_name)
+
 
 
 @guiapi.route('/tasks')

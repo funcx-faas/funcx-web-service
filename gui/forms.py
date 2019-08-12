@@ -13,10 +13,11 @@ class EditForm(FlaskForm):
     submit = SubmitField('Save')
 
 class ExecuteForm(FlaskForm):
-    func = StringField('Function', validators=[DataRequired()])
+    # func = StringField('Function', validators=[DataRequired()])
     endpoint = SelectField('Endpoint', choices=[], validators=[DataRequired()])
     data = TextAreaField('Payload', validators=[DataRequired()])
     submit = SubmitField('Run')
 
 class DeleteForm(FlaskForm):
+
     delete = SubmitField('Delete')
