@@ -310,3 +310,42 @@ def get_redis_client():
         return redis_client
     except Exception as e:
         print(e)
+
+def delete_function(user_name, function_uuid):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    function_uuid : str
+        The uuid of the function
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "200" for success
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted function
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT function_name, username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
+            (function_uuid,))
+        func = cur.fetchone()
+        if func != None:
+            if func['deleted'] == False:
+                if func['username'] == user_name:
+                    cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
+                    conn.commit()
+                    return 200
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
