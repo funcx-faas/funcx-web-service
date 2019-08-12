@@ -165,7 +165,7 @@ def function_view(uuid):
         tokens = session.get("tokens")
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
-        response = requests.post("http://funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
+        response = requests.post("http://dev.funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
         result = response.json()['result']
         if result == 200:
             flash(f'Deleted Function "{name}".', 'success')
