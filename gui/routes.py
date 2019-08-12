@@ -202,7 +202,7 @@ def function_delete(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_name is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
@@ -223,6 +223,28 @@ def endpoints():
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
     return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
+
+
+@guiapi.route('/endpoints/<endpoint_uuid>/view')
+# @authenticated
+def endpoint_view(endpoint_uuid):
+
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT sites.id, sites.user_id, sites.created_at, sites.status, sites.endpoint_name, sites.endpoint_uuid, sites.public, sites.deleted "
+                    "FROM sites "
+                    "WHERE sites.endpoint_uuid = %s "
+                    "AND endpoint_name IS NOT NULL AND deleted = 'f';",
+                    (endpoint_uuid,))
+        endpoint = cur.fetchone()
+        if endpoint == None:
+            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+        endpoint_name = endpoint['endpoint_name']
+    except:
+        flash('There was an issue handling your request.', 'danger')
+        return redirect(url_for('guiapi.endpoints'))
+    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{endpoint_name}"', endpoint=endpoint, endpoint_name=endpoint_name)
+
 
 
 @guiapi.route('/tasks')
