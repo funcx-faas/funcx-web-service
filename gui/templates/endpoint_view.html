@@ -12,25 +12,25 @@
         </div>
     </section>
 
-<!--    &lt;!&ndash; Delete Modal &ndash;&gt;-->
-<!--    <div class="modal" id="deleteModal">-->
-<!--        <div class="modal-dialog">-->
-<!--            <div class="modal-content">-->
-<!--                <div class="container modal-body">-->
-<!--                    <form method="POST" action="">-->
-<!--                        {{ delete_form.hidden_tag() }}-->
-<!--                        <fieldset>-->
-<!--                            <legend style="font-size: 1.2rem;">Do you really want to delete the endpoint "{{ endpoint.endpoint_name }}"?</legend>-->
-<!--                            <div style="margin-top: 20px; text-align: right;">-->
-<!--                                {{ delete_form.delete }}-->
-<!--                                <button class="" data-dismiss="modal">Cancel</button>-->
-<!--                            </div>-->
-<!--                        </fieldset>-->
-<!--                    </form>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
+<!-- Delete Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="container modal-body">
+                    <form method="POST" action="">
+                        {{ delete_form.hidden_tag() }}
+                        <fieldset>
+                            <legend style="font-size: 1.2rem;">Do you really want to delete the endpoint "{{ func.endpoint_name }}"?</legend>
+                            <div style="margin-top: 20px; text-align: right;">
+                                {{ delete_form.delete }}
+                                <button class="" data-dismiss="modal">Cancel</button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <dl class="container VIEW-INFO">
