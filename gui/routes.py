@@ -65,7 +65,7 @@ def home():
 @guiapi.route('/error')
 # @authenticated
 def error():
-    return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+    return render_template('error.html', user=session.get('name'), title='404 Not Found')
 
 
 
@@ -106,14 +106,35 @@ def function_new():
 @guiapi.route('/function/<uuid>/edit', methods=['GET', 'POST'])
 # @authenticated
 def function_edit(uuid):
-    conn, cur = get_db_connection()
-    cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
-    func = cur.fetchone()
-    if func == None:
-        return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
+        func = cur.fetchone()
+        if func == None:
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
+    except:
+        flash('There was an issue handling your request.', 'danger')
+        return redirect(url_for('guiapi.function_view', uuid=uuid))
     name = func['function_name']
     form = EditForm()
     if form.validate_on_submit():
+        json = {'func': func['function_uuid'], 'name': form.name.data, 'desc': form.desc.data, 'entry_point': form.entry_point.data, 'code': form.code.data}
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
+        response = requests.post("http://dev.funcx.org/api/v1/update_function", headers={"Authorization": access_token}, json=json)
+        result = response.json()['result']
+        if result == 302:
+            flash(f'Saved Function "{form.name.data}"!', 'success')
+            return redirect(url_for('guiapi.function_view', uuid=uuid))
+        elif result == 403:
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
+        elif result == 404:
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        else:
+            flash('There was an issue handling your request.', 'danger')
+            # return redirect(url_for('guiapi.function_view', uuid=uuid))
+
         try:
             cur.execute("UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s", (form.name.data, form.desc.data, form.entry_point.data, form.code.data, uuid))
             conn.commit()
@@ -135,7 +156,7 @@ def function_view(uuid):
     cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
     func = cur.fetchone()
     if func == None:
-        return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+        return render_template('error.html', user=session.get('name'), title='404 Not Found')
     name = func['function_name']
     user_id = func['id']
 
@@ -172,8 +193,11 @@ def function_view(uuid):
             return redirect(url_for('guiapi.functions'))
         elif result == 403:
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
+        elif result == 404:
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
         else:
-            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+            flash('There was an issue handling your request.', 'danger')
+            # return redirect(url_for('guiapi.functions'))
 
     return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
 
@@ -239,8 +263,11 @@ def endpoint_view(endpoint_uuid):
             return redirect(url_for('guiapi.endpoints'))
         elif result == 403:
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
-        else:
+        elif result == 404:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        else:
+            flash('There was an issue handling your request.', 'danger')
+            # return redirect(url_for('guiapi.endpoints'))
 
     return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint, delete_form=delete_form)
 
@@ -281,7 +308,7 @@ def task_view(task_id):
                     (task_id,))
         task = cur.fetchone()
         if task == None:
-            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
         name = task['task_id']
     except:
         flash('There was an issue handling your request.', 'danger')
@@ -297,7 +324,7 @@ def function_tasks(uuid):
         cur.execute("SELECT function_uuid, function_name FROM functions WHERE function_uuid = %s", (uuid,))
         func = cur.fetchone()
         if func == None:
-            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
         func_name = func['function_name']
         cur.execute(
             "SELECT tasks.task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "

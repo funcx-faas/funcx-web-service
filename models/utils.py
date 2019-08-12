@@ -311,6 +311,57 @@ def get_redis_client():
     except Exception as e:
         print(e)
 
+def update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    function_uuid : str
+        The uuid of the function
+    function_name : str
+        The name of the function
+    function_desc : str
+        The description of the function
+    function_entry_point : str
+        The entry point of the function
+    function_code : str
+        The code of the function
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "302" for success and redirect
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted function
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
+            (function_uuid,))
+        func = cur.fetchone()
+        if func != None:
+            if func['deleted'] == False:
+                if func['username'] == user_name:
+                    cur.execute(
+                        "UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s",
+                        (function_name, function_desc, function_entry_point, function_code, function_uuid))
+                    conn.commit()
+                    return 302
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
+        return 500
+
+
 def delete_function(user_name, function_uuid):
     """Delete a function
 
@@ -349,6 +400,7 @@ def delete_function(user_name, function_uuid):
             return 404
     except Exception as e:
         print(e)
+        return 500
 
 
 def delete_endpoint(user_name, endpoint_uuid):
@@ -389,3 +441,4 @@ def delete_endpoint(user_name, endpoint_uuid):
             return 404
     except Exception as e:
         print(e)
+        return 500

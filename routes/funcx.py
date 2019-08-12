@@ -14,7 +14,7 @@ from errors import *
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
 from models.utils import resolve_function
-from models.utils import delete_function, delete_endpoint
+from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
@@ -461,6 +461,36 @@ def reg_function(user_name):
                         'reason': message})
 
     return jsonify({'function_uuid': function_uuid})
+
+
+@funcx_api.route("/update_function", methods=['POST'])
+@authenticated
+def update_function(user_name):
+    """Update the function.
+
+        Parameters
+        ----------
+        user_name : str
+            The primary identity of the user
+
+        Returns
+        -------
+        json
+            Dict containing the result as an integer
+        """
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        function_uuid = request.json["func"]
+        function_name = request.json["name"]
+        function_desc = request.json["desc"]
+        function_entry_point = request.json["entry_point"]
+        function_code = request.json["code"]
+        result = update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code)
+        return jsonify({'result': result})
+    except Exception as e:
+        app.logger.error(e)
 
 
 @funcx_api.route("/delete_function", methods=['POST'])
