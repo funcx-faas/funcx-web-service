@@ -206,7 +206,7 @@ def endpoints():
     return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
 
 
-@guiapi.route('/endpoint/<endpoint_uuid>/view')
+@guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
 # @authenticated
 def endpoint_view(endpoint_uuid):
 
