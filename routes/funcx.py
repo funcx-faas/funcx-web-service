@@ -14,7 +14,7 @@ from errors import *
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
 from models.utils import resolve_function
-from models.utils import delete_function
+from models.utils import delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
@@ -484,6 +484,31 @@ def del_function(user_name):
     try:
         function_uuid = request.json["func"]
         result = delete_function(user_name, function_uuid)
+        return jsonify({'result': result})
+    except Exception as e:
+        app.logger.error(e)
+
+@funcx_api.route("/delete_endpoint", methods=['POST'])
+@authenticated
+def del_endpoint(user_name):
+    """Delete the endpoint.
+
+        Parameters
+        ----------
+        user_name : str
+            The primary identity of the user
+
+        Returns
+        -------
+        json
+            Dict containing the result as an integer
+        """
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        endpoint_uuid = request.json["endpoint"]
+        result = delete_endpoint(user_name, endpoint_uuid)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)

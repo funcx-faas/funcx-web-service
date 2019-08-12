@@ -167,7 +167,7 @@ def function_view(uuid):
         access_token = "Bearer " + funcx_tokens['access_token']
         response = requests.post("http://dev.funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
         result = response.json()['result']
-        if result == 200:
+        if result == 302:
             flash(f'Deleted Function "{name}".', 'success')
             return redirect(url_for('guiapi.functions'))
         elif result == 403:
@@ -176,30 +176,6 @@ def function_view(uuid):
             return render_template('error.html', title='404 Page Not Found')
 
     return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
-
-
-@guiapi.route('/function/<uuid>/delete', methods=['GET'])
-@authenticated
-def function_delete(uuid):
-    # try:
-        conn, cur = get_db_connection()
-        cur.execute("SELECT function_name, username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
-        func = cur.fetchone()
-        if func['username'] == session.get('username'):
-            name = func['function_name']
-            if func['deleted'] == False:
-                cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (uuid,))
-                conn.commit()
-        #         flash(f'Deleted Function "{name}".', 'success')
-        #     else:
-        #         flash('There was an issue handling your request.', 'danger')
-        #         return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
-        # else:
-        #     return render_template('error.html', user=session.get('name'), title='403 Forbidden')
-    # except:
-    #     print("except")
-    #     flash('There was an issue handling your request.', 'danger')
-    # return redirect(url_for('functions'))
 
 
 @guiapi.route('/endpoints')
@@ -230,7 +206,7 @@ def endpoints():
     return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
 
 
-@guiapi.route('/endpoints/<endpoint_uuid>/view')
+@guiapi.route('/endpoint/<endpoint_uuid>/view')
 # @authenticated
 def endpoint_view(endpoint_uuid):
 
@@ -243,12 +219,30 @@ def endpoint_view(endpoint_uuid):
                     (endpoint_uuid,))
         endpoint = cur.fetchone()
         if endpoint == None:
-            return render_template('error.html', user=session.get('name'), title='404 Page Not Found')
-        endpoint_name = endpoint['endpoint_name']
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        name = endpoint['endpoint_name']
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.endpoints'))
-    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{endpoint_name}"', endpoint=endpoint, endpoint_name=endpoint_name)
+
+    delete_form = DeleteForm()
+    if delete_form.validate_on_submit() and delete_form.delete.data:
+        json = {'endpoint': endpoint['endpoint_uuid']}
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
+        response = requests.post("http://dev.funcx.org/api/v1/delete_endpoint", headers={"Authorization": access_token},
+                                 json=json)
+        result = response.json()['result']
+        if result == 302:
+            flash(f'Deleted Endpoint "{name}".', 'success')
+            return redirect(url_for('guiapi.endpoints'))
+        elif result == 403:
+            return render_template('error.html', title='403 Forbidden')
+        else:
+            return render_template('error.html', title='404 Not Found')
+
+    return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint)
 
 
 

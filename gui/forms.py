@@ -1,8 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Length
-# from models.utils import get_db_connection
-# from flask import current_app as app
 
 class EditForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
@@ -19,5 +17,4 @@ class ExecuteForm(FlaskForm):
     submit = SubmitField('Run')
 
 class DeleteForm(FlaskForm):
-
     delete = SubmitField('Delete')

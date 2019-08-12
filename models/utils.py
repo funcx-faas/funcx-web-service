@@ -325,14 +325,14 @@ def delete_function(user_name, function_uuid):
     -------
     str
         The result as a status code integer
-            "200" for success
+            "302" for success and redirect
             "403" for unauthorized
             "404" for a non-existent or previously-deleted function
     """
     try:
         conn, cur = get_db_connection()
         cur.execute(
-            "SELECT function_name, username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
+            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
             (function_uuid,))
         func = cur.fetchone()
         if func != None:
@@ -340,7 +340,47 @@ def delete_function(user_name, function_uuid):
                 if func['username'] == user_name:
                     cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
                     conn.commit()
-                    return 200
+                    return 302
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
+
+
+def delete_endpoint(user_name, endpoint_uuid):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    endpoint_uuid : str
+        The uuid of the endpoint
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "302" for success and redirect
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted endpoint
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT username, sites.deleted FROM sites, users WHERE endpoint_uuid = %s AND sites.user_id = users.id",
+            (endpoint_uuid,))
+        site = cur.fetchone()
+        if site != None:
+            if site['deleted'] == False:
+                if site['username'] == user_name:
+                    cur.execute("UPDATE sites SET deleted = True WHERE endpoint_uuid = %s", (endpoint_uuid,))
+                    conn.commit()
+                    return 302
                 else:
                     return 403
             else:
