@@ -491,6 +491,7 @@ def upd_function(user_name):
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
+        return jsonify({'result': 500})
 
 
 @funcx_api.route("/delete_function", methods=['POST'])
