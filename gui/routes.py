@@ -123,11 +123,11 @@ def function_edit(uuid):
         tokens = session.get("tokens")
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
-        response = requests.post("http://dev.funcx.org/api/v1/update_function", headers={"Authorization": access_token}, json=json)
-        app.logger.debug("[LOGGER] Response set")
-        app.logger.debug(response)
-        app.logger.debug(response.data)
-        app.logger.debug(response.text)
+        response = requests.post("http://dev.funcx.org/api/v1/upd_function", headers={"Authorization": access_token}, json=json)
+        # app.logger.debug("[LOGGER] Response set")
+        # app.logger.debug(response)
+        # app.logger.debug(response.data)
+        # app.logger.debug(response.text)
         result = response.json()['result']
         if result == 302:
             flash(f'Saved Function "{form.name.data}"!', 'success')
