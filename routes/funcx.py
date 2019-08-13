@@ -360,9 +360,8 @@ def reg_function(user_name):
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
-        container_uuid = None
-        if 'container' in request.json:
-            container_uuid = request.json["container"]
+        container_uuid = request.json.get("container_uuid", None)
+
     except Exception as e:
         app.logger.error(e)
 
