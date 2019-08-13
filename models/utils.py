@@ -336,6 +336,7 @@ def update_function(user_name, function_uuid, function_name, function_desc, func
             "302" for success and redirect
             "403" for unauthorized
             "404" for a non-existent or previously-deleted function
+            "500" for try statement error
     """
     try:
         conn, cur = get_db_connection()
@@ -379,6 +380,7 @@ def delete_function(user_name, function_uuid):
             "302" for success and redirect
             "403" for unauthorized
             "404" for a non-existent or previously-deleted function
+            "500" for try statement error
     """
     try:
         conn, cur = get_db_connection()
@@ -420,6 +422,7 @@ def delete_endpoint(user_name, endpoint_uuid):
             "302" for success and redirect
             "403" for unauthorized
             "404" for a non-existent or previously-deleted endpoint
+            "500" for try statement error
     """
     try:
         conn, cur = get_db_connection()

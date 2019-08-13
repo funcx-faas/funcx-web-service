@@ -148,7 +148,7 @@ class Forwarder(Process):
 
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(full_payload)
+                fu = self.executor.submit(full_payload, task_id=task_id)
 
             except zmq.error.Again:
                 logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")

@@ -463,9 +463,9 @@ def reg_function(user_name):
     return jsonify({'function_uuid': function_uuid})
 
 
-@funcx_api.route("/update_function", methods=['POST'])
+@funcx_api.route("/upd_function", methods=['POST'])
 @authenticated
-def update_function(user_name):
+def upd_function(user_name):
     """Update the function.
 
         Parameters
@@ -488,9 +488,12 @@ def update_function(user_name):
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
         result = update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code)
+        # app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:
+        # app.logger.debug("[LOGGER] funcx.py try statement failed.")
         app.logger.error(e)
+        return jsonify({'result': 500})
 
 
 @funcx_api.route("/delete_function", methods=['POST'])
