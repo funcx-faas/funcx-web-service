@@ -488,8 +488,10 @@ def upd_function(user_name):
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
         result = update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code)
+        app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:
+        app.logger.debug("[LOGGER] funcx.py try statement failed.")
         app.logger.error(e)
         return jsonify({'result': 500})
 
