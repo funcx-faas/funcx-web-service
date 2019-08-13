@@ -88,8 +88,6 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
-    app.logger.debug("Got function body :{}".format(fn_code))
-    app.logger.debug("Got function entry :{}".format(fn_entry))
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
     # At this point the packed function body and the args are concatable strings
@@ -365,7 +363,7 @@ def reg_function(user_name):
     except Exception as e:
         app.logger.error(e)
 
-    app.logger.debug(f"Registering function {function_name}")
+    app.logger.debug(f"Registering function {function_name} with container {container_uuid}")
 
     try:
         function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
