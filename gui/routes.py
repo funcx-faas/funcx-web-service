@@ -222,7 +222,7 @@ def function_delete(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
