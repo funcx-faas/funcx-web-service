@@ -220,7 +220,7 @@ def function_view(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
@@ -236,11 +236,15 @@ def endpoints():
         endpoints_offline_all = cur.fetchall()
         endpoints_offline = len(endpoints_offline_all)
 
+        cur.execute("SELECT endpoint_uuid FROM sites WHERE sites.public = 't';")
+        endpoints_public_all = cur.fetchall()
+        endpoints_public = len(endpoints_public_all)
+
         numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, endpoints_public=endpoints_public, numPages=numPages)
 
 
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
