@@ -9,7 +9,7 @@
 
         <section class="container TABLE-INFO PADDING-0">
             <div class="row SIDE-MARGIN-0">
-                <div class="col PADDING-0">
+                <div class="col-3 PADDING-0">
                     {% if (endpoints_online + endpoints_offline) == 1 %}
                         <span class="TABLE-TOTAL">You have 1 private endpoint.</span>
                     {% else %}
@@ -17,12 +17,16 @@
                     {% endif %}
                     <span class="TABLE-SUBTOTAL">Online: {{ endpoints_online }}</span>
                     <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_offline }}</span>
-                    <br/>
+                </div>
+
+                <div class="col PADDING-0">
                     {% if endpoints_public == 1 %}
                         <span class="TABLE-TOTAL">There is 1 public endpoint.</span>
                     {% else %}
                         <span class="TABLE-TOTAL">There are {{ endpoints_public }} public endpoints.</span>
                     {% endif %}
+                    <span class="TABLE-SUBTOTAL">Online: {{ endpoints_public_online }}</span>
+                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_public_offline }}</span>
                 </div>
 
                 <nav class="col PADDING-0 FLEX-RIGHT FLEX-BOTTOM">
