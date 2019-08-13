@@ -15,8 +15,23 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    return render_template('start.html', title='Start')
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT tasks.created_at, tasks.modified_at FROM tasks;")
+        all_tasks = cur.fetchall()
+        times = list()
+        for task in all_tasks:
+            times.append(task['modified_at'] - task['created_at'])
+            count = timedelta(hours=0)
+        for time in times:
+            count += time
+            total_CPU = round((count.total_seconds() / 3600.0), 2)
 
+    except:
+        flash('There was an issue handling your request.', 'danger')
+
+    return render_template('start.html', title='Start', total_CPU=total_CPU)
 
 @guiapi.route('/debug')
 def debug():
@@ -205,7 +220,7 @@ def function_view(uuid):
 def endpoints():
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 

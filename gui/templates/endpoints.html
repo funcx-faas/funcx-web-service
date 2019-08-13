@@ -40,6 +40,7 @@
                 <div class="col-5">Endpoint UUID</div>
                 <div class="col-2">Status</div>
                 <div class="col">Date Created</div>
+                <div class="col">Public/ Private</div>
             </div>
         </section>
 
@@ -70,9 +71,7 @@
                                             <div class="col-2 TABLE-COL-B text-primary">{{ site.status }}</div>
                                         {% endif %}
                                     <div class="col TABLE-COL">{{ site.created_at.date() }} {{ site.created_at.strftime('%X') }}</div>
-                                    <div class="col-1 TABLE-COL" style="text-align: center;">
-                                        <a class="TABLE-DELETE" href="">&times;</a>
-                                    </div>
+                                    <div class="col TABLE-COL">{{ site.public }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}
