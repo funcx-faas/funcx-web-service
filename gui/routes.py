@@ -15,7 +15,42 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    return render_template('start.html', title='Start')
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT tasks.created_at, tasks.modified_at FROM tasks;")
+        all_tasks = cur.fetchall()
+        times = list()
+        for task in all_tasks:
+            times.append(task['modified_at'] - task['created_at'])
+            count = timedelta(hours=0)
+        for time in times:
+            count += time
+        total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
+    except:
+        flash('There was an issue handling your request.', 'danger')
+    return render_template('start.html', title='Start', total_CPU=total_CPU)
+
+
+def num_delimiter(num, type):
+    num = str(num)
+    decimal = len(num)
+    if type == "decimal":
+        decimal = None
+        for i in num:
+            if i == ".":
+                decimal = num.index(i)
+                break
+        if decimal == None:
+            num = num + ".00"
+            decimal = num.index(".")
+        while num[-3] != ".":
+            num = num + "0"
+    i = decimal - 3
+    while i > 0:
+        num = num[:i] + "," + num[i:]
+        i -= 3
+    return num
 
 
 @guiapi.route('/debug')
@@ -41,13 +76,13 @@ def home():
         conn, cur = get_db_connection()
         cur.execute("SELECT count(functions.id) FROM functions, users WHERE functions.user_id = users.id AND users.username = %s", (session.get("username"),))
         executions = cur.fetchone()
-        stats[0] = executions['count']
+        stats[0] = num_delimiter(executions['count'], "int")
 
         cur.execute(
             "SELECT tasks.created_at, tasks.modified_at FROM tasks, users WHERE cast(tasks.user_id as integer) = users.id AND users.username = %s",
             (session.get("username"),))
         tasks = cur.fetchall()
-        stats[1] = len(tasks)
+        stats[1] = num_delimiter(len(tasks), "int")
         if len(tasks) != 0:
             times = list()
             for task in tasks:
@@ -55,7 +90,7 @@ def home():
             count = timedelta(hours=0)
             for time in times:
                 count += time
-            stats[2] = round((count.total_seconds() / 3600.0), 2)
+            stats[2] = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
@@ -124,10 +159,6 @@ def function_edit(uuid):
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
         response = requests.post("http://dev.funcx.org/api/v1/upd_function", headers={"Authorization": access_token}, json=json)
-        # app.logger.debug("[LOGGER] Response set")
-        # app.logger.debug(response)
-        # app.logger.debug(response.data)
-        # app.logger.debug(response.text)
         result = response.json()['result']
         if result == 302:
             flash(f'Saved Function "{form.name.data}"!', 'success')
@@ -144,7 +175,7 @@ def function_edit(uuid):
     form.desc.data = func['description']
     form.entry_point.data = func['entry_point']
     form.code.data = func['function_code']
-    return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
+    return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{name}"', func=func, form=form, cancel_route="view")
 
 
 @guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
@@ -159,14 +190,13 @@ def function_view(uuid):
     user_id = func['id']
 
     execute_form = ExecuteForm()
-    # execute_form.func.data = func['function_uuid']
     cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
-    endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
+    # endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
@@ -204,8 +234,9 @@ def function_view(uuid):
 # @authenticated
 def endpoints():
     try:
+        # private endpoints
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at FROM sites, users WHERE sites.user_id = users.id AND users.username = %s AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
 
@@ -221,17 +252,34 @@ def endpoints():
         endpoints_offline_all = cur.fetchall()
         endpoints_offline = len(endpoints_offline_all)
 
+        # public endpoints
+        cur.execute("SELECT endpoint_uuid FROM sites WHERE sites.public = 't' AND sites.deleted = 'f' and endpoint_uuid is not null;")
+        endpoints_public_all = cur.fetchall()
+        endpoints_public = len(endpoints_public_all)
+
+        cur.execute(
+            "select endpoint_uuid from sites where sites.public = 't' and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
+        endpoints_public_online_all = cur.fetchall()
+        endpoints_public_online = len(endpoints_public_online_all)
+
+        cur.execute(
+            "select endpoint_uuid from sites where sites.public = 't' and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
+        endpoints_public_offline_all = cur.fetchall()
+        endpoints_public_offline = len(endpoints_public_offline_all)
+
         numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline, numPages=numPages)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints,
+                           endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline,
+                           endpoints_public=endpoints_public, endpoints_public_online=endpoints_public_online, endpoints_public_offline=endpoints_public_offline,
+                           numPages=numPages)
 
 
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
 # @authenticated
 def endpoint_view(endpoint_uuid):
-
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT sites.id, sites.user_id, sites.created_at, sites.status, sites.endpoint_name, sites.endpoint_uuid, sites.public, sites.deleted "

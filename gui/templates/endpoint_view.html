@@ -1,6 +1,6 @@
 {% extends 'layout.html' %}
 {% block content %}
-    <h1 class="container PAGE-TITLE">Endpoints</h1>
+    <h1 class="container PAGE-TITLE">{{ endpoint.endpoint_name }}</h1>
     <section class="container PADDING-0">
         <div class="row">
             <div class="col">
@@ -44,7 +44,7 @@
                 <div class="VIEW-FIELD-B text-primary">{{ endpoint.status }}</div>
             {% endif %}
         </div>
-        <dt>Public/ Private </dt>
+        <dt>Privacy: </dt>
             {% if endpoint.public == false %}
                 <dd class="VIEW-FIELD">Private</dd>
             {% elif endpoint.status == true %}

@@ -10,14 +10,34 @@
         <section class="container TABLE-INFO PADDING-0">
             <div class="row SIDE-MARGIN-0">
                 <div class="col PADDING-0">
-                    {% if endpoints|length == 1 %}
-                        <span class="TABLE-TOTAL">You have 1 endpoint.</span>
-                    {% else %}
-                        <span class="TABLE-TOTAL">You have {{ endpoints_total }} endpoints.</span>
-                    {% endif %}
-                    <span class="TABLE-SUBTOTAL">Online: {{ endpoints_online }}</span>
-                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_offline }}</span>
+                    <div>
+                        {% if (endpoints_online + endpoints_offline) == 1 %}
+                            <span class="TABLE-TOTAL">You have 1 private endpoint </span>
+                        {% else %}
+                            <span class="TABLE-TOTAL">You have {{ endpoints_online + endpoints_offline }} private endpoints </span>
+                        {% endif %}
+                        <span class="TABLE-SUBTOTAL">({{ endpoints_online }} <span class="text-success">Online</span>, {{ endpoints_offline }} <span class="text-danger">Offline</span>).</span>
+    {#                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_offline }}</span>#}
+                    </div>
+                    <div>
+                        {% if endpoints_public == 1 %}
+                            <span class="TABLE-TOTAL">There is 1 public endpoint </span>
+                        {% else %}
+                            <span class="TABLE-TOTAL">There are {{ endpoints_public }} public endpoints </span>
+                        {% endif %}
+                        <span class="TABLE-SUBTOTAL">({{ endpoints_public_online }} <span class="text-success">Online</span>, {{ endpoints_public_offline }} <span class="text-danger">Offline</span>).</span>
+                    </div>
                 </div>
+
+{#                <div class="col PADDING-0">#}
+{#                    {% if endpoints_public == 1 %}#}
+{#                        <span class="TABLE-TOTAL">There is 1 public endpoint.</span>#}
+{#                    {% else %}#}
+{#                        <span class="TABLE-TOTAL">There are {{ endpoints_public }} public endpoints.</span>#}
+{#                    {% endif %}#}
+{#                    <span class="TABLE-SUBTOTAL">Online: {{ endpoints_public_online }}</span>#}
+{#                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_public_offline }}</span>#}
+{#                </div>#}
 
                 <nav class="col PADDING-0 FLEX-RIGHT FLEX-BOTTOM">
         {#            <a href="#">Previous</a>#}
@@ -36,10 +56,10 @@
 
         <section class="container PADDING-0">
             <div class="row TABLE-LABELS SIDE-MARGIN-0">
-                <div class="col-2">Endpoint Name</div>
-                <div class="col-5">Endpoint UUID</div>
+                <div class="col-5">Endpoint Name</div>
+                <div class="col-4">Endpoint UUID</div>
                 <div class="col-2">Status</div>
-                <div class="col">Date Created</div>
+                <div class="col">Privacy</div>
             </div>
         </section>
 
@@ -58,21 +78,24 @@
                             {% if num[0] < endpoints_total %}
                                 {% set site = endpoints[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
-                                    <div class="col-2 TABLE-COL-B">
+                                    <div class="col-5 TABLE-COL-B">
                                         <a href="{{ url_for('guiapi.endpoint_view', endpoint_uuid=site.endpoint_uuid) }}">{{ site.endpoint_name }}</a>
                                     </div>
-                                    <div class="col-5 TABLE-COL">{{ site.endpoint_uuid }}</div>
-                                        {% if site.status == 'ONLINE' %}
-                                            <div class="col-2 TABLE-COL-B text-success">{{ site.status }}</div>
-                                        {% elif site.status == 'OFFLINE' %}
-                                            <div class="col-2 TABLE-COL-B text-danger">{{ site.status }}</div>
-                                        {% else %}
-                                            <div class="col-2 TABLE-COL-B text-primary">{{ site.status }}</div>
-                                        {% endif %}
-                                    <div class="col TABLE-COL">{{ site.created_at.date() }} {{ site.created_at.strftime('%X') }}</div>
-                                    <div class="col-1 TABLE-COL" style="text-align: center;">
-                                        <a class="TABLE-DELETE" href="">&times;</a>
-                                    </div>
+                                    <div class="col-4 TABLE-COL">{{ site.endpoint_uuid }}</div>
+
+                                    {% if site.status == 'ONLINE' %}
+                                        <div class="col-2 TABLE-COL-B text-success">{{ site.status }}</div>
+                                    {% elif site.status == 'OFFLINE' %}
+                                        <div class="col-2 TABLE-COL-B text-danger">{{ site.status }}</div>
+                                    {% else %}
+                                        <div class="col-2 TABLE-COL-B text-primary">{{ site.status }}</div>
+                                    {% endif %}
+
+                                    {% if site.public == false %}
+                                        <div class="col TABLE-COL-B">Private</div>
+                                    {% elif site.public == true %}
+                                        <div class="col TABLE-COL-B">Public</div>
+                                    {% endif %}
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}

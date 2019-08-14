@@ -1,10 +1,10 @@
 {% extends 'layout.html' %}
 {% block content %}
-    <h1 class="container PAGE-TITLE">Tasks</h1>
+    <h1 class="container PAGE-TITLE">Task for "{{ task.function_name }}"</h1>
     <section class="container PADDING-0">
         <div class="row">
             <div class="col">
-                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=task.function_id) }}">View Other Tasks</a>
+                <a class="VIEW-OPTION" href="{{ url_for('guiapi.function_tasks', uuid=task.function_id) }}">View Related Tasks</a>
             </div>
             <div class="col FLEX-RIGHT">
                 <a href="{{ url_for('guiapi.functions', uuid=task.function_uuid) }}">View All Tasks</a>
