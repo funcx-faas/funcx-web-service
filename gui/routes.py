@@ -69,7 +69,7 @@ def debug():
 
 
 @guiapi.route('/home')
-@authenticated
+# @authenticated
 def home():
     stats = [0 for i in range(3)]
     try:
@@ -98,14 +98,14 @@ def home():
 
 
 @guiapi.route('/error')
-@authenticated
+# @authenticated
 def error():
     return render_template('error.html', user=session.get('name'), title='404 Not Found')
 
 
 
 @guiapi.route('/functions')
-@authenticated
+# @authenticated
 def functions():
     try:
         conn, cur = get_db_connection()
@@ -124,7 +124,7 @@ def getUUID():
 
 
 @guiapi.route('/function/new', methods=['GET', 'POST'])
-@authenticated
+# @authenticated
 def function_new():
     form = EditForm()
     if form.validate_on_submit():
@@ -139,7 +139,7 @@ def function_new():
 
 
 @guiapi.route('/function/<uuid>/edit', methods=['GET', 'POST'])
-@authenticated
+# @authenticated
 def function_edit(uuid):
     try:
         conn, cur = get_db_connection()
@@ -179,7 +179,7 @@ def function_edit(uuid):
 
 
 @guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
-@authenticated
+# @authenticated
 def function_view(uuid):
     conn, cur = get_db_connection()
     cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
@@ -231,7 +231,7 @@ def function_view(uuid):
 
 
 @guiapi.route('/endpoints')
-@authenticated
+# @authenticated
 def endpoints():
     try:
         # private endpoints
@@ -278,7 +278,7 @@ def endpoints():
 
 
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
-@authenticated
+# @authenticated
 def endpoint_view(endpoint_uuid):
     try:
         conn, cur = get_db_connection()
@@ -320,7 +320,7 @@ def endpoint_view(endpoint_uuid):
 
 
 @guiapi.route('/tasks')
-@authenticated
+# @authenticated
 def tasks():
     try:
         conn, cur = get_db_connection()
@@ -342,7 +342,7 @@ def tasks():
 
 
 @guiapi.route('/task/<task_id>/view')
-@authenticated
+# @authenticated
 def task_view(task_id):
 
     try:
@@ -363,7 +363,7 @@ def task_view(task_id):
 
 
 @guiapi.route('/function/<uuid>/tasks')
-@authenticated
+#@authenticated
 def function_tasks(uuid):
     try:
         conn, cur = get_db_connection()
