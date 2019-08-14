@@ -363,13 +363,13 @@ blockquote {
 }
 
 .TABLE-TOTAL {
-    display: block;
+    display: inline-block;
     margin-left: 14px;
 }
 
 .TABLE-SUBTOTAL {
-    display: block;
-    margin-left: 24px;
+    display: inline-block;
+    /*margin-left: 24px;*/
 }
 
 .PAGE-DROPDOWN-MENU {
@@ -509,7 +509,7 @@ blockquote {
     word-wrap: break-word;
 }
 
-.EXECUTE-TITLE {
+.EXECUTE-MODAL {
     margin-bottom: 20px;
     margin-top: 5px;
 }

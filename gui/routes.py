@@ -159,10 +159,6 @@ def function_edit(uuid):
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
         response = requests.post("http://dev.funcx.org/api/v1/upd_function", headers={"Authorization": access_token}, json=json)
-        # app.logger.debug("[LOGGER] Response set")
-        # app.logger.debug(response)
-        # app.logger.debug(response.data)
-        # app.logger.debug(response.text)
         result = response.json()['result']
         if result == 302:
             flash(f'Saved Function "{form.name.data}"!', 'success')
@@ -179,7 +175,7 @@ def function_edit(uuid):
     form.desc.data = func['description']
     form.entry_point.data = func['entry_point']
     form.code.data = func['function_code']
-    return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{form.name.data}"', func=func, form=form, cancel_route="view")
+    return render_template('function_edit.html', user=session.get('name'), title=f'Edit "{name}"', func=func, form=form, cancel_route="view")
 
 
 @guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
@@ -194,14 +190,13 @@ def function_view(uuid):
     user_id = func['id']
 
     execute_form = ExecuteForm()
-    # execute_form.func.data = func['function_uuid']
     cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
-    endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
+    # endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
