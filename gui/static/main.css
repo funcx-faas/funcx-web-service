@@ -180,7 +180,7 @@ header {
 }
 
 .BTN-OUTLINE-LIGHT .BTN-IMG {
-    filter: brightness(5);
+    filter: brightness(6);
 }
 
 .BTN-OUTLINE-LIGHT:hover .BTN-IMG {
@@ -232,7 +232,7 @@ header {
     background-color: rgb(250,250,250);
     /*display: inline-block;*/
     margin: 100px 0 60px;
-    padding: 40px 15% 40px 15%;
+    padding: 50px 15% 40px 15%;
     text-align: center;
     width: 100%;
 }
@@ -272,7 +272,7 @@ header {
 
 
 .CPU-NUMBER {
-    font-size: 50px;
+    font-size: 4rem;
     font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     color: rgb(64,64,64);
 }
@@ -280,7 +280,7 @@ header {
 
 .CPU-CAP {
     font-size: 20px;
-    font-weight: bold;
+    /*font-weight: bold;*/
     color: rgb(64,64,64);
 }
 

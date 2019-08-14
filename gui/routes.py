@@ -26,12 +26,32 @@ def start():
             count = timedelta(hours=0)
         for time in times:
             count += time
-            total_CPU = round((count.total_seconds() / 3600.0), 2)
-
+        total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
     except:
         flash('There was an issue handling your request.', 'danger')
-
     return render_template('start.html', title='Start', total_CPU=total_CPU)
+
+
+def num_delimiter(num, type):
+    num = str(num)
+    decimal = len(num)
+    if type == "decimal":
+        decimal = None
+        for i in num:
+            if i == ".":
+                decimal = num.index(i)
+                break
+        if decimal == None:
+            num = num + ".00"
+            decimal = num.index(".")
+        while num[-3] != ".":
+            num = num + "0"
+    i = decimal - 3
+    while i > 0:
+        num = num[:i] + "," + num[i:]
+        i -= 3
+    return num
+
 
 @guiapi.route('/debug')
 def debug():
@@ -56,13 +76,13 @@ def home():
         conn, cur = get_db_connection()
         cur.execute("SELECT count(functions.id) FROM functions, users WHERE functions.user_id = users.id AND users.username = %s", (session.get("username"),))
         executions = cur.fetchone()
-        stats[0] = executions['count']
+        stats[0] = num_delimiter(executions['count'], "int")
 
         cur.execute(
             "SELECT tasks.created_at, tasks.modified_at FROM tasks, users WHERE cast(tasks.user_id as integer) = users.id AND users.username = %s",
             (session.get("username"),))
         tasks = cur.fetchall()
-        stats[1] = len(tasks)
+        stats[1] = num_delimiter(len(tasks), "int")
         if len(tasks) != 0:
             times = list()
             for task in tasks:
@@ -70,7 +90,7 @@ def home():
             count = timedelta(hours=0)
             for time in times:
                 count += time
-            stats[2] = round((count.total_seconds() / 3600.0), 2)
+            stats[2] = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.start'))
@@ -246,7 +266,6 @@ def endpoints():
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
 # @authenticated
 def endpoint_view(endpoint_uuid):
-
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT sites.id, sites.user_id, sites.created_at, sites.status, sites.endpoint_name, sites.endpoint_uuid, sites.public, sites.deleted "
