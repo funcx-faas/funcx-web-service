@@ -23,7 +23,7 @@ def start():
         times = list()
         for task in all_tasks:
             times.append(task['modified_at'] - task['created_at'])
-            count = timedelta(hours=0)
+        count = timedelta(hours=0)
         for time in times:
             count += time
         total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
@@ -254,47 +254,37 @@ def endpoints():
     if 'username' not in session:
         return redirect(url_for('auth_api.login'))
     try:
-        # private endpoints
         conn, cur = get_db_connection()
-        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
-
-        cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
-            (session.get("username"),))
-        endpoints_online_all = cur.fetchall()
-        endpoints_online = len(endpoints_online_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
-            (session.get("username"),))
-        endpoints_offline_all = cur.fetchall()
-        endpoints_offline = len(endpoints_offline_all)
-
-        # public endpoints
-        cur.execute("SELECT endpoint_uuid FROM sites WHERE sites.public = 't' AND sites.deleted = 'f' and endpoint_uuid is not null;")
-        endpoints_public_all = cur.fetchall()
-        endpoints_public = len(endpoints_public_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites where sites.public = 't' and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
-        endpoints_public_online_all = cur.fetchall()
-        endpoints_public_online = len(endpoints_public_online_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites where sites.public = 't' and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
-        endpoints_public_offline_all = cur.fetchall()
-        endpoints_public_offline = len(endpoints_public_offline_all)
+        private_endpoints = list()
+        private_endpoints_total = 0
+        private_endpoints_online_total = 0
+        public_endpoints = list()
+        public_endpoints_total = 0
+        public_endpoints_online_total = 0
+        for endpoint in endpoints:
+            if endpoint['public'] is False:
+                private_endpoints_total += 1
+                if endpoint['status'] == "ONLINE":
+                    private_endpoints_online_total += 1
+            else:
+                public_endpoints_total += 1
+                if endpoint['status'] == "ONLINE":
+                    public_endpoints_online_total += 1
+        private_endpoints.append(private_endpoints_total)
+        private_endpoints.append(private_endpoints_online_total)
+        private_endpoints.append(private_endpoints_total - private_endpoints_online_total)
+        public_endpoints.append(public_endpoints_total)
+        public_endpoints.append(public_endpoints_online_total)
+        public_endpoints.append(public_endpoints_total - public_endpoints_online_total)
 
         numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints,
-                           endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline,
-                           endpoints_public=endpoints_public, endpoints_public_online=endpoints_public_online, endpoints_public_offline=endpoints_public_offline,
-                           numPages=numPages)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, private_endpoints=private_endpoints, public_endpoints=public_endpoints, numPages=numPages)
 
 
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
@@ -404,7 +394,7 @@ def function_tasks(uuid):
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         func_name = func['function_name']
         cur.execute(
-            "SELECT tasks.task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+            "SELECT task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
             "FROM tasks, sites, users, functions "
             "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
             "AND tasks.function_id = %s"
