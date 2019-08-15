@@ -98,6 +98,12 @@ def home():
     return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
+@guiapi.route('/about')
+def about():
+
+    return render_template('about.html', user=session.get('name'), title='About')
+
+
 @guiapi.route('/error')
 def error():
     if 'username' not in session:
@@ -204,13 +210,12 @@ def function_view(uuid):
         return redirect(url_for('guiapi.functions'))
 
     execute_form = ExecuteForm()
-    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
+    cur.execute("SELECT DISTINCT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND ((user_id = %s AND sites.public = false) OR (sites.public = true));",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
-    # endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}

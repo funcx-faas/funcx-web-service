@@ -47,7 +47,7 @@
         <dt>Privacy: </dt>
             {% if endpoint.public == false %}
                 <dd class="VIEW-FIELD">Private</dd>
-            {% elif endpoint.status == true %}
+            {% elif endpoint.public == true %}
                 <dd class="VIEW-FIELD">Public</dd>
             {% endif %}
         <dt>Date Created: </dt><dd class="VIEW-FIELD">{{ endpoint.created_at.date() }} {{ endpoint.created_at.strftime('%X') }}</dd>
