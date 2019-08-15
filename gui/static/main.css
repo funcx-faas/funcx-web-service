@@ -488,7 +488,7 @@ blockquote {
     resize: both;
     width: 48em;
     min-width: 48em;
-    max-width: 960px;
+    max-width: 100%;
 }
 
 .VIEW-RESULT {
@@ -540,6 +540,7 @@ blockquote {
 /* Error Pages */
 
 #ERROR-HEADING {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     font-size: 50px;
     font-weight: bold;
     margin-bottom: -10px !important;
