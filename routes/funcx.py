@@ -309,19 +309,24 @@ def register_endpoint_2(user_name):
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
         response = {'status' : 'error',
-                    'reason' : 'Missing Keys in json request {e}'.format(e)}
+                    'reason' : f'Missing Keys in json request {e}'}
+
+    except UserNotFound as e:
+        app.logger.debug(f"UserNotFound {e}")
+        response = {'status' : 'error',
+                    'reason' : f'UserNotFound {e}'}
+
     except Exception as e:
         app.logger.debug("Caught random error : {}".format(e))
         response = {'status' : 'error',
-                    'reason' : 'Caught error while registering endpoint {e}'.format(e)}
+                    'reason' : f'Caught error while registering endpoint {e}'}
 
     try:
         response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         response = {'status' : 'error',
-                    'reason' : 'Failed during broker start {e}'.format(e)}
-
+                    'reason' : f'Failed during broker start {e}'}
 
     return jsonify(response)
 
