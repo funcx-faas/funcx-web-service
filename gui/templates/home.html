@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="container">
-{#        <h2 class="HOME-SECTION-TITLE">Your User Statistics:</h2>#}
+
         <section class="row HOME-SECTION CENTER" style="margin-bottom: 30px; margin-top: 60px;">
             <div class="col">
                 <figure class="USER-STATS">
@@ -35,6 +35,18 @@
         <section class="HOME-SECTION HOME-NEWS">
             <h2 class="HOME-SECTION-TITLE">News & Updates</h2>
             <article class="HOME-NEWS" style="margin-bottom: 1rem;">
+                <h3>New Changes: 8/15/19</h3>
+                <ul>- Total Core Hours are counted on the start page.</ul>
+                <ul>- Public endpoints are visible in their table and on the run modal.</ul>
+                <ul>- There is an inaccessible about page that needs to be filled in.</ul>
+                <ul>- The start page and navbar now feature a link to the funcX paper.</ul>
+                <ul>- Authorization is now set up. You must be logged in to access all pages but the start page. Function, endpoint, and task pages can only be accessed by the person who create them.</ul>
+                <ul>- The website logo is now less pixellated and looks smoother.</ul>
+                <br>
+                <ul>- The website is now ready for use. Thanks for giving us this opportunity. Happy serverless supercomputing!</ul>
+                <span style="margin-left: 1rem;">- Avery and Teresa</span>
+            </article>
+            <article class="HOME-NEWS" style="margin-bottom: 1rem;">
                 <h3>New Changes: 8/12/19</h3>
                 <ul>- Functions can now be executed from the view page!</ul>
                 <ul>- Endpoints have their own view pages with information about them.</ul>
@@ -52,17 +64,6 @@
                 <span style="margin-left: 1rem;">- Avery and Teresa</span>
             </article>
         </section>
-
-{#        <section class="row HOME-SECTION">#}
-{#            <div class="col-4">#}
-{#                <blockquote class="text-muted">#}
-{#                    &quotfuncX aims to remove the barriers that exist between functions and large-scale computing infrastructure by simplifying execution of function-based workloads, enabling integration of HPC capabilities in applications and analysis pipelines, and ultimately increasing the usability of computing infrastructure.&quot#}
-{#                </blockquote>#}
-{#            </div>#}
-{#            <div class="col-8 FLEX-RIGHT">#}
-{#                <iframe width="672" height="378" src="https://www.youtube.com/embed/OX8njY7CKHo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="background-color:#d6eef8;"></iframe>#}
-{#            </div>#}
-{#        </section>#}
 
     </div>
 {% endblock %}

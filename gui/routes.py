@@ -53,19 +53,19 @@ def num_delimiter(num, type):
     return num
 
 
-@guiapi.route('/debug')
-def debug():
-    session.update(
-        username='ryan@globusid.org',
-        name='Ryan Chard'
-        # username='aschwartz417@uchicago.edu',
-        # name='Avery Schwartz'
-        # username='t-9lee3@uchicago.edu',
-        # name='Teresa Lee'
-        # username='skluzacek@uchicago.edu',
-        # name='Tyler Skluzacek'
-    )
-    return jsonify({'username': session.get("username")})
+# @guiapi.route('/debug')
+# def debug():
+#     session.update(
+#         username='ryan@globusid.org',
+#         name='Ryan Chard'
+#         # username='aschwartz417@uchicago.edu',
+#         # name='Avery Schwartz'
+#         # username='t-9lee3@uchicago.edu',
+#         # name='Teresa Lee'
+#         # username='skluzacek@uchicago.edu',
+#         # name='Tyler Skluzacek'
+#     )
+#     return jsonify({'username': session.get("username")})
 
 
 @guiapi.route('/home')
@@ -98,19 +98,9 @@ def home():
     return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
-@guiapi.route('/about')
-def about():
-
-    return render_template('about.html', user=session.get('name'), title='About')
-
-
-@guiapi.route('/error')
-def error():
-    if 'username' not in session:
-        return redirect(url_for('auth_api.login'))
-    return render_template('error.html', user=session.get('name'), title='404 Not Found')
-
-
+# @guiapi.route('/about')
+# def about():
+#     return render_template('about.html', user=session.get('name'), title='About')
 
 @guiapi.route('/functions')
 def functions():

@@ -58,16 +58,6 @@ header {
     align-items: flex-end;
 }
 
-.DEV-NOTE {
-    background-color: rgb(245,245,245);
-    border-radius: 1rem;
-    overflow-wrap: break-spaces;
-    padding: 8px;
-    /*width: 100%;*/
-    word-wrap: break-spaces;
-    /*word-break: break-word;*/
-}
-
 
 
 /* LAYOUT */
