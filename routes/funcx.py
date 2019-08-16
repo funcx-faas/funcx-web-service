@@ -88,102 +88,21 @@ def submit(user_name):
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
 
-    app.logger.debug("Got function body :{}".format(fn_code))
-    app.logger.debug("Got function entry :{}".format(fn_entry))
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
     app.logger.debug("Payload : {}".format(payload))
 
-    g.redis_task_queue.put(endpoint, task_id, payload)
+    task_header = task_id
+    if container_uuid :
+        task_header.append(';' + container_uuid)
+
+    g.redis_task_queue.put(endpoint, task_header, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
-
-
-@funcx_api.route('/execute', methods=['POST'])
-@authenticated
-def execute(user_name):
-    """Puts a job in Redis and returns an id
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-
-    Returns
-    -------
-    json
-        The task document
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    app.logger.debug(f"Received task from user: {user_name}")
-    try:
-        post_req = request.json
-        endpoint = post_req['endpoint']
-        function_uuid = post_req['func']
-        input_data = post_req['data']
-
-        endpoint_authorized = False
-        # Check if the user has already used this endpoint
-        if caching and endpoint in endpoint_cache:
-            if user_name in endpoint_cache[endpoint]:
-                endpoint_authorized = True
-        if not endpoint_authorized:
-            # Check if the user's token is allowed to access the endpoint
-            token = request.headers.get('Authorization')
-            token = str.replace(str(token), 'Bearer ', '')
-
-            endpoint_authorized = authorize_endpoint(user_name, endpoint, token)
-            # Throw an unauthorized error if they are not allowed
-            if not endpoint_authorized:
-                return jsonify({"Error": "Unauthorized access of endpoint."}), 400
-
-            # Otherwise, cache it for next time
-            if caching:
-                if endpoint not in endpoint_cache:
-                    endpoint_cache[endpoint] = {}
-                endpoint_cache[endpoint][user_name] = True
-
-        task_status = 'ACTIVE'
-        task_id = str(uuid.uuid4())
-
-        if 'action_id' in post_req:
-            task_id = post_req['action_id']
-
-        app.logger.info("Task assigned UUID: {}".format(task_id))
-
-        # Get the redis connection
-        rc = get_redis_client()
-
-        user_id = resolve_user(user_name)
-
-        # Add the job to redis
-        task_payload = {'task_id': task_id,
-                        'endpoint_id': endpoint,
-                        'function_id': function_uuid,
-                        'input_data': input_data,
-                        'user_name': user_name,
-                        'user_id': user_id,
-                        'created_at': time.time(),
-                        'status': task_status}
-
-        rc.set(f"task:{task_id}", json.dumps(task_payload))
-
-        # Add the task to the redis queue
-        rc.rpush("task_list", task_id)
-
-    except Exception as e:
-        app.logger.error(e)
-
-    return jsonify({'task_id': task_id})
-
 
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
@@ -394,19 +313,24 @@ def register_endpoint_2(user_name):
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
         response = {'status' : 'error',
-                    'reason' : 'Missing Keys in json request {e}'.format(e)}
+                    'reason' : f'Missing Keys in json request {e}'}
+
+    except UserNotFound as e:
+        app.logger.debug(f"UserNotFound {e}")
+        response = {'status' : 'error',
+                    'reason' : f'UserNotFound {e}'}
+
     except Exception as e:
         app.logger.debug("Caught random error : {}".format(e))
         response = {'status' : 'error',
-                    'reason' : 'Caught error while registering endpoint {e}'.format(e)}
+                    'reason' : f'Caught error while registering endpoint {e}'}
 
     try:
         response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         response = {'status' : 'error',
-                    'reason' : 'Failed during broker start {e}'.format(e)}
-
+                    'reason' : f'Failed during broker start {e}'}
 
     return jsonify(response)
 
@@ -443,13 +367,12 @@ def reg_function(user_name):
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
-        container_uuid = None
-        if 'container' in request.json:
-            container_uuid = request.json["container"]
+        container_uuid = request.json.get("container_uuid", None)
+
     except Exception as e:
         app.logger.error(e)
 
-    app.logger.debug(f"Registering function {function_name}")
+    app.logger.debug(f"Registering function {function_name} with container {container_uuid}")
 
     try:
         function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)

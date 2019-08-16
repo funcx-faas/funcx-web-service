@@ -92,12 +92,14 @@ class Forwarder(Process):
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
 
-    def handle_app_update(self, task_id, future):
+    def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
 
         This can be further optimized at the executor level, where we trigger this
         or a similar function when we see a results item inbound from the interchange.
         """
+
+        task_id = task_header.split(';')[0]
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res = future.result()
