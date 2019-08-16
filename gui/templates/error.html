@@ -11,14 +11,12 @@
         </div>
         {% if title == '404 Not Found' %}
             <div id="ERROR-MESSAGE">
-                &lt;p>Sorry, the requested resource cannot be found.&lt;/p><br>
-                &lt;p>You may return to your <a href ="{{ url_for('guiapi.home') }}"><u>home page</u></a>.&lt;/p>
-            </div>
+                Sorry, the requested resource cannot be found.<br>
         {% elif title == '403 Forbidden' %}
             <div id="ERROR-MESSAGE">
-                &lt;p>You do not have access to the requested URL.&lt;/p><br>
-                &lt;p>You may return to your <a href ="{{ url_for('guiapi.home') }}"><u>home page</u></a>.&lt;/p>
-            </div>
+                You do not have access to the requested URL.<br>
         {% endif %}
+                Return to the home page <a href ="{{ url_for('guiapi.home') }}"><u>here</u></a>.
+            </div>
     </div>
 {% endblock %}

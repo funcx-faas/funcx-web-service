@@ -58,16 +58,6 @@ header {
     align-items: flex-end;
 }
 
-.DEV-NOTE {
-    background-color: rgb(245,245,245);
-    border-radius: 1rem;
-    overflow-wrap: break-spaces;
-    padding: 8px;
-    /*width: 100%;*/
-    word-wrap: break-spaces;
-    /*word-break: break-word;*/
-}
-
 
 
 /* LAYOUT */
@@ -228,11 +218,9 @@ header {
     width: 90%;
 }
 
-#BANNER-SHADED {
+.BANNER-SHADED {
     background-color: rgb(250,250,250);
     /*display: inline-block;*/
-    margin: 100px 0 60px;
-    padding: 50px 15% 40px 15%;
     text-align: center;
     width: 100%;
 }
@@ -353,7 +341,22 @@ blockquote {
     font-style: italic;
 }
 
+/*About*/
 
+.ABOUT-TEXT {
+    font-size: 1.2rem;
+}
+
+.ABOUT-BANNER-TEXT {
+    font-size: 1.4rem;
+    font-family: arial;
+}
+
+.DIVIDE-SMALL {
+    border-top: 1px solid rgb(227,227,227);
+    margin: 30px auto 30px auto;
+    width: 90%;
+}
 
 /* Table Pages */
 
@@ -488,7 +491,7 @@ blockquote {
     resize: both;
     width: 48em;
     min-width: 48em;
-    max-width: 960px;
+    max-width: 100%;
 }
 
 .VIEW-RESULT {
@@ -540,6 +543,7 @@ blockquote {
 /* Error Pages */
 
 #ERROR-HEADING {
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     font-size: 50px;
     font-weight: bold;
     margin-bottom: -10px !important;

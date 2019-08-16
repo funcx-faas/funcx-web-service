@@ -23,7 +23,7 @@ def start():
         times = list()
         for task in all_tasks:
             times.append(task['modified_at'] - task['created_at'])
-            count = timedelta(hours=0)
+        count = timedelta(hours=0)
         for time in times:
             count += time
         total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
@@ -53,24 +53,25 @@ def num_delimiter(num, type):
     return num
 
 
-@guiapi.route('/debug')
-def debug():
-    session.update(
-        # username='ryan@globusid.org',
-        # name='Ryan Chard'
-        # username='aschwartz417@uchicago.edu',
-        # name='Avery Schwartz'
-        # username='t-9lee3@uchicago.edu',
-        # name='Teresa Lee'
-        # username='skluzacek@uchicago.edu',
-        # name='Tyler Skluzacek'
-    )
-    return jsonify({'username': session.get("username")})
+# @guiapi.route('/debug')
+# def debug():
+#     session.update(
+#         username='ryan@globusid.org',
+#         name='Ryan Chard'
+#         # username='aschwartz417@uchicago.edu',
+#         # name='Avery Schwartz'
+#         # username='t-9lee3@uchicago.edu',
+#         # name='Teresa Lee'
+#         # username='skluzacek@uchicago.edu',
+#         # name='Tyler Skluzacek'
+#     )
+#     return jsonify({'username': session.get("username")})
 
 
 @guiapi.route('/home')
-# @authenticated
 def home():
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     stats = [0 for i in range(3)]
     try:
         conn, cur = get_db_connection()
@@ -97,16 +98,14 @@ def home():
     return render_template('home.html', user=session.get('name'), title='Home', stats=stats)
 
 
-@guiapi.route('/error')
-# @authenticated
-def error():
-    return render_template('error.html', user=session.get('name'), title='404 Not Found')
-
-
+# @guiapi.route('/about')
+# def about():
+#     return render_template('about.html', user=session.get('name'), title='About')
 
 @guiapi.route('/functions')
-# @authenticated
 def functions():
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT function_name, timestamp, modified_at, function_uuid FROM functions, users WHERE functions.user_id = users.id AND users.username = %s AND functions.deleted = False ORDER BY functions.id desc", (session.get("username"),))
@@ -124,8 +123,9 @@ def getUUID():
 
 
 @guiapi.route('/function/new', methods=['GET', 'POST'])
-# @authenticated
 def function_new():
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     form = EditForm()
     if form.validate_on_submit():
         name = form.name.data
@@ -139,14 +139,17 @@ def function_new():
 
 
 @guiapi.route('/function/<uuid>/edit', methods=['GET', 'POST'])
-# @authenticated
 def function_edit(uuid):
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
         cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
         func = cur.fetchone()
         if func == None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        if func['username'] != session.get('username'):
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.function_view', uuid=uuid))
@@ -179,24 +182,30 @@ def function_edit(uuid):
 
 
 @guiapi.route('/function/<uuid>/view', methods=['GET', 'POST'])
-# @authenticated
 def function_view(uuid):
-    conn, cur = get_db_connection()
-    cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
-    func = cur.fetchone()
-    if func == None:
-        return render_template('error.html', user=session.get('name'), title='404 Not Found')
-    name = func['function_name']
-    user_id = func['id']
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
+    try:
+        conn, cur = get_db_connection()
+        cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
+        func = cur.fetchone()
+        if func == None:
+            return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        if func['username'] != session.get('username'):
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
+        name = func['function_name']
+        user_id = func['id']
+    except:
+        flash('There was an issue handling your request.', 'danger')
+        return redirect(url_for('guiapi.functions'))
 
     execute_form = ExecuteForm()
-    cur.execute("SELECT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND user_id = %s;",
+    cur.execute("SELECT DISTINCT endpoint_name, endpoint_uuid FROM sites WHERE endpoint_uuid IS NOT NULL AND ((user_id = %s AND sites.public = false) OR (sites.public = true));",
                 (user_id,))
     endpoints = cur.fetchall()
     endpoint_uuids = list()
     for endpoint in endpoints:
         endpoint_uuids.append((endpoint['endpoint_uuid'], endpoint['endpoint_name']))
-    # endpoint_uuids.append(("a92945a1-2778-4417-8cd1-4957bc35ce66", "dlhub-endpoint-deployment-6bb559f4f-v7g77"))
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
@@ -231,65 +240,61 @@ def function_view(uuid):
 
 
 @guiapi.route('/endpoints')
-# @authenticated
 def endpoints():
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
-        # private endpoints
         conn, cur = get_db_connection()
-        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, sites.public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
-
-        cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
-            (session.get("username"),))
-        endpoints_online_all = cur.fetchall()
-        endpoints_online = len(endpoints_online_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites, users where user_id = users.id and username = %s and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",
-            (session.get("username"),))
-        endpoints_offline_all = cur.fetchall()
-        endpoints_offline = len(endpoints_offline_all)
-
-        # public endpoints
-        cur.execute("SELECT endpoint_uuid FROM sites WHERE sites.public = 't' AND sites.deleted = 'f' and endpoint_uuid is not null;")
-        endpoints_public_all = cur.fetchall()
-        endpoints_public = len(endpoints_public_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites where sites.public = 't' and status='ONLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
-        endpoints_public_online_all = cur.fetchall()
-        endpoints_public_online = len(endpoints_public_online_all)
-
-        cur.execute(
-            "select endpoint_uuid from sites where sites.public = 't' and status='OFFLINE' AND sites.deleted = 'f' and endpoint_uuid is not null",)
-        endpoints_public_offline_all = cur.fetchall()
-        endpoints_public_offline = len(endpoints_public_offline_all)
+        private_endpoints = list()
+        private_endpoints_total = 0
+        private_endpoints_online_total = 0
+        public_endpoints = list()
+        public_endpoints_total = 0
+        public_endpoints_online_total = 0
+        for endpoint in endpoints:
+            if endpoint['public'] is False:
+                private_endpoints_total += 1
+                if endpoint['status'] == "ONLINE":
+                    private_endpoints_online_total += 1
+            else:
+                public_endpoints_total += 1
+                if endpoint['status'] == "ONLINE":
+                    public_endpoints_online_total += 1
+        private_endpoints.append(private_endpoints_total)
+        private_endpoints.append(private_endpoints_online_total)
+        private_endpoints.append(private_endpoints_total - private_endpoints_online_total)
+        public_endpoints.append(public_endpoints_total)
+        public_endpoints.append(public_endpoints_online_total)
+        public_endpoints.append(public_endpoints_total - public_endpoints_online_total)
 
         numPages = ceil(endpoints_total / 30)
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.home'))
-    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints,
-                           endpoints_total=endpoints_total, endpoints_online=endpoints_online, endpoints_offline=endpoints_offline,
-                           endpoints_public=endpoints_public, endpoints_public_online=endpoints_public_online, endpoints_public_offline=endpoints_public_offline,
-                           numPages=numPages)
+    return render_template('endpoints.html', user=session.get('name'), title='Endpoints', endpoints=endpoints, endpoints_total=endpoints_total, private_endpoints=private_endpoints, public_endpoints=public_endpoints, numPages=numPages)
 
 
 @guiapi.route('/endpoint/<endpoint_uuid>/view', methods=['GET', 'POST'])
-# @authenticated
 def endpoint_view(endpoint_uuid):
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT sites.id, sites.user_id, sites.created_at, sites.status, sites.endpoint_name, sites.endpoint_uuid, sites.public, sites.deleted "
-                    "FROM sites "
-                    "WHERE sites.endpoint_uuid = %s "
-                    "AND endpoint_name IS NOT NULL AND deleted = 'f';",
-                    (endpoint_uuid,))
+        cur.execute(
+            "SELECT sites.id, sites.user_id, sites.created_at, status, endpoint_name, endpoint_uuid, public, sites.deleted, username "
+            "FROM sites, users "
+            "WHERE sites.endpoint_uuid = %s "
+            "AND users.id = sites.user_id "
+            "AND endpoint_name IS NOT NULL AND sites.deleted = 'f';",
+            (endpoint_uuid,))
         endpoint = cur.fetchone()
         if endpoint == None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        if endpoint['username'] != session.get('username') and endpoint['public'] is False:
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         name = endpoint['endpoint_name']
     except:
         flash('There was an issue handling your request.', 'danger')
@@ -320,14 +325,14 @@ def endpoint_view(endpoint_uuid):
 
 
 @guiapi.route('/tasks')
-# @authenticated
 def tasks():
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-
         cur.execute("SELECT tasks.id, users.id, cast(tasks.user_id as integer), tasks.task_id, results.result, tasks.status, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
                     "FROM results, tasks, users, functions, sites "
-                    "WHERE results.task_id = tasks.task_id AND users.id = cast(tasks.user_id as integer) AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id  "
+                    "WHERE results.task_id = tasks.task_id AND users.id = cast(tasks.user_id as integer) AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id "
                     "AND function_id IS NOT NULL AND users.username = %s "
                     "ORDER by tasks.id desc",
                     (session.get("username"),))
@@ -342,19 +347,22 @@ def tasks():
 
 
 @guiapi.route('/task/<task_id>/view')
-# @authenticated
 def task_view(task_id):
-
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT tasks.id, tasks.user_id, tasks.task_id, tasks.status, results.result, tasks.created_at, tasks.modified_at, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name "
-                    "FROM tasks, results, sites, functions "
-                    "WHERE results.task_id = tasks.task_id AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id AND tasks.task_id = %s "
-                    "AND function_id IS NOT NULL;",
-                    (task_id,))
+        cur.execute(
+            "SELECT tasks.id, tasks.user_id, tasks.task_id, tasks.status, results.result, tasks.created_at, tasks.modified_at, tasks.function_id, functions.function_name, tasks.endpoint_id, sites.endpoint_name, username "
+            "FROM tasks, results, sites, functions, users "
+            "WHERE results.task_id = tasks.task_id AND sites.endpoint_uuid = tasks.endpoint_id AND functions.function_uuid = tasks.function_id AND tasks.task_id = %s AND cast(tasks.user_id as integer) = users.id "
+            "AND function_id IS NOT NULL;",
+            (task_id,))
         task = cur.fetchone()
         if task == None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        if task['username'] != session.get('username'):
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         name = task['task_id']
     except:
         flash('There was an issue handling your request.', 'danger')
@@ -363,17 +371,20 @@ def task_view(task_id):
 
 
 @guiapi.route('/function/<uuid>/tasks')
-#@authenticated
 def function_tasks(uuid):
+    if 'username' not in session:
+        return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_uuid, function_name FROM functions WHERE function_uuid = %s", (uuid,))
+        cur.execute("SELECT function_uuid, function_name, username FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
         func = cur.fetchone()
         if func == None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        if func['username'] != session.get('username'):
+            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
         func_name = func['function_name']
         cur.execute(
-            "SELECT tasks.task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
+            "SELECT task_id, cast(tasks.user_id as integer), tasks.function_id, functions.function_name, tasks.status, tasks.created_at, tasks.endpoint_id, sites.endpoint_name "
             "FROM tasks, sites, users, functions "
             "WHERE tasks.endpoint_id = sites.endpoint_uuid AND cast(tasks.user_id as integer) = users.id AND tasks.function_id = functions.function_uuid "
             "AND tasks.function_id = %s"
@@ -389,5 +400,3 @@ def function_tasks(uuid):
     except:
         return render_template('function_tasks.html', user=session.get('name'), title=f'Tasks of "{func_name}"')
     return render_template('function_tasks.html', user=session.get('name'), title=f'Tasks of "{func_name}"', func_tasks=func_tasks, tasks_total=tasks_total, func=func, numPages=numPages)
-
-
