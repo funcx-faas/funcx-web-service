@@ -11,21 +11,21 @@
             <div class="row SIDE-MARGIN-0">
                 <div class="col PADDING-0">
                     <div>
-                        {% if (endpoints_online + endpoints_offline) == 1 %}
+                        {% if private_endpoints[0] == 1 %}
                             <span class="TABLE-TOTAL">You have 1 private endpoint </span>
                         {% else %}
-                            <span class="TABLE-TOTAL">You have {{ endpoints_online + endpoints_offline }} private endpoints </span>
+                            <span class="TABLE-TOTAL">You have {{ private_endpoints[0] }} private endpoints </span>
                         {% endif %}
-                        <span class="TABLE-SUBTOTAL">({{ endpoints_online }} <span class="text-success">Online</span>, {{ endpoints_offline }} <span class="text-danger">Offline</span>).</span>
+                        <span class="TABLE-SUBTOTAL">({{ private_endpoints[1] }} <span class="text-success">Online</span>, {{ private_endpoints[2] }} <span class="text-danger">Offline</span>).</span>
     {#                    <span class="TABLE-SUBTOTAL">Offline: {{ endpoints_offline }}</span>#}
                     </div>
                     <div>
-                        {% if endpoints_public == 1 %}
-                            <span class="TABLE-TOTAL">There is 1 public endpoint </span>
+                        {% if public_endpoints[0] == 1 %}
+                            <span class="TABLE-TOTAL">You can access 1 public endpoint </span>
                         {% else %}
-                            <span class="TABLE-TOTAL">There are {{ endpoints_public }} public endpoints </span>
+                            <span class="TABLE-TOTAL">You can access {{ public_endpoints[0] }} public endpoints </span>
                         {% endif %}
-                        <span class="TABLE-SUBTOTAL">({{ endpoints_public_online }} <span class="text-success">Online</span>, {{ endpoints_public_offline }} <span class="text-danger">Offline</span>).</span>
+                        <span class="TABLE-SUBTOTAL">({{ public_endpoints[1] }} <span class="text-success">Online</span>, {{ public_endpoints[2] }} <span class="text-danger">Offline</span>).</span>
                     </div>
                 </div>
 
