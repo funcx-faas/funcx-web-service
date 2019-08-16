@@ -191,10 +191,38 @@ def resolve_user(user_name):
         query = "select * from users where username = %s limit 1"
         cur.execute(query, (user_name,))
         row = cur.fetchone()
-        return row['id']
+        if 'id' in row:
+            return row['id']
+        else:
+            # It failed to find the user so create a new record
+            return create_user(user_name)
     except Exception as e:
         app.logger.error(f"Failed to find user identity {user_name}. {e}")
         raise UserNotFound("User ID could not be resolved for user_name: {}".format(user_name))
+
+
+def create_user(user_name):
+    """Insert the user into the database and return the resulting id.
+
+    Parameters
+    ----------
+    user_name : str
+        The user's primary globus identity
+
+    Returns
+    -------
+    int the user's id in the database
+    """
+    try:
+        conn, cur = get_db_connection()
+        query = "insert into users (username) values (%s) returning id"
+        cur.execute(query, (user_name, ))
+        conn.commit()
+        row = cur.fetchone()
+        return row['id']
+    except Exception as e:
+        app.logger.error(f"Failed to create user identity {user_name}. {e}")
+        raise
 
 
 def resolve_function(user_id, function_uuid):
@@ -310,6 +338,7 @@ def get_redis_client():
         return redis_client
     except Exception as e:
         print(e)
+
 
 def update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code):
     """Delete a function

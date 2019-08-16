@@ -1,4 +1,5 @@
 from authentication.auth import get_auth_client
+from models.utils import resolve_user
 from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
@@ -40,9 +41,14 @@ def callback():
         tokens = client.oauth2_exchange_code_for_tokens(code)
         app.logger.debug(tokens)
         id_token = tokens.decode_id_token(client)
+
+        # Make sure the user exists in the database
+        user_id = resolve_user(id_token.get('preferred_username'))
+
         session.update(
             tokens=tokens.by_resource_server,
             username=id_token.get('preferred_username'),
+            user_id=user_id,
             name=id_token.get('name'),
             email=id_token.get('email'),
             is_authenticated=True
