@@ -209,32 +209,39 @@ def function_view(uuid):
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
-        tokens = session.get("tokens")
-        funcx_tokens = tokens['funcx_service']
-        access_token = "Bearer " + funcx_tokens['access_token']
+        # tokens = session.get("tokens")
+        # funcx_tokens = tokens['funcx_service']
+        # access_token = "Bearer " + funcx_tokens['access_token']
+        print("Sending Request")
         response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         task_id = response.json()['task_id']
         time.sleep(1)
         return redirect(url_for('guiapi.task_view', task_id=task_id))
+    else:
+        print(execute_form.validate_on_submit())
+        print(execute_form.submit.data)
+        print("nope")
 
     delete_form = DeleteForm()
     if delete_form.validate_on_submit() and delete_form.delete.data:
-        json = {'func': func['function_uuid']}
-        tokens = session.get("tokens")
-        funcx_tokens = tokens['funcx_service']
-        access_token = "Bearer " + funcx_tokens['access_token']
-        response = requests.post("http://dev.funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
-        result = response.json()['result']
-        if result == 302:
-            flash(f'Deleted Function "{name}".', 'success')
-            return redirect(url_for('guiapi.functions'))
-        elif result == 403:
-            return render_template('error.html', user=session.get('name'), title='403 Forbidden')
-        elif result == 404:
-            return render_template('error.html', user=session.get('name'), title='404 Not Found')
-        else:
-            flash('There was an issue handling your request.', 'danger')
-            # return redirect(url_for('guiapi.functions'))
+        print(delete_form.validate_on_submit())
+        print(delete_form.delete.data)
+        # json = {'func': func['function_uuid']}
+        # tokens = session.get("tokens")
+        # funcx_tokens = tokens['funcx_service']
+        # access_token = "Bearer " + funcx_tokens['access_token']
+        # response = requests.post("http://dev.funcx.org/api/v1/delete_function", headers={"Authorization": access_token}, json=json)
+        # result = response.json()['result']
+        # if result == 302:
+        #     flash(f'Deleted Function "{name}".', 'success')
+        #     return redirect(url_for('guiapi.functions'))
+        # elif result == 403:
+        #     return render_template('error.html', user=session.get('name'), title='403 Forbidden')
+        # elif result == 404:
+        #     return render_template('error.html', user=session.get('name'), title='404 Not Found')
+        # else:
+        #     flash('There was an issue handling your request.', 'danger')
+        #     # return redirect(url_for('guiapi.functions'))
 
     return render_template('function_view.html', user=session.get('name'), title=f'View "{name}"', func=func, execute_form=execute_form, delete_form=delete_form)
 

@@ -50,16 +50,18 @@
                 <div class="container modal-body EXECUTE-MODAL">
                     <form method="POST" action="">
                         {{ execute_form.hidden_tag() }}
-                        <dt>Function Name: </dt>
-                        <div class="EXECUTE-FIELD">{{ func.function_name }}</div>
-                        <dt>Function UUID: </dt>
-                        <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
-                        <dt>Endpoint Name: </dt>
-                        <div class="EXECUTE-FIELD">{{ execute_form.endpoint }}</div>
-        {#              <dt>Endpoint UUID: </dt>#}
-        {#              <div class="EXECUTE-FIELD"> {{ func.endpoint_uuid}} (Endpoint UUID will appear once the user chose the endpoint)</div>#}
-                        <dt>Payload: </dt>
-                        <dd>{{ execute_form.data(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
+                        <fieldset>
+                            <dt>Function Name: </dt>
+                            <div class="EXECUTE-FIELD">{{ func.function_name }}</div>
+                            <dt>Function UUID: </dt>
+                            <div class="EXECUTE-FIELD">{{ func.function_uuid }}</div>
+                            <dt>Endpoint Name: </dt>
+                            <div class="EXECUTE-FIELD">{{ execute_form.endpoint }}</div>
+            {#              <dt>Endpoint UUID: </dt>#}
+            {#              <div class="EXECUTE-FIELD"> {{ func.endpoint_uuid}} (Endpoint UUID will appear once the user chose the endpoint)</div>#}
+                            <dt>Payload: </dt>
+                            <dd>{{ execute_form.data(class="form-control EXECUTE-PAYLOAD", placeholder="Enter input") }}</dd>
+                        </fieldset>
                     </form>
                 </div>
 
