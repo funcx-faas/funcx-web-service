@@ -191,7 +191,7 @@ def resolve_user(user_name):
         query = "select * from users where username = %s limit 1"
         cur.execute(query, (user_name,))
         row = cur.fetchone()
-        if 'id' in row:
+        if row and 'id' in row:
             return row['id']
         else:
             # It failed to find the user so create a new record
