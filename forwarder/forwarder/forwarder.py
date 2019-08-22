@@ -52,6 +52,7 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, result_q, executor, endpoint_id,
+                 heartbeat_threshold=60,
                  logdir="forwarder_logs", logging_level=logging.INFO):
         """
         Params:
@@ -125,17 +126,12 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get(timeout=10)  # Timeout in seconds
+                task_id, task_info = self.task_q.get(timeout=self.heartbeat_threshold)  # Timeout in s
                 logger.debug("[TASKS] Got task_id {}".format(task_id))
 
             except queue.Empty:
-                # This exception catching isn't very general,
-                # Essentially any timeout exception should be caught and ignored
                 logger.debug("[TASKS] Task queue:{} is empty".format(self.task_q))
-                #*********************************
-                # WARNING . DO NOT SKIP CONTINUE.
-                # Skipping only for debugging
-                #*********************************
+                # Attempting heartbeat
                 continue
 
             except Exception:
