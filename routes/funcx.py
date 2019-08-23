@@ -287,6 +287,10 @@ def get_version():
     return jsonify(VERSION)
 
 
+@funcx_api.route("/addr", methods=['GET'])
+def get_request_addr():
+    return jsonify({'ip': request.remote_addr}), 200
+
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
