@@ -289,7 +289,10 @@ def get_version():
 
 @funcx_api.route("/addr", methods=['GET'])
 def get_request_addr():
-    return jsonify({'ip': request.remote_addr}), 200
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        return jsonify({'ip': request.environ['REMOTE_ADDR']}), 200
+    else:
+        return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
@@ -337,6 +340,7 @@ def register_endpoint_2(user_name):
                     'reason' : f'Failed during broker start {e}'}
 
     return jsonify(response)
+
 
 @funcx_api.route("/register_function", methods=['POST'])
 @authenticated
