@@ -5,9 +5,9 @@
             <div class="col START-HEADER-COL">
                 <h1>funcX</h1>
                 <h2 class="h4" style="margin-bottom: 16px;">Serverless Supercomputing</h2>
-                <button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://arxiv.org/abs/1908.04907';" style="margin-right: 8px;">Paper</button><!--
-                --><button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://github.com/funcx-faas';" style="margin-right: 8px;">GitHub</button><!--
-                --><button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://funcx.readthedocs.io/en/latest/';">Read the Docs</button>
+                <button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://arxiv.org/abs/1908.04907';" style="margin-bottom: 4px; margin-right: 8px;">Paper</button><!--
+                --><button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://github.com/funcx-faas';" style="margin-bottom: 4px; margin-right: 8px;">GitHub</button><!--
+                --><button class="btn BTN-OUTLINE-LIGHT" onclick="window.location.href = 'https://funcx.readthedocs.io/en/latest/';" style="margin-bottom: 4px;">Read the Docs</button>
             </div>
 
             <div class="col START-HEADER-COL" style="margin-top: 28px; text-align: right;">
@@ -34,29 +34,29 @@
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/1_circled.png') }}">
                 <span class="STEP-DESC">Deploy an Endpoint</span>
             </div>
-            <div class="col-2 CENTER">
+            <div class="col-2 ARROW-COL">
                 <img class="STEP-ARROW" src="{{ url_for('static', filename='imgs/design/arrow.png') }}">
             </div>
             <div class="col-2 CENTER">
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/2_circled.png') }}">
                 <span class="STEP-DESC">Register a Function</span>
             </div>
-            <div class="col-2 CENTER">
+            <div class="col-2 ARROW-COL">
                 <img class="STEP-ARROW" src="{{ url_for('static', filename='imgs/design/arrow.png') }}">
             </div>
             <div class="col-2 CENTER">
                 <img class="CIRCLE-NUM" src="{{ url_for('static', filename='imgs/design/3_circled.png') }}">
-                <span class="STEP-DESC">Run From Anywhere</span> {# Profit! #}
+                <span class="STEP-DESC">Run From Anywhere</span>
             </div>
         </section>
 
-        <section class="row BANNER-SHADED" style="margin: 100px 0 60px; padding: 50px 15% 40px 15%;">
-            <div class="col-6 INLINE-BLOCK PADDING-0">
-                <button class="btn BTN-OUTLINE-DARK" onclick="window.location.href = 'https://mybinder.org/v2/gh/funcx-faas/funcx/master?filepath=examples%2Fintroduction.ipynb';" style="font-size:2em; padding-left: 80px; padding-right: 80px;">
+        <section class="row BANNER-SHADED">
+            <div class="col-6 BANNER-ITEM PADDING-0">
+                <button class="btn BTN-OUTLINE-DARK" id="BINDER-BUTTON" onclick="window.location.href = 'https://mybinder.org/v2/gh/funcx-faas/funcx/master?filepath=examples%2Fintroduction.ipynb';">
                     <img class="BTN-IMG" src="{{ url_for('static', filename='imgs/logos/binder_logo.png') }}" style="width: 40px; margin-bottom: 8px;">Try funcX</button>
             </div>
 
-            <div class="col-6 CPU-BLOCK PADDING-0">
+            <div class="col-6 BANNER-ITEM CPU-BLOCK PADDING-0">
                 <figure>
                     <output class="CPU-NUMBER">{{ total_CPU }}</output>
                     <figcaption class="CPU-CAP">Core Hours Used with funcX</figcaption>

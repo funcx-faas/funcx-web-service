@@ -41,8 +41,8 @@ header {
 
 .SIDE-MARGIN-0 {
     margin-left: 0px !important;
-    margin-right: 0px !important;
-}
+    margin-right: 0px !important;}
+
 
 .PADDING-0 {
     padding: 0 !important;
@@ -142,6 +142,34 @@ header {
     padding-top: 0px;
 }
 
+/*!*Small devices (landscape phones, 576px and up)*!*/
+/*@media (min-width: 576px) {*/
+/*    #START-HEADER {*/
+/*        background-color: red;*/
+/*    }*/
+/*}*/
+
+/*!*Medium devices (tablets, 768px and up)*!*/
+/*@media (min-width: 768px) {*/
+/*    #START-HEADER {*/
+/*        background-color: yellow;*/
+/*    }*/
+/*}*/
+
+/*!*Large devices (desktops, 992px and up)*!*/
+/*@media (min-width: 992px) {*/
+/*    #START-HEADER {*/
+/*        background-color: green;*/
+/*    }*/
+/*}*/
+
+/*!*Extra large devices (large desktops, 1200px and up)*!*/
+/*@media (min-width: 1200px) {*/
+/*    #START-HEADER {*/
+/*        background-color: blue;*/
+/*    }*/
+/*}*/
+
 #START-LOGO {
     display: inline-block;
     margin-right: 24px;
@@ -162,6 +190,7 @@ header {
     /*padding: 8px !important;*/
     /*text-align: center;*/
     transition: color .15s ease-in-out, background-color .15s ease-in-out;
+    white-space: nowrap;
 }
 
 .BTN-OUTLINE-LIGHT:hover {
@@ -186,7 +215,7 @@ header {
     /*padding: 8px !important;*/
     /*text-align: center;*/
     transition: color .15s ease-in-out, background-color .15s ease-in-out;
-    margin-top: 25px;
+    white-space: nowrap;
 }
 
 .BTN-OUTLINE-DARK:hover {
@@ -213,16 +242,98 @@ header {
     font-size: 1.8em;
 }
 
+.ARROW-COL {
+    align-items: center;
+    display: flex;
+    height: 84px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
 .STEP-ARROW {
-    margin-top: 0px;
-    width: 90%;
+    width: 153px;
+}
+
+/*Medium devices (tablets, 768px to 1200px)*/
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .STEP-ARROW {
+        width: 90%;
+    }
+}
+
+/*Medium devices (tablets, less than 768px)*/
+@media (max-width: 767.98px) {
+    .STEP-ARROW {
+        width: 0;
+    }
+    .ARROW-COL {
+        width: 0 !important;
+    }
 }
 
 .BANNER-SHADED {
+    align-items: center;
     background-color: rgb(250,250,250);
     /*display: inline-block;*/
+    margin: 100px 0 60px !important;
+    padding: 50px 15% 20px !important;
     text-align: center;
     width: 100%;
+}
+
+.BANNER-ITEM {
+    display: inline-block;
+    margin-bottom: 30px;
+}
+
+#BINDER-BUTTON {
+    font-size: 2em;
+    margin-top: -20px;
+    padding-left: 26%;
+    padding-right: 26%;
+}
+
+/*Medium devices (tablets, less than 992px)*/
+@media (max-width: 991.98px) {
+    .BANNER-SHADED {
+        flex-direction: column-reverse;
+        padding: 30px 0 20px !important;
+    }
+    .BANNER-ITEM {
+        width: 100%;
+    }
+}
+
+/*Medium devices (tablets, 768px and up)*/
+@media (min-width: 768px) and (max-width: 991.98px) {
+    #BINDER-BUTTON {
+        padding-left: 100px;
+        padding-right: 100px;
+    }
+}
+
+/*Large devices (desktops, 992px and up)*/
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .BANNER-SHADED {
+        padding: 50px 10% 20px !important;
+    }
+}
+
+.CPU-BLOCK {
+    text-align: center;
+}
+
+.CPU-NUMBER {
+    color: rgb(64,64,64);
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size: 4rem;
+    line-height: 1.2em;
+}
+
+.CPU-CAP {
+    font-size: 20px;
+    /*font-weight: bold;*/
+    color: rgb(64,64,64);
 }
 
 .START-ROW {
@@ -253,24 +364,6 @@ header {
     padding: 0 !important;
 }
 
-.CPU-BLOCK {
-    display: inline-block;
-    text-align: center;
-}
-
-
-.CPU-NUMBER {
-    font-size: 4rem;
-    font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-    color: rgb(64,64,64);
-}
-
-
-.CPU-CAP {
-    font-size: 20px;
-    /*font-weight: bold;*/
-    color: rgb(64,64,64);
-}
 
 
 /* Home Page */

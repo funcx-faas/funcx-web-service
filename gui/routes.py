@@ -212,13 +212,20 @@ def function_view(uuid):
         tokens = session.get("tokens")
         funcx_tokens = tokens['funcx_service']
         access_token = "Bearer " + funcx_tokens['access_token']
+        print("Sending Request")
         response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         task_id = response.json()['task_id']
         time.sleep(1)
         return redirect(url_for('guiapi.task_view', task_id=task_id))
+    else:
+        print(execute_form.validate_on_submit())
+        print(execute_form.submit.data)
+        print("nope")
 
     delete_form = DeleteForm()
     if delete_form.validate_on_submit() and delete_form.delete.data:
+        print("Delete:" + str(delete_form.validate_on_submit()))
+        print("Delete:" + str(delete_form.delete.data))
         json = {'func': func['function_uuid']}
         tokens = session.get("tokens")
         funcx_tokens = tokens['funcx_service']
