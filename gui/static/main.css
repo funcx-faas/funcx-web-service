@@ -144,7 +144,7 @@ header {
     position: static;
 }
 
-/*Small devices (landscape phones, 576px and up)*/
+/*!*Small devices (landscape phones, 576px and up)*!*/
 /*@media (min-width: 576px) {*/
 /*    #START-HEADER {*/
 /*        background-color: red;*/
@@ -180,11 +180,20 @@ header {
 
 #START-LOGO {
     display: inline-block;
+    height: 200px;
     margin-right: 24px;
     width: 200px;
 }
 
-@media (max-width: 992px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
+    #START-LOGO {
+        height: 156px;
+        margin-top: 16px;
+        width: 156px;
+    }
+}
+
+@media (max-width: 767.98px) {
     #BODY-START {
         padding-top: 150px;
     }
@@ -281,7 +290,7 @@ header {
     text-decoration-color: white;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 768px) {
     .START-NAV-DESKTOP-HIDDEN {
         border: none !important;
         height: 0 !important;
@@ -293,7 +302,7 @@ header {
     }
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 767.98px) {
     .START-NAV-MOBILE-HIDDEN {
         border: none !important;
         height: 0 !important;
@@ -305,6 +314,10 @@ header {
     }
 }
 
+.STEP-COL {
+    text-align: center;
+}
+
 .CIRCLE-NUM {
     margin-bottom: 20px;
     width: 100px;
@@ -313,7 +326,7 @@ header {
 .STEP-DESC {
     color: rgb(64,64,64);
     display: block;
-    font-size: 1.8em;
+    font-size: 1.8rem;
 }
 
 .ARROW-COL {
@@ -337,11 +350,33 @@ header {
 
 /*Medium devices (tablets, less than 768px)*/
 @media (max-width: 767.98px) {
-    .STEP-ARROW {
-        width: 0;
+    #STEPS-ROW {
+        margin-left: 20px !important;
+    }
+    .STEP-COL {
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    .CIRCLE-NUM {
+        display: inline-block;
+        width: 80px;
+    }
+    .STEP-DESC {
+        display: inline-block;
+        font-size: 2.2rem;
+        margin-left: 20px;
     }
     .ARROW-COL {
+        border: none !important;
+        height: 0 !important;
+        margin: unset !important;
+        overflow: hidden;
+        padding: unset !important;
+        position: relative;
         width: 0 !important;
+    }
+    .STEP-ARROW {
+        width: 0;
     }
 }
 
