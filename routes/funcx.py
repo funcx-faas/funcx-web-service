@@ -256,7 +256,7 @@ def reg_endpoint(user_name):
 
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
-def register_with_hub(address, endpoint_id):
+def register_with_hub(address, endpoint_id, endpoint_address):
     """ This registers with the Forwarder micro service.
 
     Can be used as an example of how to make calls this it, while the main API
@@ -271,7 +271,7 @@ def register_with_hub(address, endpoint_id):
     r = requests.post(address + '/register',
                       json={'endpoint_id': endpoint_id,
                             'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
-
+                            'endpoint_addr': endpoint_address,
                       }
     )
     if r.status_code != 200:
@@ -310,6 +310,7 @@ def register_endpoint_2(user_name):
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
 
+    # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
         endpoint_ip_addr = request.environ['REMOTE_ADDR']
@@ -323,8 +324,8 @@ def register_endpoint_2(user_name):
         endpoint_uuid = register_endpoint(user_name,
                                           request.json['endpoint_name'],
                                           request.json['description'],
-                                          request.json['endpoint_uuid'],
-                                          endpoint_ip_addr)
+                                          request.json['endpoint_uuid'])
+
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
         response = {'status' : 'error',
@@ -341,7 +342,7 @@ def register_endpoint_2(user_name):
                     'reason' : f'Caught error while registering endpoint {e}'}
 
     try:
-        response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid)
+        response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         response = {'status' : 'error',
