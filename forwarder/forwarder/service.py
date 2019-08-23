@@ -6,12 +6,13 @@ creates an appropriate forwarder to which the endpoint can connect up.
 
 
 import bottle
-from bottle import post, run, request, app, route
+from bottle import post, run, request, app, route, get
 import argparse
 import json
 import uuid
 import sys
 import logging
+import redis
 
 from forwarder.forwarder import Forwarder, spawn_forwarder
 
@@ -21,6 +22,33 @@ def ping():
     """ Minimal liveness response
     """
     return "pong"
+
+
+@get('/map')
+def get_map():
+    """ Paint a map of utilization
+    """
+    results = {"data": []}
+    redis_client = request.app.redis_client
+    for key in redis_client.keys('ep_status_*'):
+        try:
+            print("Getting key {}".format(key))
+            items = redis_client.lrange(key, 0, 0)
+            if items:
+                last = json.loads(items[0])
+            else:
+                continue
+            ep_id = key.split('_')[2]
+            ep_meta = redis_client.hgetall('endpoint:{}'.format(ep_id))
+            last['lat'], last['long'] = ep_meta['loc'].split(',')
+            last['org'] = ep_meta['org']
+            results["data"].append(last)
+
+        except Exception as e:
+            print(f"Failed to parse for key {key}")
+            print(f"Error : {e}")
+
+    return results
 
 
 @post('/register')
@@ -45,6 +73,7 @@ def register():
     fw = spawn_forwarder(request.app.address,
                          endpoint_details['redis_address'],
                          endpoint_id,
+                         endpoint_addr=endpoint_details['endpoint_addr'],
                          logging_level=logging.DEBUG if request.app.debug else logging.INFO)
 
 
@@ -71,6 +100,10 @@ def cli():
                         help="Address at which the service is running. This is the address passed to the endpoints")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")
+    parser.add_argument("-r", "--redishost", required=True,
+                        help="Redis host address")
+    parser.add_argument("--redisport", default=6379,
+                        help="Redis port")
     parser.add_argument("-d", "--debug", action='store_true',
                         help="Enables debug logging")
 
@@ -80,6 +113,10 @@ def cli():
     app.address = args.address
     app.debug = args.debug
     app.ep_mapping = {}
+
+    app.redis_client = redis.StrictRedis(host=args.redishost,
+                                         port=int(args.redisport),
+                                         decode_responses=True)
 
     try:
         run(host='0.0.0.0', app=app, port=int(args.port), debug=True)
