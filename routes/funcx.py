@@ -310,13 +310,21 @@ def register_endpoint_2(user_name):
     if not user_name:
         abort(400, description="Error: You must be logged in to perform this function.")
 
+    endpoint_ip_addr = '140.221.68.108'
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        endpoint_ip_addr = request.environ['REMOTE_ADDR']
+    else:
+        endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
+    app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
+
     # TODO: We should handle keyError here
     try:
         app.logger.debug(request.json['endpoint_name'])
         endpoint_uuid = register_endpoint(user_name,
                                           request.json['endpoint_name'],
                                           request.json['description'],
-                                          request.json['endpoint_uuid'])
+                                          request.json['endpoint_uuid'],
+                                          endpoint_ip_addr)
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
         response = {'status' : 'error',
