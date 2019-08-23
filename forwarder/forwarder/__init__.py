@@ -8,7 +8,7 @@ __author__ = "The funcX team"
 __version__ = VERSION
 
 
-def set_file_logger(filename, name='forwarder', level=logging.DEBUG, format_string=None):
+def set_file_logger(filename, name='funcx.forwarder', level=logging.DEBUG, format_string=None):
     """Add a stream log handler.
 
     Args:
