@@ -7,6 +7,7 @@ import queue
 import time
 import zmq
 import pickle
+import requests
 
 from multiprocessing import Queue
 from parsl.providers import LocalProvider
@@ -18,7 +19,7 @@ from funcx.serialize import FuncXSerializer
 
 from multiprocessing import Process
 from forwarder.queues import RedisQueue
-
+from forwarder.endpoint_db import EndpointDB
 
 from forwarder import set_file_logger
 
@@ -52,7 +53,8 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, result_q, executor, endpoint_id,
-                 heartbeat_threshold=60,
+                 heartbeat_threshold=60, endpoint_addr=None,
+                 redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO):
         """
         Parameters
@@ -68,6 +70,9 @@ class Forwarder(Process):
 
         endpoint_id: str
         Usually a uuid4 as string that identifies the executor
+
+        endpoint_addr: str
+        Endpoint ip address as a string
 
         heartbeat_threshold : int
         Heartbeat threshold in seconds
@@ -90,11 +95,15 @@ class Forwarder(Process):
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
         logger.info("Log level set to {}".format(loglevels[logging_level]))
+
+        self.endpoint_addr = endpoint_addr
         self.task_q = task_q
         self.result_q = result_q
         self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
+        self.endpoint_addr = endpoint_addr
+        self.redis_address = redis_address
         self.internal_q = Queue()
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
@@ -173,11 +182,30 @@ class Forwarder(Process):
             fu.add_done_callback(partial(self.handle_app_update, task_id))
 
 
+    def update_endpoint_metadata(self):
+        """ Geo locate the endpoint and push as metadata into redis
+        """
+        resp = requests.get('http://ipinfo.io/{}/json'.format(self.endpoint_addr))
+        ep_db = EndpointDB(self.redis_address)
+        ep_db.connect()
+        ep_db.set_endpoint_metadata(self.endpoint_id, resp.json())
+        ep_db.close()
+        return resp.json()
+
     def run(self):
         """ Process entry point.
         """
         logger.info("[MAIN] Loop starting")
         logger.info("[MAIN] Executor: {}".format(self.executor))
+
+        logger.info("[MAIN] Attempting to resolve endpoint_addr: {}".format(self.endpoint_addr))
+        try:
+            resp = self.update_endpoint_metadata()
+
+        except Exception as e:
+            logger.exception("Failed to geo locate {}".format(self.endpoint_addr))
+        else:
+            logger.info("Endpoint is at {}".format(resp))
 
         try:
             self.task_q.connect()
@@ -214,6 +242,7 @@ class Forwarder(Process):
 def spawn_forwarder(address,
                     redis_address,
                     endpoint_id,
+                    endpoint_addr=None,
                     executor=None,
                     task_q=None,
                     result_q=None,
@@ -231,6 +260,9 @@ def spawn_forwarder(address,
 
     endpoint_id : str
        Endpoint id string that will be used to address task/result queues.
+
+    endpoint_addr : str
+       Endpoint addr string that will be used to geo-locate address
 
     executor : Executor object. Optional
        Executor object to be instantiated.
@@ -263,10 +295,14 @@ def spawn_forwarder(address,
         executor = HTEX(label='htex',
                         provider=LocalProvider(
                             channel=LocalChannel),
+                        endpoint_db=EndpointDB(redis_address),
+                        endpoint_id=endpoint_id,
                         address=address)
 
     fw = Forwarder(task_q, result_q, executor,
-                   "Endpoint_{}".format(endpoint_id),
+                   endpoint_id,
+                   endpoint_addr=endpoint_addr,
+                   redis_address=redis_address,
                    logging_level=logging_level)
     fw.start()
     return fw
