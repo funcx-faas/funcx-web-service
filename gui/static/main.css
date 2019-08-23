@@ -132,43 +132,51 @@ header {
 /* Start Page */
 
 #START-HEADER {
-    align-items: flex-start;
-    background-color: rgb(51,91,162);
+    /*align-items: flex-start;*/
+    /*background-color: rgb(51,91,162);*/
     color: rgb(250,250,250);
     display: flex;
+    flex-direction: column;
     /*justify-content: flex-start;*/
     margin-bottom: 100px;
-    padding: 20px;
-    padding-top: 0px;
+    padding: 0px !important;
+    /*padding-top: 0px;*/
+    position: static;
 }
 
-/*!*Small devices (landscape phones, 576px and up)*!*/
-/*@media (min-width: 576px) {*/
-/*    #START-HEADER {*/
-/*        background-color: red;*/
-/*    }*/
-/*}*/
+/*Small devices (landscape phones, 576px and up)*/
+@media (min-width: 576px) {
+    #START-HEADER {
+        background-color: red;
+    }
+}
 
-/*!*Medium devices (tablets, 768px and up)*!*/
-/*@media (min-width: 768px) {*/
-/*    #START-HEADER {*/
-/*        background-color: yellow;*/
-/*    }*/
-/*}*/
+/*Medium devices (tablets, 768px and up)*/
+@media (min-width: 768px) {
+    #START-HEADER {
+        background-color: rgb(51,91,162);
+    }
+}
 
-/*!*Large devices (desktops, 992px and up)*!*/
-/*@media (min-width: 992px) {*/
-/*    #START-HEADER {*/
-/*        background-color: green;*/
-/*    }*/
-/*}*/
+/*Large devices (desktops, 992px and up)*/
+@media (min-width: 992px) {
+    #START-HEADER {
+        background-color: green;
+    }
+}
 
-/*!*Extra large devices (large desktops, 1200px and up)*!*/
-/*@media (min-width: 1200px) {*/
-/*    #START-HEADER {*/
-/*        background-color: blue;*/
-/*    }*/
-/*}*/
+/*Extra large devices (large desktops, 1200px and up)*/
+@media (min-width: 1200px) {
+    #START-HEADER {
+        background-color: blue;
+    }
+}
+
+#START-NAV-DESKTOP-ROW {
+    padding: 20px;
+    padding-top: 0;
+    width: 100%;
+}
 
 #START-LOGO {
     display: inline-block;
@@ -176,8 +184,26 @@ header {
     width: 200px;
 }
 
+@media (max-width: 992px) {
+    #BODY-START {
+        padding-top: 150px;
+    }
+    #START-HEADER {
+        position: fixed;
+        top: 0;
+        z-index: 1030;
+    }
+    #START-NAV-DESKTOP-ROW {
+        padding: 0 10px 0;
+    }
+    #START-LOGO {
+        height: 80px;
+        width: 80px;
+    }
+}
+
 .START-HEADER-COL {
-    display: inline-block;
+    /*display: inline-block;*/
     margin-top: 36px;
 }
 
@@ -221,6 +247,7 @@ header {
 .BTN-OUTLINE-DARK:hover {
     background-color: rgba(39,120,185,1);
     color: rgb(250,250,250) !important;
+    margin: 0 -20px !important;
 }
 
 .BTN-OUTLINE-DARK .BTN-IMG {
@@ -229,6 +256,53 @@ header {
 
 .BTN-OUTLINE-DARK:hover .BTN-IMG {
     filter: brightness(5);
+}
+
+#START-NAV-MENU-BUTTON {
+    margin-top: -10px;
+}
+
+#START-NAV-MENU {
+    background-color: rgb(20,45,89);
+    margin-bottom: 2px;
+    width: 100%;
+}
+
+.START-NAV-MENU-ROW {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    color: white;
+    padding: 10px;
+    width: 100%;
+}
+
+.START-NAV-MENU-ROW:hover {
+    background-color: rgb(39,120,185);
+    color: white;
+    text-decoration-color: white;
+}
+
+@media (min-width: 992px) {
+    .START-NAV-DESKTOP-HIDDEN {
+        border: none !important;
+        height: 0 !important;
+        margin: unset !important;
+        overflow: hidden;
+        padding: unset !important;
+        position: relative;
+        width: 0 !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .START-NAV-MOBILE-HIDDEN {
+        border: none !important;
+        height: 0 !important;
+        margin: unset !important;
+        overflow: hidden;
+        padding: unset !important;
+        position: relative;
+        width: 0 !important;
+    }
 }
 
 .CIRCLE-NUM {
