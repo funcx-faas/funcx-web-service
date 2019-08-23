@@ -52,26 +52,31 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, result_q, executor, endpoint_id,
+                 heartbeat_threshold=60,
                  logdir="forwarder_logs", logging_level=logging.INFO):
         """
-        Params:
-             task_q : A queue object
-                Any queue object that has get primitives. This must be a thread-safe queue.
+        Parameters
+        ----------
+        task_q : A queue object
+        Any queue object that has get primitives. This must be a thread-safe queue.
 
-             result_q : A queue object
-                Any queue object that has put primitives. This must be a thread-safe queue.
+        result_q : A queue object
+        Any queue object that has put primitives. This must be a thread-safe queue.
 
-             executor: Executor object
-                Executor to which tasks are to be forwarded
+        executor: Executor object
+        Executor to which tasks are to be forwarded
 
-             endpoint_id: str
-                Usually a uuid4 as string that identifies the executor
+        endpoint_id: str
+        Usually a uuid4 as string that identifies the executor
 
-             logdir: str
-                Path to logdir
+        heartbeat_threshold : int
+        Heartbeat threshold in seconds
 
-             logging_level : int
-                Logging level as defined in the logging module. Default: logging.INFO (20)
+        logdir: str
+        Path to logdir
+
+        logging_level : int
+        Logging level as defined in the logging module. Default: logging.INFO (20)
 
         """
         super().__init__()
@@ -80,12 +85,14 @@ class Forwarder(Process):
 
         global logger
         logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
+                                 name="funcx",
                                  level=logging_level)
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
         logger.info("Log level set to {}".format(loglevels[logging_level]))
         self.task_q = task_q
         self.result_q = result_q
+        self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
         self.internal_q = Queue()
@@ -125,18 +132,18 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get(timeout=10)  # Timeout in seconds
+                task_id, task_info = self.task_q.get(timeout=self.heartbeat_threshold)  # Timeout in s
                 logger.debug("[TASKS] Got task_id {}".format(task_id))
 
             except queue.Empty:
-                # This exception catching isn't very general,
-                # Essentially any timeout exception should be caught and ignored
-                logger.debug("[TASKS] Task queue:{} is empty".format(self.task_q))
-                #*********************************
-                # WARNING . DO NOT SKIP CONTINUE.
-                # Skipping only for debugging
-                #*********************************
-                continue
+                try:
+                    logger.debug("[TASKS] Requesting info")
+                    self.executor.request_status_info()
+                except zmq.error.Again:
+                    logger.exception(f"[TASKS] Endpoint busy/unavailable, status info request failed")
+                    break
+                else:
+                    continue
 
             except Exception:
                 logger.exception("[TASKS] Task queue get error")

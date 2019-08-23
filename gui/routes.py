@@ -209,9 +209,9 @@ def function_view(uuid):
     execute_form.endpoint.choices = endpoint_uuids
     if execute_form.validate_on_submit() and execute_form.submit.data:
         json = {'func': func['function_uuid'], 'endpoint': execute_form.endpoint.data, 'data': execute_form.data.data}
-        # tokens = session.get("tokens")
-        # funcx_tokens = tokens['funcx_service']
-        # access_token = "Bearer " + funcx_tokens['access_token']
+        tokens = session.get("tokens")
+        funcx_tokens = tokens['funcx_service']
+        access_token = "Bearer " + funcx_tokens['access_token']
         print("Sending Request")
         response = requests.post("http://funcx.org/api/v1/execute", headers={"Authorization": access_token}, json=json)
         task_id = response.json()['task_id']
