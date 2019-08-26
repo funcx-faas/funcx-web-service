@@ -24,12 +24,13 @@ def ping():
     return "pong"
 
 
-@get('/map')
+@get('/map.csv')
 def get_map():
     """ Paint a map of utilization
     """
     results = {"data": []}
     redis_client = request.app.redis_client
+    csv_string = "org,core_hrs,lat,long\n</br>"
     for key in redis_client.keys('ep_status_*'):
         try:
             print("Getting key {}".format(key))
@@ -40,15 +41,15 @@ def get_map():
                 continue
             ep_id = key.split('_')[2]
             ep_meta = redis_client.hgetall('endpoint:{}'.format(ep_id))
-            last['lat'], last['long'] = ep_meta['loc'].split(',')
-            last['org'] = ep_meta['org']
-            results["data"].append(last)
+            print(ep_meta, last)
+            current = "{},{},{}\n</br>".format(ep_meta['org'].replace(',', '.'), last['total_core_hrs'], ep_meta['loc'])
+            csv_string += current
 
         except Exception as e:
             print(f"Failed to parse for key {key}")
             print(f"Error : {e}")
 
-    return results
+    return csv_string
 
 
 @post('/register')
