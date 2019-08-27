@@ -503,4 +503,5 @@ def get_map():
     Dict containing the result as an integer
     """
     app.logger.debug(f"Received map request")
-    return send_from_directory('.', 'mapper.html')
+    return jsonify("hello")
+    # return send_from_directory('.', 'mapper.html')
