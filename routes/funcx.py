@@ -489,8 +489,7 @@ def del_endpoint(user_name):
 
 
 @funcx_api.route("/get_map", methods=['GET'])
-@authenticated
-def get_map(user_name):
+def get_map():
     """Delete the endpoint.
 
     Parameters
@@ -503,5 +502,5 @@ def get_map(user_name):
     json
     Dict containing the result as an integer
     """
-    app.logger.debug(f"Received map request from {user_name}")
+    app.logger.debug(f"Received map request")
     return send_from_directory('.', 'mapper.html')
