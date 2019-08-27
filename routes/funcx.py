@@ -19,6 +19,7 @@ from models.utils import update_function, delete_function, delete_endpoint
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import Response
+from flask import send_from_directory
 from flask import g
 from .redis_q import RedisQueue
 
@@ -485,3 +486,21 @@ def del_endpoint(user_name):
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
+
+
+@funcx_api.route("/map", methods=['GET'])
+def get_map(user_name):
+    """Delete the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    Returns
+    -------
+    json
+    Dict containing the result as an integer
+    """
+
+    return send_from_directory('.', 'mapper.html')
