@@ -489,7 +489,7 @@ def del_endpoint(user_name):
 
 
 @funcx_api.route("/map", methods=['GET'])
-def get_map(user_name):
+def get_map():
     """Delete the endpoint.
 
     Parameters
