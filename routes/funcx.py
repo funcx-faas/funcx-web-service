@@ -498,7 +498,7 @@ def del_endpoint(user_name):
 
 
 @funcx_api.route("/ep_live", methods=['GET'])
-def get_stats_from_forwarder(forwarder_address="http://"):
+def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
     """ Get stats from the forwarder
     """
     app.logger.debug(f"Getting stats from forwarder")
