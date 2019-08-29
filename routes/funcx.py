@@ -18,7 +18,6 @@ from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
-from flask import Response
 from flask import send_from_directory
 from flask import g
 from .redis_q import RedisQueue
@@ -76,7 +75,8 @@ def submit(user_name):
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
     try:
-        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
+        fn_code, fn_entry, container_uuid = resolve_function(
+            user_id, function_uuid)
     except:
         return jsonify({'status': 'Failed',
                         'reason': 'Function UUID:{} could not be resolved'.format(function_uuid)})
@@ -96,7 +96,7 @@ def submit(user_name):
     app.logger.debug("Payload : {}".format(payload))
 
     task_header = task_id
-    if container_uuid :
+    if container_uuid:
         task_header.append(';' + container_uuid)
 
     g.redis_task_queue.put(endpoint, task_header, payload)
@@ -104,6 +104,7 @@ def submit(user_name):
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
+
 
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
@@ -213,7 +214,7 @@ def reg_container(user_name):
     post_req = request.json
 
     container_id = register_container(user_name, post_req['name'], post_req['location'],
-                                    post_req['description'], post_req['type'])
+                                      post_req['description'], post_req['type'])
     app.logger.debug(f"Created container: {container_id}")
     return jsonify({'container_id': container_id})
 
@@ -250,12 +251,14 @@ def reg_endpoint(user_name):
 
     app.logger.debug(endpoint_name)
     try:
-        endpoint_uuid = register_endpoint(user_name, endpoint_name, description, endpoint_uuid)
+        endpoint_uuid = register_endpoint(
+            user_name, endpoint_name, description, endpoint_uuid)
     except UserNotFound as e:
         return jsonify({'status': 'Failed',
                         'reason': str(e)})
 
     return jsonify({'endpoint_uuid': endpoint_uuid})
+
 
 def register_with_hub(address, endpoint_id, endpoint_address):
     """ This registers with the Forwarder micro service.
@@ -273,8 +276,8 @@ def register_with_hub(address, endpoint_id, endpoint_address):
                       json={'endpoint_id': endpoint_id,
                             'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
                             'endpoint_addr': endpoint_address,
-                      }
-    )
+                            }
+                      )
     if r.status_code != 200:
         print(dir(r))
         print(r)
@@ -329,25 +332,26 @@ def register_endpoint_2(user_name):
 
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
-        response = {'status' : 'error',
-                    'reason' : f'Missing Keys in json request {e}'}
+        response = {'status': 'error',
+                    'reason': f'Missing Keys in json request {e}'}
 
     except UserNotFound as e:
         app.logger.debug(f"UserNotFound {e}")
-        response = {'status' : 'error',
-                    'reason' : f'UserNotFound {e}'}
+        response = {'status': 'error',
+                    'reason': f'UserNotFound {e}'}
 
     except Exception as e:
         app.logger.debug("Caught random error : {}".format(e))
-        response = {'status' : 'error',
-                    'reason' : f'Caught error while registering endpoint {e}'}
+        response = {'status': 'error',
+                    'reason': f'Caught error while registering endpoint {e}'}
 
     try:
-        response = register_with_hub("http://34.207.74.221:8080", endpoint_uuid, endpoint_ip_addr)
+        response = register_with_hub(
+            "http://34.207.74.221:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
-        response = {'status' : 'error',
-                    'reason' : f'Failed during broker start {e}'}
+        response = {'status': 'error',
+                    'reason': f'Failed during broker start {e}'}
 
     return jsonify(response)
 
@@ -393,10 +397,13 @@ def reg_function(user_name):
     app.logger.debug(f"Registering function {function_name} with container {container_uuid}")
 
     try:
-        function_uuid = register_function(user_name, function_name, description, function_code, entry_point, container_uuid)
+        function_uuid = register_function(
+            user_name, function_name, description, function_code, entry_point, container_uuid)
     except Exception as e:
-        message = "Function registration failed for user:{} function_name:{}".format(user_name,
-                                                                                     function_name)
+        message = "Function registration failed for user:{} function_name:{} due to {}".format(
+            user_name,
+            function_name,
+            e)
         app.logger.error(message)
         return jsonify({'status': 'Failed',
                         'reason': message})
@@ -428,7 +435,8 @@ def upd_function(user_name):
         function_desc = request.json["desc"]
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
-        result = update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code)
+        result = update_function(user_name, function_uuid, function_name,
+                                 function_desc, function_entry_point, function_code)
         # app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:
@@ -462,6 +470,7 @@ def del_function(user_name):
     except Exception as e:
         app.logger.error(e)
 
+
 @funcx_api.route("/delete_endpoint", methods=['POST'])
 @authenticated
 def del_endpoint(user_name):
@@ -486,6 +495,27 @@ def del_endpoint(user_name):
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
+
+
+@funcx_api.route("/ep_live", methods=['GET'])
+def get_stats_from_forwarder(forwarder_address="http://"):
+    """ Get stats from the forwarder
+    """
+    app.logger.debug(f"Getting stats from forwarder")
+    try:
+        r = requests.get(forwarder_address + '/map.csv')
+        if r.status_code != 200:
+            response = {'status': 'Failed',
+                        'code': r.status_code,
+                        'reason': 'Forwarder did not respond with liveness stats'}
+        else:
+            response = r.json()
+    except Exception as e:
+        response = {'status': 'Failed',
+                    'code': 520,
+                    'reason': 'Contacting forwarder failed with {}'.format(e)}
+
+    return jsonify(response)
 
 
 @funcx_api.route("/get_map", methods=['GET'])
