@@ -510,12 +510,12 @@ def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
                         'reason': 'Forwarder did not respond with liveness stats'}
         else:
             response = r.json()
-            app.logger.debug(f'Got response from forwarder: {}'.format(response))
+            app.logger.debug(f'Got response from forwarder: {response}')
 
     except Exception as e:
         response = {'status': 'Failed',
                     'code': 520,
-                    'reason': 'Contacting forwarder failed with {}'.format(e)}
+                    'reason': f'Contacting forwarder failed with {e}'}
 
     return jsonify(response)
 
