@@ -53,7 +53,8 @@ def get_mao_json():
             print(f"Failed to parse for key {key}")
             print(f"Error : {e}")
 
-    return results
+    print("To return : ", results)
+    return dict(data=results)
 
 
 @get('/map.csv')
