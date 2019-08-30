@@ -507,20 +507,14 @@ def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
     """
     app.logger.debug(f"Getting stats from forwarder")
     try:
-        r = requests.get(forwarder_address + '/map.csv')
+        r = requests.get(forwarder_address + '/map.json')
         if r.status_code != 200:
             response = {'status': 'Failed',
                         'code': r.status_code,
                         'reason': 'Forwarder did not respond with liveness stats'}
         else:
-            app.logger.debug(f'Got response from forwarder: {r.text}')
-            string_io = StringIO()
-            csv_writer = csv.writer(string_io)
-            csv_writer.writerows(r.text.split('\n</br>'))
-            app.logger.debug("response : {}".format(string_io.getvalue()))
-            response = make_response(string_io.getvalue())
-            response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-            response.headers["Content-type"] = "text/csv"
+            response = r.json()
+            app.logger.debug(f'Response from forwarder : {response}')
             return response
 
     except Exception as e:
