@@ -2,11 +2,13 @@
   <!-- Plotly.js -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
+
 <body>
   <!-- Plotly chart will be drawn inside this DIV -->
   <div id="myDiv"></div>
+
   <script>
-    Plotly.d3.csv('http://34.207.74.221:8080/map.csv', function(err, rows){
+    Plotly.d3.csv('/ep_live', function(err, rows){
     function unpack(rows, key) {
     return rows.map(function(row) { return row[key]; });
     }
