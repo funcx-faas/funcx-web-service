@@ -517,6 +517,7 @@ def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
             string_io = StringIO()
             csv_writer = csv.writer(string_io)
             csv_writer.writerows(r.text.split('\n</br>'))
+            app.logger.debug("response : {}".format(string_io.getvalue()))
             response = make_response(string_io.getvalue())
             response.headers["Content-Disposition"] = "attachment; filename=export.csv"
             response.headers["Content-type"] = "text/csv"
