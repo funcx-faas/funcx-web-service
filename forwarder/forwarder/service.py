@@ -24,6 +24,38 @@ def ping():
     return "pong"
 
 
+@get('/map.json')
+def get_mao_json():
+    """ Paint a map of utilization
+    """
+    results = []
+    redis_client = request.app.redis_client
+    csv_string = "org,core_hrs,lat,long\n</br>"
+    for key in redis_client.keys('ep_status_*'):
+        try:
+            print("Getting key {}".format(key))
+            items = redis_client.lrange(key, 0, 0)
+            if items:
+                last = json.loads(items[0])
+            else:
+                continue
+            ep_id = key.split('_')[2]
+            ep_meta = redis_client.hgetall('endpoint:{}'.format(ep_id))
+            print(ep_meta, last)
+            lat, lon = ep_meta['loc'].split(',')
+            current = {'org': ep_meta['org'].replace(',', '. '),
+                       'core_hrs': last['total_core_hrs'],
+                       'lat': lat,
+                       'long': lon}
+            results.append(current)
+
+        except Exception as e:
+            print(f"Failed to parse for key {key}")
+            print(f"Error : {e}")
+
+    return results
+
+
 @get('/map.csv')
 def get_map():
     """ Paint a map of utilization
