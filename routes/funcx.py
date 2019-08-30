@@ -2,6 +2,8 @@ import uuid
 import json
 import time
 import os
+from io import StringIO
+import csv
 import shlex
 import subprocess
 import requests
@@ -20,6 +22,8 @@ from authentication.auth import authorize_endpoint, authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from flask import send_from_directory
 from flask import g
+from flask import make_response
+
 from .redis_q import RedisQueue
 
 # Flask
@@ -509,8 +513,14 @@ def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
                         'code': r.status_code,
                         'reason': 'Forwarder did not respond with liveness stats'}
         else:
-            response = r.text
-            app.logger.debug(f'Got response from forwarder: {response}')
+            app.logger.debug(f'Got response from forwarder: {r.text}')
+            string_io = StringIO()
+            csv_writer = csv.writer(string_io)
+            csv_writer.writerows(r.text.split('\n</br>'))
+            response = make_response(string_io.getvalue())
+            response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+            response.headers["Content-type"] = "text/csv"
+            return response
 
     except Exception as e:
         response = {'status': 'Failed',
