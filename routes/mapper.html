@@ -8,7 +8,7 @@
   <div id="myDiv"></div>
 
   <script>
-    Plotly.d3.csv('/ep_live', function(err, rows){
+    Plotly.d3.csv('/api/v1/ep_live', function(err, rows){
     function unpack(rows, key) {
     return rows.map(function(row) { return row[key]; });
     }
