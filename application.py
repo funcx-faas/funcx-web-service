@@ -39,7 +39,7 @@ application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
 application.register_blueprint(guiapi)
 
-socketio = SocketIO(application)
+application = SocketIO(application)
 
 
 @socketio.on('connect', namespace='/ws_core_hours')
@@ -52,7 +52,7 @@ def ws_conn():
 
 
 if __name__ == '__main__':
-    socketio.run(application, "0.0.0.0", port=8080)
+    application.run(application, "0.0.0.0", port=8080)
 
 
 #if __name__ == "__main__":
