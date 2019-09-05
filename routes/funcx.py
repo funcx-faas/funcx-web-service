@@ -1,14 +1,8 @@
 import uuid
 import json
 import time
-import os
-from io import StringIO
-import csv
-import shlex
-import subprocess
 import requests
 from requests.models import Response
-# import funcx
 
 from version import VERSION
 from errors import *
@@ -19,10 +13,7 @@ from models.utils import resolve_function
 from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
-from flask import current_app as app, Blueprint, jsonify, request, abort
-from flask import send_from_directory
-from flask import g
-from flask import make_response
+from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
 from .redis_q import RedisQueue
 

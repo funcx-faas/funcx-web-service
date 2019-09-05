@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
         <header class="container-fluid navbar navbar-dark" id="START-HEADER">
             <div class="row SIDE-MARGIN-0" id="START-NAV-DESKTOP-ROW">
                 <img src="{{ url_for('static', filename='imgs/logos/funcx.png') }}" alt="funcX" id="START-LOGO">
@@ -77,12 +79,21 @@
             </div>
 
             <div class="col-6 BANNER-ITEM CPU-BLOCK PADDING-0">
-                <figure>
-                    <output class="CPU-NUMBER">{{ total_CPU }}</output>
-                    <figcaption class="CPU-CAP">Core Hours Used with funcX</figcaption>
-                </figure>
+                <h2>Core hours burned: </h2>
+                <h2><span id="core_hours">{{ burned }}</span></h2>
             </div>
         </section>
+
+        <script type="text/javascript">
+            $(document).ready(function() {
+                var url = "http://" + document.domain + ":" + location.port;
+                var socket = io.connect(url + "/ws_core_hours");
+                socket.on('msg', function(msg) {
+                    $("#core_hours").html(msg.count);
+                });
+            });
+        </script>
+
 
         <section class="row START-ROW">
             <div class="col-6 START-SECTION-POINT">
