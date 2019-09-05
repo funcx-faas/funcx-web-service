@@ -8,4 +8,3 @@ flask_wtf
 requests
 funcx==0.0.1a0
 flask_socketio
-eventlet
