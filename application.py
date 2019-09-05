@@ -29,17 +29,17 @@ dictConfig({
     })
 
 
-application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
-application.config.from_object(os.environ['APP_SETTINGS'])
+app = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
+app.config.from_object(os.environ['APP_SETTINGS'])
 
 
 # Include the API blueprint
-application.register_blueprint(funcx_api, url_prefix="/api/v1")
-application.register_blueprint(automate_api, url_prefix="/automate")
-application.register_blueprint(auth_api)
-application.register_blueprint(guiapi)
+app.register_blueprint(funcx_api, url_prefix="/api/v1")
+app.register_blueprint(automate_api, url_prefix="/automate")
+app.register_blueprint(auth_api)
+app.register_blueprint(guiapi)
 
-application = SocketIO(application)
+application = SocketIO(app)
 
 
 @application.on('connect', namespace='/ws_core_hours')
@@ -52,7 +52,7 @@ def ws_conn():
 
 
 if __name__ == '__main__':
-    application.run(application, "0.0.0.0", port=8080)
+    application.run(app, "0.0.0.0", port=8080)
 
 
 #if __name__ == "__main__":
