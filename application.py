@@ -42,13 +42,13 @@ application.register_blueprint(guiapi)
 application = SocketIO(application)
 
 
-@socketio.on('connect', namespace='/ws_core_hours')
+@application.on('connect', namespace='/ws_core_hours')
 def ws_conn():
     print('connected!')
     #c = db.incr('connected', 10)
     c = 10
     print('emitting count: ', str(c))
-    socketio.emit('msg', {'count': c}, namespace='/ws_core_hours')
+    application.emit('msg', {'count': c}, namespace='/ws_core_hours')
 
 
 if __name__ == '__main__':
