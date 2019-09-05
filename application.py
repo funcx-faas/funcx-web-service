@@ -29,30 +29,30 @@ dictConfig({
     })
 
 
-app = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
-app.config.from_object(os.environ['APP_SETTINGS'])
+application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
+application.config.from_object(os.environ['APP_SETTINGS'])
 
 
 # Include the API blueprint
-app.register_blueprint(funcx_api, url_prefix="/api/v1")
-app.register_blueprint(automate_api, url_prefix="/automate")
-app.register_blueprint(auth_api)
-app.register_blueprint(guiapi)
+application.register_blueprint(funcx_api, url_prefix="/api/v1")
+application.register_blueprint(automate_api, url_prefix="/automate")
+application.register_blueprint(auth_api)
+application.register_blueprint(guiapi)
 
-application = SocketIO(app)
+io = SocketIO(application)
 
 
-@application.on('connect', namespace='/ws_core_hours')
+@io.on('connect', namespace='/ws_core_hours')
 def ws_conn():
     print('connected!')
     #c = db.incr('connected', 10)
     c = 10
     print('emitting count: ', str(c))
-    application.emit('msg', {'count': c}, namespace='/ws_core_hours')
+    io.emit('msg', {'count': c}, namespace='/ws_core_hours')
 
 
 if __name__ == '__main__':
-    application.run(app, "0.0.0.0", port=8080)
+    application.run("0.0.0.0", port=8080)
 
 
 #if __name__ == "__main__":
