@@ -42,11 +42,14 @@ class RedisQueue(FuncxQueue):
 
             raise
 
-    def get(self, timeout=1):
+    def get(self, kind, timeout=1):
         """ Get an item from the redis queue
 
         Parameters
         ----------
+        kind : str
+           Required. The kind of item to fetch from the DB
+
         timeout : int
            Timeout for the blocking get in seconds
         """
@@ -56,7 +59,7 @@ class RedisQueue(FuncxQueue):
                 raise queue.Empty
 
             task_list, task_id = x
-            jtask_info = self.redis_client.get(f'{self.prefix}:{task_id}')
+            jtask_info = self.redis_client.hget(f'task_{task_id}', kind)
             task_info = json.loads(jtask_info)
         except queue.Empty:
             raise
@@ -70,18 +73,21 @@ class RedisQueue(FuncxQueue):
 
         return task_id, task_info
 
-    def put(self, key, payload):
+    def put(self, key, kind, payload):
         """ Put's the key:payload into a dict and pushes the key onto a queue
         Parameters
         ----------
         key : str
             The task_id to be pushed
 
+        kind : str
+            The type of payload
+
         payload : dict
             Dict of task information to be stored
         """
         try:
-            self.redis_client.set(f'{self.prefix}:{key}', json.dumps(payload))
+            self.redis_client.hset(f'task_{key}', kind, json.dumps(payload))
             self.redis_client.rpush(f'{self.prefix}_list', key)
         except AttributeError:
             raise NotConnected(self)
