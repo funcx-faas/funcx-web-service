@@ -119,7 +119,7 @@ class Forwarder(Process):
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res = future.result()
-            self.result_q.put(task_id, {'result': res, 'completion_t': time.time()})
+            self.result_q.put(task_id, 'result', {'result': res, 'completion_t': time.time()})
         except Exception as e:
             logger.debug("Task:{} failed".format(task_id))
             # Todo : Since we caught an exception, we should wrap it here, and send it
@@ -141,7 +141,8 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get(timeout=self.heartbeat_threshold)  # Timeout in s
+                task_id, task_info = self.task_q.get('task',
+                                                     timeout=self.heartbeat_threshold)  # Timeout in s
                 logger.debug("[TASKS] Got task_id {}".format(task_id))
 
             except queue.Empty:
@@ -170,13 +171,13 @@ class Forwarder(Process):
 
             except zmq.error.Again:
                 logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
-                self.task_q.put(task_id, task_info)
+                self.task_q.put(task_id, 'task', task_info)
                 logger.warning("[TASKS] Breaking task-loop to switch to endpoint liveness loop")
                 break
             except Exception:
                 # Broad catch to avoid repeating the task reput,
                 logger.exception("[TASKS] Some unhandled error occurred")
-                self.task_q.put(task_id, task_info)
+                self.task_q.put(task_id, 'task', task_info)
 
             # Task is now submitted. Tack a callback on that.
             fu.add_done_callback(partial(self.handle_app_update, task_id))
