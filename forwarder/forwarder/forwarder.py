@@ -286,7 +286,6 @@ def spawn_forwarder(address,
     Returns:
          A Forwarder object
     """
-    print("YADU: DEBUG Hi 01")
     if not task_q:
         task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
