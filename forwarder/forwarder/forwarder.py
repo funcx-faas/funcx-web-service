@@ -118,10 +118,16 @@ class Forwarder(Process):
         task_id = task_header.split(';')[0]
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
-            res = future.result()
-            self.result_q.put(task_id, 'result', {'result': res, 'completion_t': time.time()})
+            res_dict = future.result()
+            logger.info("Res_dict : {}".format(res_dict))
+            if 'result' in res_dict:
+                self.result_q.put(task_id, 'result', {'result': res_dict['result'],
+                                                      'completion_t': time.time()})
+            elif 'exception' in res_dict:
+                self.result_q.put(task_id, 'result', {'exception': res_dict['exception'],
+                                                      'completion_t': time.time()})
         except Exception as e:
-            logger.debug("Task:{} failed".format(task_id))
+            logger.error("Task update {} failed due to {}".format(task_id, e))
             # Todo : Since we caught an exception, we should wrap it here, and send it
             # back onto the results queue.
         else:
@@ -159,10 +165,10 @@ class Forwarder(Process):
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
-
             logger.debug("Task_info block :{}".format(task_info))
 
             # Convert the payload to bytes
+            logger.warning("DEBUG : task_info {}".format(task_info))
             full_payload = task_info.encode()
 
             try:
@@ -280,6 +286,7 @@ def spawn_forwarder(address,
     Returns:
          A Forwarder object
     """
+    print("YADU: DEBUG Hi 01")
     if not task_q:
         task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
