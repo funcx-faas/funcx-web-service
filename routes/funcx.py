@@ -32,70 +32,69 @@ def execute(user_name):
         The task document
     """
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
+    with app.app_context():
+        if not user_name:
+            abort(400, description="Could not find user. You must be "
+                                   "logged in to perform this function.")
+        app.logger.debug(f"Received task from user: {user_name}")
+        try:
+            post_req = request.json
+            endpoint = post_req['endpoint']
+            function_uuid = post_req['func']
+            input_data = post_req['data']
 
-    app.logger.debug(f"Received task from user: {user_name}")
-    try:
-        post_req = request.json
-        endpoint = post_req['endpoint']
-        function_uuid = post_req['func']
-        input_data = post_req['data']
-
-        endpoint_authorized = False
-        # Check if the user has already used this endpoint
-        if caching and endpoint in endpoint_cache:
-            if user_name in endpoint_cache[endpoint]:
-                endpoint_authorized = True
-        if not endpoint_authorized:
-            # Check if the user's token is allowed to access the endpoint
-            token = request.headers.get('Authorization')
-            token = str.replace(str(token), 'Bearer ', '')
-
-            endpoint_authorized = authorize_endpoint(user_name, endpoint, token)
-            # Throw an unauthorized error if they are not allowed
+            endpoint_authorized = False
+            # Check if the user has already used this endpoint
+            if caching and endpoint in endpoint_cache:
+                if user_name in endpoint_cache[endpoint]:
+                    endpoint_authorized = True
             if not endpoint_authorized:
-                return jsonify({"Error": "Unauthorized access of endpoint."}), 400
+                # Check if the user's token is allowed to access the endpoint
+                token = request.headers.get('Authorization')
+                token = str.replace(str(token), 'Bearer ', '')
 
-            # Otherwise, cache it for next time
-            if caching:
-                if endpoint not in endpoint_cache:
-                    endpoint_cache[endpoint] = {}
-                endpoint_cache[endpoint][user_name] = True
+                endpoint_authorized = authorize_endpoint(user_name, endpoint, token)
+                # Throw an unauthorized error if they are not allowed
+                if not endpoint_authorized:
+                    return jsonify({"Error": "Unauthorized access of endpoint."}), 400
 
-        task_status = 'ACTIVE'
-        task_id = str(uuid.uuid4())
+                # Otherwise, cache it for next time
+                if caching:
+                    if endpoint not in endpoint_cache:
+                        endpoint_cache[endpoint] = {}
+                    endpoint_cache[endpoint][user_name] = True
 
-        if 'action_id' in post_req:
-            task_id = post_req['action_id']
+            task_status = 'ACTIVE'
+            task_id = str(uuid.uuid4())
+            if 'action_id' in post_req:
+                task_id = post_req['action_id']
 
-        app.logger.info("Task assigned UUID: {}".format(task_id))
+            app.logger.info("Task assigned UUID: {}".format(task_id))
 
-        # Get the redis connection
-        rc = get_redis_client()
+            # Get the redis connection
+            rc = get_redis_client()
 
-        user_id = resolve_user(user_name)
+            user_id = resolve_user(user_name)
 
-        # Add the job to redis
-        task_payload = {'task_id': task_id,
-                        'endpoint_id': endpoint,
-                        'function_id': function_uuid,
-                        'input_data': input_data,
-                        'user_name': user_name,
-                        'user_id': user_id,
-                        'created_at': time.time(),
-                        'status': task_status}
-        
-        rc.set(f"task:{task_id}", json.dumps(task_payload))
+            # Add the job to redis
+            task_payload = {'task_id': task_id,
+                            'endpoint_id': endpoint,
+                            'function_id': function_uuid,
+                            'input_data': input_data,
+                            'user_name': user_name,
+                            'user_id': user_id,
+                            'created_at': time.time(),
+                            'status': task_status}
 
-        # Add the task to the redis queue
-        rc.rpush("task_list", task_id)
+            rc.set(f"task:{task_id}", json.dumps(task_payload))
 
-    except Exception as e:
-        app.logger.error(e)
+            # Add the task to the redis queue
+            rc.rpush("task_list", task_id)
 
-    return jsonify({'task_id': task_id})
+        except Exception as e:
+            app.logger.error(e)
+
+        return jsonify({'task_id': task_id})
 
 
 @funcx_api.route("/<task_id>/status", methods=['GET'])
@@ -115,41 +114,41 @@ def status(user_name, task_id):
     json
         The status of the task
     """
+    with app.app_context():
+        if not user_name:
+            abort(400, description="Could not find user. You must be "
+                                   "logged in to perform this function.")
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        details = {}
-        
-        # Get the task from redis
         try:
-            task = json.loads(rc.get(f"task:{task_id}"))
-        except:
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            # Get a redis client
+            rc = get_redis_client()
 
-        res = {'task_id': task_id}
-        if 'status' in task:
-            res['status'] = task['status']
+            details = {}
 
-        if 'result' in task:
-            details['result'] = task['result']
-        if 'reason' in task:
-            details['reason'] = task['reason']
+            # Get the task from redis
+            try:
+                task = json.loads(rc.get(f"task:{task_id}"))
+            except:
+                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
-        if details:
-            res.update({'details': details})
+            res = {'task_id': task_id}
+            if 'status' in task:
+                res['status'] = task['status']
 
-        app.logger.debug("Status Response: {}".format(str(res)))
-        return jsonify(res)
+            if 'result' in task:
+                details['result'] = task['result']
+            if 'reason' in task:
+                details['reason'] = task['reason']
 
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'InternalError': e})
+            if details:
+                res.update({'details': details})
+
+            app.logger.debug("Status Response: {}".format(str(res)))
+            return jsonify(res)
+
+        except Exception as e:
+            app.logger.error(e)
+            return jsonify({'InternalError': e})
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
