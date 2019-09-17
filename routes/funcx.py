@@ -79,7 +79,7 @@ def submit(user_name):
     task_id = str(uuid.uuid4())
     # TODO: Check if the user can use the endpoint
     if 'redis_task_queue' not in g:
-        g.redis_task_queue = RedisQueue("task",
+        g.redis_task_queue = RedisQueue(f"task_{endpoint}",
                                         hostname=app.config['REDIS_HOST'],
                                         port=app.config['REDIS_PORT'])
         g.redis_task_queue.connect()
@@ -94,7 +94,7 @@ def submit(user_name):
     if container_uuid:
         task_header.append(';' + container_uuid)
 
-    g.redis_task_queue.put(endpoint, task_header, payload)
+    g.redis_task_queue.put(endpoint, 'task', task_header, payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
     return jsonify({'status': 'Success',
@@ -131,7 +131,11 @@ def status(user_name, task_id):
 
         # Get the task from redis
         try:
-            task = json.loads(rc.get(f"results:{task_id}"))
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            if result_obj:
+                task = json.loads()
+            else:
+                task = {'status': 'PENDING'}
         except:
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
