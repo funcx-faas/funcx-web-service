@@ -93,6 +93,8 @@ def submit(user_name):
     task_header = task_id
     if container_uuid:
         task_header.append(';' + container_uuid)
+    else:
+        task_header.append(';' + 'RAW')
 
     g.redis_task_queue.put(task_header, 'task', payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
