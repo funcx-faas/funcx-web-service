@@ -133,8 +133,9 @@ def status(user_name, task_id):
         # Get the task from redis
         try:
             result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"Result_obj : {result_obj}")
             if result_obj:
-                task = json.loads()
+                task = json.loads(result_obj)
             else:
                 task = {'status': 'PENDING'}
         except Exception as e:
