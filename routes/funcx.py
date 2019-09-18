@@ -137,7 +137,8 @@ def status(user_name, task_id):
                 task = json.loads()
             else:
                 task = {'status': 'PENDING'}
-        except:
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         res = {'task_id': task_id}
