@@ -15,6 +15,7 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
+    total_CPU = 1
     try:
         conn, cur = get_db_connection()
         cur.execute(
