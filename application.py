@@ -42,31 +42,6 @@ application.register_blueprint(guiapi)
 io = SocketIO(application)
 
 
-# class CounterThread(Thread):
-#
-#     def __init__(self):
-#         self.delay = 5
-#         super(CounterThread, self).__init__()
-#
-# def update_counter(self):
-#     """
-#     Emit the core hour count
-#     """
-#     if 'redis_client' not in g:
-#         g.redis_client = redis.Redis(
-#             host=app.config['REDIS_HOST'],
-#             port=app.config['REDIS_PORT'])
-#
-#     while not g.thread_stop_event.isSet():
-#         c = round(float(g.redis_client.get('funcx_worldwide_counter')), 2)
-#         io.emit('msg', {'count': c}, namespace='/ws_core_hours')
-#         time.sleep(self.delay)
-#
-#
-#     def run(self):
-#         self.update_counter()
-
-
 @io.on('connect', namespace='/ws_core_hours')
 def ws_conn():
     app.logger.debug('Client connected!')

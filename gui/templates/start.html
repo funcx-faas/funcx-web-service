@@ -86,7 +86,7 @@
 
         <script type="text/javascript">
             $(document).ready(function() {
-                var url = "http://" + document.domain + ":" + location.port;
+                var url = "https://" + document.domain + ":" + location.port;
                 var socket = io.connect(url + "/ws_core_hours");
                 socket.on('msg', function(msg) {
                     $("#core_hours").html(msg.count);
