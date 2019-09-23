@@ -143,6 +143,59 @@ def status(user_name, task_id):
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
         res = {'task_id': task_id}
+
+
+        task['task_id'] = task_id
+
+        app.logger.debug("Status Response: {}".format(str(task)))
+        return jsonify(task)
+
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
+
+@funcx_api.route("/<task_id>/result", methods=['GET'])
+@authenticated
+def result(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+
+        details = {}
+
+        # Get the task from redis
+        try:
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"ResulOBt_obj : {result_obj}")
+            if result_obj:
+                task = json.loads(result_obj)
+            else:
+                task = {'status': 'PENDING'}
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+
+        res = {'task_id': task_id}
         if 'status' in task:
             res['status'] = task['status']
 

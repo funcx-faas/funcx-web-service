@@ -136,6 +136,9 @@ class EndpointDB(object):
             if 'new_core_hrs' in payload:
                 self.redis_client.incrbyfloat('funcx_worldwide_counter', amount=payload['new_core_hrs'])
             self.redis_client.ltrim(f'ep_status_{endpoint_id}', 0, 2880) # Keep 2 x 24hr x 60 min worth of logs
+            if 'new_core_hrs' in payload:
+                self.redis_client.incr('funcx_worldwide_counter', amount=int(payload['new_core_hrs']))
+
         except AttributeError:
             raise NotConnected(self)
         except redis.exceptions.ConnectionError:
