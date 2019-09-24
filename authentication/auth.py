@@ -6,12 +6,14 @@ from models.utils import resolve_user
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, GlobusAPIError, ConfidentialAppAuthClient
 
-from functools import wraps
+from functools import wraps, lru_cache
 from flask import abort
 
 
 def authenticated(f):
     """Decorator for globus auth."""
+
+    @lru_cache(maxsize=1024)
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'Authorization' not in request.headers:
@@ -32,6 +34,7 @@ def authenticated(f):
     return decorated_function
 
 
+@lru_cache(maxsize=1024)
 def check_group_membership(token, endpoint_groups):
     """Determine whether or not the user is a member
     of any of the groups
@@ -66,6 +69,7 @@ def check_group_membership(token, endpoint_groups):
     return False
 
 
+@lru_cache(maxsize=1024)
 def authorize_endpoint(user_name, endpoint_uuid, token):
     """Determine whether or not the user is allowed to access this endpoint.
     This is done in two steps: first, check if the user owns the endpoint. If not,
