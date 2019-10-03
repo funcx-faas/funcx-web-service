@@ -144,7 +144,6 @@ def status(user_name, task_id):
 
         res = {'task_id': task_id}
 
-
         task['task_id'] = task_id
 
         app.logger.debug("Status Response: {}".format(str(task)))
