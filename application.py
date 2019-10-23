@@ -8,7 +8,7 @@ from gui.routes import guiapi
 from version import VERSION
 from logging.config import dictConfig
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 
 
@@ -39,16 +39,19 @@ application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
 application.register_blueprint(guiapi)
 
-io = SocketIO(application)
+#io = SocketIO(application)
 
-
-@io.on('connect', namespace='/ws_core_hours')
+application.route('/ws_core_hours')
 def ws_conn():
-    print('connected!')
-    #c = db.incr('connected', 10)
-    c = 10
-    print('emitting count: ', str(c))
-    io.emit('msg', {'count': c}, namespace='/ws_core_hours')
+    return jsonify({'count': 10})
+
+#@io.on('connect', namespace='/ws_core_hours')
+#def ws_conn():
+#    print('connected!')
+#    #c = db.incr('connected', 10)
+#    c = 10
+#    print('emitting count: ', str(c))
+#    io.emit('msg', {'count': c}, namespace='/ws_core_hours')
 
 
 if __name__ == '__main__':

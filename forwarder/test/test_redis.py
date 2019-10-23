@@ -32,7 +32,8 @@ def test(endpoint_id=None, tasks=10, duration=1, hostname=None, port=None):
         ser_kwargs = fxs.serialize({'duration':duration})
         input_data = fxs.pack_buffers([ser_args, ser_kwargs])
         payload = fn_code + input_data
-        container_id = "odd" if i%2 else "even"
+        # container_id = "odd" if i%2 else "even"
+        container_id = "RAW"
         tasks_rq.put(f"0{i};{container_id}", 'task', payload)
     d1 = time.time() - start
     print("Time to launch {} tasks: {:8.3f} s".format(tasks, d1))
@@ -40,7 +41,7 @@ def test(endpoint_id=None, tasks=10, duration=1, hostname=None, port=None):
     print(f"Launched {tasks} tasks")
     for i in range(tasks):
         res = results_rq.get('result', timeout=300)
-        # print("Result : ", res)
+        print("Result : ", res)
 
     delta = time.time() - start
     print("Time to complete {} tasks: {:8.3f} s".format(tasks, delta))
