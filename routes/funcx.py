@@ -141,6 +141,14 @@ def status(user_name, task_id):
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+        else:
+            if result_obj:
+                # Task complete, attempt flush
+                try:
+                    rc.del(f"task_{task_id}")
+                except Exception as e:
+                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                    pass
 
         res = {'task_id': task_id}
 
