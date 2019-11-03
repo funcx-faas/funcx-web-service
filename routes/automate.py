@@ -134,8 +134,10 @@ def status(user_name, task_id):
             app.logger.debug(f"Result_obj : {result_obj}")
             if result_obj:
                 task = json.loads(result_obj)
+                if 'status' not in task:
+                    task['status'] = 'SUCCEEDED'
             else:
-                task = {'status': 'PENDING'}
+                task = {'status': 'ACTIVE'}
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
