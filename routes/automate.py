@@ -47,7 +47,7 @@ def run(user_name):
 
     # Parse out the function info
     try:
-        post_req = request.json
+        post_req = request.json['body']
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
