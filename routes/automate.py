@@ -126,7 +126,7 @@ def status(user_name, task_id):
         if 'redis_client' not in g:
             g.redis_client = get_redis_client()
 
-        details = {}
+        task = {}
 
         # Get the task from redis
         try:
@@ -145,7 +145,7 @@ def status(user_name, task_id):
         task['task_id'] = task_id
 
         automate_response = {
-            "details": details,
+            "details": task,
             "status": task['status'],
             "action_id": task_id,
             "release_after": 'P30D'
