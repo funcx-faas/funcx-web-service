@@ -5,7 +5,10 @@ import datetime
 
 from models.utils import resolve_user, get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
-from flask import current_app as app, Blueprint, jsonify, request, abort
+from models.utils import resolve_function
+from flask import current_app as app, Blueprint, jsonify, request, abort, g
+
+from .redis_q import RedisQueue
 
 # Flask
 automate_api = Blueprint("automate", __name__)
@@ -82,11 +85,12 @@ def run(user_name):
     task_header = f"{task_id};{container_uuid}"
 
     g.redis_task_queue.put(task_header, 'task', payload)
+
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
     app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
 
     automate_response = {
-        "status": task_status,
+        "status": 'ACTIVE',
         "action_id": task_id,
         "details": None,
         "release_after": 'P30D',
@@ -94,9 +98,6 @@ def run(user_name):
     }
     print(automate_response)
     return jsonify(automate_response)
-
-    return jsonify({'status': 'Success',
-                    'task_uuid': task_id})
 
 
 @automate_api.route("/<task_id>/status", methods=['GET'])
