@@ -409,7 +409,7 @@ def register_endpoint_2(user_name):
 
     try:
         response = register_with_hub(
-            "http://34.207.74.221:8080", endpoint_uuid, endpoint_ip_addr)
+            "http://10.0.0.112:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         response = {'status': 'error',
@@ -560,7 +560,7 @@ def del_endpoint(user_name):
 
 
 @funcx_api.route("/ep_live", methods=['GET'])
-def get_stats_from_forwarder(forwarder_address="http://34.207.74.221:8080"):
+def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
     """ Get stats from the forwarder
     """
     app.logger.debug(f"Getting stats from forwarder")
