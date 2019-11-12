@@ -3,18 +3,26 @@
 """
 import logging
 from forwarder.version import VERSION
+from logging.handlers import RotatingFileHandler
 
 __author__ = "The funcX team"
 __version__ = VERSION
 
 
-def set_file_logger(filename, name='funcx.forwarder', level=logging.DEBUG, format_string=None):
+def set_file_logger(filename,
+                    name='funcx.forwarder',
+                    level=logging.DEBUG,
+                    maxBytes=256*1024*1024,
+                    backupCount=1,
+                    format_string=None):
     """Add a stream log handler.
 
     Args:
         - filename (string): Name of the file to write logs to
         - name (string): Logger name
-        - level (logging.LEVEL): Set the logging level.
+        - level (logging.LEVEL): Set the logging level
+        - maxBytes: The maximum bytes per logger file, default: 256MB
+        - backupCount: The number of backup (must be non-zero) per logger file, default: 1
         - format_string (string): Set the format string
 
     Returns:
@@ -25,7 +33,7 @@ def set_file_logger(filename, name='funcx.forwarder', level=logging.DEBUG, forma
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename)
+    handler = RotatingFileHandler(filename, maxBytes=maxBytes, backupCount=backupCount)
     handler.setLevel(level)
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
