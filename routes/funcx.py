@@ -97,7 +97,7 @@ def submit(user_name):
         container_uuid = 'RAW'
 
     if not serializer:
-        serializer = "JSON"
+        serializer = "ANY"
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
