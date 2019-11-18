@@ -1,6 +1,6 @@
 import redis
 import queue
-
+import time
 from forwarder.queues.base import FuncxQueue, NotConnected
 import json
 
@@ -42,7 +42,7 @@ class RedisQueue(FuncxQueue):
 
             raise
 
-    def get(self, kind, timeout=1):
+    def get(self, kind, timeout=1, logger=None):
         """ Get an item from the redis queue
 
         Parameters
@@ -59,6 +59,7 @@ class RedisQueue(FuncxQueue):
                 raise queue.Empty
 
             task_list, task_id = x
+            print(f"*** Start {task_id} -- {time.time()}***")
             jtask_info = self.redis_client.hget(f'task_{task_id}', kind)
             task_info = json.loads(jtask_info)
         except queue.Empty:
