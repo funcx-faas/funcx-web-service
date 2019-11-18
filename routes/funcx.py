@@ -62,6 +62,9 @@ def submit(user_name):
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
+        serializer = None
+        if 'serializer' in post_req:
+            serializer = post_req['serializer']
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -93,7 +96,10 @@ def submit(user_name):
     if not container_uuid:
         container_uuid = 'RAW'
 
-    task_header = f"{task_id};{container_uuid}"
+    if not serializer:
+        serializer = "JSON"
+
+    task_header = f"{task_id};{container_uuid};{serializer}"
 
     g.redis_task_queue.put(task_header, 'task', payload)
     app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")

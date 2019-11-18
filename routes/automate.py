@@ -86,7 +86,7 @@ def run(user_name):
         container_uuid = 'RAW'
 
     if not serializer:
-        serializer = "RAW"
+        serializer = "JSON"
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
