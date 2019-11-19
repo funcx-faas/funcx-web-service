@@ -390,7 +390,6 @@ def register_endpoint_2(user_name):
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
     app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
-    # TODO: We should handle keyError here
     try:
         app.logger.debug(request.json['endpoint_name'])
         endpoint_uuid = register_endpoint(user_name,
@@ -413,13 +412,18 @@ def register_endpoint_2(user_name):
         response = {'status': 'error',
                     'reason': f'Caught error while registering endpoint {e}'}
 
-    try:
-        response = register_with_hub(
-            "http://10.0.0.112:8080", endpoint_uuid, endpoint_ip_addr)
-    except Exception as e:
-        app.logger.debug("Caught error during forwarder initialization")
+    if not endpoint_uuid:
+        app.logger.debug("Failed to register endpoint. Invalid UUID")
         response = {'status': 'error',
-                    'reason': f'Failed during broker start {e}'}
+                    'reason': f'Failed to register endpoint. Invalid UUID.'}
+    else:
+        try:
+            response = register_with_hub(
+                "http://10.0.0.112:8080", endpoint_uuid, endpoint_ip_addr)
+        except Exception as e:
+            app.logger.debug("Caught error during forwarder initialization")
+            response = {'status': 'error',
+                        'reason': f'Failed during broker start {e}'}
 
     return jsonify(response)
 
