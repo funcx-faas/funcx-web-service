@@ -229,6 +229,65 @@ def result(user_name, task_id):
                         'reason': 'InternalError: {}'.format(e)})
 
 
+@funcx_api.route("/tasks/<task_id>", methods=['GET'])
+@authenticated
+def task_status(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+
+        # Get the task from redis
+        try:
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"Result_obj : {result_obj}")
+            if result_obj:
+                task = json.loads(result_obj)
+                if 'status' not in task:
+                    task['status'] = 'COMPLETED'
+            else:
+                task = {'status': 'PENDING'}
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+        else:
+            if result_obj:
+                # Task complete, attempt flush
+                try:
+                    rc.delete(f"task_{task_id}")
+                except Exception as e:
+                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                    pass
+
+        task['task_id'] = task_id
+
+        app.logger.debug("Status Response: {}".format(str(task)))
+        return jsonify(task)
+
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'FAILED',
+                        'reason': 'InternalError: {}'.format(e)})
+
+
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 @authenticated
 def get_cont(user_name, container_id, container_type):
