@@ -25,7 +25,7 @@ def ping():
 
 
 @get('/map.json')
-def get_mao_json():
+def get_map_json():
     """ Paint a map of utilization
     """
     results = []
@@ -109,7 +109,6 @@ def register():
                          endpoint_id,
                          endpoint_addr=endpoint_details['endpoint_addr'],
                          logging_level=logging.DEBUG if request.app.debug else logging.INFO)
-
 
     connection_info = fw.connection_info
     ret_package = {'endpoint_id': endpoint_id}
