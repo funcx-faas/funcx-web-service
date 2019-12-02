@@ -473,8 +473,9 @@ def register_endpoint_2(user_name):
                     'reason': f'Caught error while registering endpoint {e}'}
 
     try:
+        forwarder_ip = app.config['FORWARDER_IP']
         response = register_with_hub(
-            "http://10.0.0.112:8080", endpoint_uuid, endpoint_ip_addr)
+            f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         response = {'status': 'error',
