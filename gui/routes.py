@@ -1,8 +1,9 @@
 from flask import (abort, Blueprint, current_app as app, flash, jsonify,
-                   redirect, render_template, request, session, url_for)
+                   redirect, render_template, request, session, url_for, g)
 import time
 import requests
 import uuid
+import redis
 from math import *
 from datetime import datetime, timedelta
 from gui.forms import EditForm, ExecuteForm, DeleteForm
@@ -15,21 +16,16 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
+    core_hours = ""
+    if 'redis_client' not in g:
+        g.redis_client = redis.Redis(
+            host=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT'])
     try:
-        conn, cur = get_db_connection()
-        cur.execute(
-            "SELECT tasks.created_at, tasks.modified_at FROM tasks;")
-        all_tasks = cur.fetchall()
-        times = list()
-        for task in all_tasks:
-            times.append(task['modified_at'] - task['created_at'])
-        count = timedelta(hours=0)
-        for time in times:
-            count += time
-        total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
+        core_hours = round(float(g.redis_client.get('funcx_worldwide_counter')), 2)
     except:
-        flash('There was an issue handling your request.', 'danger')
-    return render_template('start.html', title='Start', total_CPU=total_CPU)
+        pass
+    return render_template('start.html', title='Start',  burned=core_hours)
 
 
 def num_delimiter(num, type):

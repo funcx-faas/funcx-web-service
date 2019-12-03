@@ -168,6 +168,7 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
+
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
 def result(user_name, task_id):
@@ -226,6 +227,114 @@ def result(user_name, task_id):
     except Exception as e:
         app.logger.error(e)
         return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
+
+
+@funcx_api.route("/tasks/<task_id>", methods=['GET'])
+@authenticated
+def get_task(user_name, task_id):
+    """Get a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+
+        # Get the task from redis
+        try:
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"Result_obj : {result_obj}")
+            if result_obj:
+                task = json.loads(result_obj)
+                if 'status' not in task:
+                    task['status'] = 'COMPLETED'
+            else:
+                task = {'status': 'PENDING'}
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+        else:
+            if result_obj:
+                # Task complete, attempt flush
+                try:
+                    rc.delete(f"task_{task_id}")
+                except Exception as e:
+                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                    pass
+
+        task['task_id'] = task_id
+
+        app.logger.debug("Status Response: {}".format(str(task['status'])))
+        return jsonify(task)
+
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'FAILED',
+                        'reason': 'InternalError: {}'.format(e)})
+
+
+@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
+@authenticated
+def get_task_status(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+
+        # Get the task from redis
+        try:
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"Result_obj : {result_obj}")
+            if result_obj:
+                task = json.loads(result_obj)
+                if 'status' not in task:
+                    task['status'] = 'COMPLETED'
+            else:
+                task = {'status': 'PENDING'}
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+
+        app.logger.debug("Status Response: {}".format(str(task['status'])))
+        return jsonify({'status': task['status']})
+
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'FAILED',
                         'reason': 'InternalError: {}'.format(e)})
 
 
@@ -412,18 +521,14 @@ def register_endpoint_2(user_name):
         response = {'status': 'error',
                     'reason': f'Caught error while registering endpoint {e}'}
 
-    if not endpoint_uuid:
-        app.logger.debug("Failed to register endpoint. Invalid UUID")
+    try:
+        forwarder_ip = app.config['FORWARDER_IP']
+        response = register_with_hub(
+            f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+    except Exception as e:
+        app.logger.debug("Caught error during forwarder initialization")
         response = {'status': 'error',
-                    'reason': f'Failed to register endpoint. Invalid UUID.'}
-    else:
-        try:
-            response = register_with_hub(
-                "http://10.0.0.112:8080", endpoint_uuid, endpoint_ip_addr)
-        except Exception as e:
-            app.logger.debug("Caught error during forwarder initialization")
-            response = {'status': 'error',
-                        'reason': f'Failed during broker start {e}'}
+                    'reason': f'Failed during broker start {e}'}
 
     return jsonify(response)
 
