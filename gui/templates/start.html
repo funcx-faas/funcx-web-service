@@ -84,15 +84,15 @@
             </div>
         </section>
 
-        <script type="text/javascript">
-            $(document).ready(function() {
-                var url = "http://" + document.domain + ":" + location.port;
-                var socket = io.connect(url + "/ws_core_hours");
-                socket.on('msg', function(msg) {
-                    $("#core_hours").html(msg.count);
-                });
-            });
-        </script>
+<!--        <script type="text/javascript">-->
+<!--            $(document).ready(function() {-->
+<!--                var url = "http://" + document.domain + ":" + location.port;-->
+<!--                $.get(url + "/core_hours");-->
+<!--                socket.on('msg', function(msg) {-->
+<!--                    $("#core_hours").html(msg.hours);-->
+<!--                });-->
+<!--            });-->
+<!--        </script>-->
 
 
         <section class="row START-ROW">
