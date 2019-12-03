@@ -6,6 +6,8 @@ import os
 import queue
 import time
 import zmq
+import pickle
+import requests
 
 from multiprocessing import Queue
 from parsl.providers import LocalProvider
@@ -13,10 +15,11 @@ from parsl.channels import LocalChannel
 from parsl.app.errors import RemoteExceptionWrapper
 
 from funcx.executors import HighThroughputExecutor as HTEX
+from funcx.serialize import FuncXSerializer
 
 from multiprocessing import Process
 from forwarder.queues import RedisQueue
-
+from forwarder.endpoint_db import EndpointDB
 
 from forwarder import set_file_logger
 
@@ -50,26 +53,35 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, result_q, executor, endpoint_id,
+                 heartbeat_threshold=60, endpoint_addr=None,
+                 redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO):
         """
-        Params:
-             task_q : A queue object
-                Any queue object that has get primitives. This must be a thread-safe queue.
+        Parameters
+        ----------
+        task_q : A queue object
+        Any queue object that has get primitives. This must be a thread-safe queue.
 
-             result_q : A queue object
-                Any queue object that has put primitives. This must be a thread-safe queue.
+        result_q : A queue object
+        Any queue object that has put primitives. This must be a thread-safe queue.
 
-             executor: Executor object
-                Executor to which tasks are to be forwarded
+        executor: Executor object
+        Executor to which tasks are to be forwarded
 
-             endpoint_id: str
-                Usually a uuid4 as string that identifies the executor
+        endpoint_id: str
+        Usually a uuid4 as string that identifies the executor
 
-             logdir: str
-                Path to logdir
+        endpoint_addr: str
+        Endpoint ip address as a string
 
-             logging_level : int
-                Logging level as defined in the logging module. Default: logging.INFO (20)
+        heartbeat_threshold : int
+        Heartbeat threshold in seconds
+
+        logdir: str
+        Path to logdir
+
+        logging_level : int
+        Logging level as defined in the logging module. Default: logging.INFO (20)
 
         """
         super().__init__()
@@ -78,128 +90,128 @@ class Forwarder(Process):
 
         global logger
         logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
+                                 name="funcx",
                                  level=logging_level)
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
         logger.info("Log level set to {}".format(loglevels[logging_level]))
+
+        self.endpoint_addr = endpoint_addr
         self.task_q = task_q
         self.result_q = result_q
+        self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
+        self.endpoint_addr = endpoint_addr
+        self.redis_address = redis_address
         self.internal_q = Queue()
         self.client_ports = None
+        self.fx_serializer = FuncXSerializer()
 
-    def handle_app_update(self, task_id, future):
+    def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
 
         This can be further optimized at the executor level, where we trigger this
         or a similar function when we see a results item inbound from the interchange.
         """
+
+        task_id = task_header.split(';')[0]
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
-            res = future.result()
-            self.result_q.put(task_id, res)
+            res_dict = future.result()
+            logger.info("Res_dict : {}".format(res_dict))
+            if 'result' in res_dict:
+                self.result_q.put(task_id, 'result', {'result': res_dict['result'],
+                                                      'completion_t': time.time()})
+            elif 'exception' in res_dict:
+                self.result_q.put(task_id, 'result', {'exception': res_dict['exception'],
+                                                      'completion_t': time.time()})
         except Exception as e:
-            logger.debug("Task:{} failed".format(task_id))
+            logger.error("Task update {} failed due to {}".format(task_id, e))
             # Todo : Since we caught an exception, we should wrap it here, and send it
             # back onto the results queue.
         else:
             logger.debug("Task:{} succeeded".format(task_id))
 
-
-    def _debug_task_loop(self):
-        """ A debug task loop
-
-        Only for debugging
-        """
-        count = 0
-        while True:
-
-            count += 1
-            logger.info("[TASK_LOOP] pushing a task")
-
-            task_id = str(uuid.uuid4())
-            args = [count]
-            kwargs = {}
-            try:
-                fu = self.executor.submit(double, *args, **kwargs)
-            except zmq.error.Again:
-                logger.error("[TASK_LOOP] No endpoint available for task dispatch")
-
-            else:
-                logger.info("[TASK_LOOP] pushed a task, waiting for result")
-                res = fu.result()
-                logger.info("[TASK_LOOP] got result :{}".format(res))
-                # fu.add_done_callback(partial(self.handle_app_update, task_id))
-
-            x = self.executor.outstanding
-            logger.info("[TASK_LOOP] outstanding {}".format(x))
-
-            x = self.executor.connected_workers
-            logger.info("[TASK_LOOP] connected {}".format(x))
-
-            time.sleep(5)
-
     def task_loop(self):
         """ Task Loop
-        
+
         The assumption is that we enter the task loop only once an endpoint is online.
         We expect the situation where the endpoint dies and reconnects to be infrequent.
         When it does go offline, the submit call will raise a zmq.error.Again which will
         cause the task to be pushed back into the queue, and the task_loop to break.
         """
-        
+
+        logger.info("[TASKS] Entering task loop")
         while True:
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get(timeout=10)  # Timeout in seconds
+                task_id, task_info = self.task_q.get('task',
+                                                     timeout=self.heartbeat_threshold)  # Timeout in s
                 logger.debug("[TASKS] Got task_id {}".format(task_id))
 
             except queue.Empty:
-                # This exception catching isn't very general,
-                # Essentially any timeout exception should be caught and ignored
-                logger.debug("[TASKS] Task queue:{} is empty".format(self.task_q))
-                continue                
+                try:
+                    logger.debug("[TASKS] Requesting info")
+                    self.executor.request_status_info()
+                except zmq.error.Again:
+                    logger.exception(f"[TASKS] Endpoint busy/unavailable, status info request failed")
+                    break
+                else:
+                    continue
 
             except Exception:
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
-            # TODO: We are piping down a mock task. This needs to be fixed.
-            task_id = str(uuid.uuid4())
-            args = [5]
-            kwargs = {}
-            task_info = {'mock' : 'mock'}
-            # We need to unpack task_info here.
+            logger.debug("Task_info block :{}".format(task_info))
+
+            # Convert the payload to bytes
+            logger.warning("DEBUG : task_info {}".format(task_info))
+            full_payload = task_info.encode()
+
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(double, *args, **kwargs)
+                fu = self.executor.submit(full_payload, task_id=task_id)
+
             except zmq.error.Again:
                 logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
-                self.task_q.put(task_id, task_info)
+                self.task_q.put(task_id, 'task', task_info)
                 logger.warning("[TASKS] Breaking task-loop to switch to endpoint liveness loop")
                 break
             except Exception:
                 # Broad catch to avoid repeating the task reput,
                 logger.exception("[TASKS] Some unhandled error occurred")
-                self.task_q.put(task_id, task_info)
+                self.task_q.put(task_id, 'task', task_info)
 
-            time.sleep(2)
-            if fu.done():
-                logger.debug("[TASKS] Task done after 2 seconds : {}".format(fu.result()))
-            else:
-                logger.debug("[TASK] Task not completed after 2 seconds")
-            
             # Task is now submitted. Tack a callback on that.
             fu.add_done_callback(partial(self.handle_app_update, task_id))
-            
-        
+
+    def update_endpoint_metadata(self):
+        """ Geo locate the endpoint and push as metadata into redis
+        """
+        resp = requests.get('http://ipinfo.io/{}/json'.format(self.endpoint_addr))
+        ep_db = EndpointDB(self.redis_address)
+        ep_db.connect()
+        ep_db.set_endpoint_metadata(self.endpoint_id, resp.json())
+        ep_db.close()
+        return resp.json()
+
     def run(self):
         """ Process entry point.
         """
         logger.info("[MAIN] Loop starting")
         logger.info("[MAIN] Executor: {}".format(self.executor))
+
+        logger.info("[MAIN] Attempting to resolve endpoint_addr: {}".format(self.endpoint_addr))
+        try:
+            resp = self.update_endpoint_metadata()
+
+        except Exception as e:
+            logger.exception("Failed to geo locate {}".format(self.endpoint_addr))
+        else:
+            logger.info("Endpoint is at {}".format(resp))
 
         try:
             self.task_q.connect()
@@ -236,6 +248,7 @@ class Forwarder(Process):
 def spawn_forwarder(address,
                     redis_address,
                     endpoint_id,
+                    endpoint_addr=None,
                     executor=None,
                     task_q=None,
                     result_q=None,
@@ -253,6 +266,9 @@ def spawn_forwarder(address,
 
     endpoint_id : str
        Endpoint id string that will be used to address task/result queues.
+
+    endpoint_addr : str
+       Endpoint addr string that will be used to geo-locate address
 
     executor : Executor object. Optional
        Executor object to be instantiated.
@@ -272,7 +288,10 @@ def spawn_forwarder(address,
     if not task_q:
         task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
     if not result_q:
-        result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+        # result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
+        # Change of design. We want all tasks to go to a results table and results_list queue
+        # This would allow any frontend service to access the results stream.
+        result_q = RedisQueue('results', redis_address)
 
     print("Logging_level: {}".format(logging_level))
     print("Task_q: {}".format(task_q))
@@ -282,10 +301,14 @@ def spawn_forwarder(address,
         executor = HTEX(label='htex',
                         provider=LocalProvider(
                             channel=LocalChannel),
+                        endpoint_db=EndpointDB(redis_address),
+                        endpoint_id=endpoint_id,
                         address=address)
 
     fw = Forwarder(task_q, result_q, executor,
-                   "Endpoint_{}".format(endpoint_id),
+                   endpoint_id,
+                   endpoint_addr=endpoint_addr,
+                   redis_address=redis_address,
                    logging_level=logging_level)
     fw.start()
     return fw

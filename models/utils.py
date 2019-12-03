@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 import redis
 import datetime
@@ -6,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 
 from flask import request, current_app as app
+from errors import *
 
 
 def create_task(task):
@@ -71,24 +73,22 @@ def register_function(user_name, function_name, description, function_code, entr
         The uuid of the function
     """
     user_id = resolve_user(user_name)
-    try:
-        conn, cur = get_db_connection()
-        function_uuid = str(uuid.uuid4())
-        query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-                "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                            function_uuid, function_code, entry_point))
 
-        if container_uuid is not None:
-            app.logger.debug(f'Inserting container mapping: {container_uuid}')
-            query = "INSERT INTO function_containers (container_id, function_id) values (" \
-                    "(SELECT id from containers where container_uuid = %s), " \
-                    "(SELECT id from functions where function_uuid = %s))"
-            cur.execute(query, (container_uuid, function_uuid))
-        conn.commit()
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
+    conn, cur = get_db_connection()
+    function_uuid = str(uuid.uuid4())
+    query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
+            "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+    cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
+                        function_uuid, function_code, entry_point))
+
+    if container_uuid is not None:
+        app.logger.debug(f'Inserting container mapping: {container_uuid}')
+        query = "INSERT INTO function_containers (container_id, function_id) values (" \
+                "(SELECT id from containers where container_uuid = %s), " \
+                "(SELECT id from functions where function_uuid = %s))"
+        cur.execute(query, (container_uuid, function_uuid))
+
+    conn.commit()
     return function_uuid
 
 
@@ -152,23 +152,38 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
         The uuid of the endpoint
     """
     user_id = resolve_user(user_name)
+
     try:
         conn, cur = get_db_connection()
         if endpoint_uuid:
-            # Make sure it exists
-            query = "SELECT * from sites where user_id = %s and endpoint_uuid = %s"
-            cur.execute(query, (user_id, endpoint_uuid))
+            # Check it is a valid uuid
+            uuid.UUID(endpoint_uuid)
+
+            # Check if the endpoint id already exists
+            query = "SELECT * from sites where endpoint_uuid = %s"
+            cur.execute(query, (endpoint_uuid, ))
             rows = cur.fetchall()
             if len(rows) > 0:
-                return endpoint_uuid
-        endpoint_uuid = str(uuid.uuid4())
+                # If it does, make sure the user owns it
+                if rows[0]['user_id'] == user_id:
+                    result_eid = endpoint_uuid
+                    query = "UPDATE sites set endpoint_name = %s where endpoint_uuid = %s and user_id = %s"
+                    cur.execute(query, (endpoint_name, endpoint_uuid, user_id))
+                    conn.commit()
+                    return result_eid
+                else:
+                    return None
+        else:
+            endpoint_uuid = str(uuid.uuid4())
+
         query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
                 "values (%s, %s, %s, %s, %s, %s)"
         cur.execute(query, (user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid))
         conn.commit()
+
     except Exception as e:
-        print(e)
         app.logger.error(e)
+        raise e
     return endpoint_uuid
 
 
@@ -190,9 +205,38 @@ def resolve_user(user_name):
         query = "select * from users where username = %s limit 1"
         cur.execute(query, (user_name,))
         row = cur.fetchone()
-        return row['id']
+        if row and 'id' in row:
+            return row['id']
+        else:
+            # It failed to find the user so create a new record
+            return create_user(user_name)
     except Exception as e:
         app.logger.error(f"Failed to find user identity {user_name}. {e}")
+        raise UserNotFound("User ID could not be resolved for user_name: {}".format(user_name))
+
+
+def create_user(user_name):
+    """Insert the user into the database and return the resulting id.
+
+    Parameters
+    ----------
+    user_name : str
+        The user's primary globus identity
+
+    Returns
+    -------
+    int the user's id in the database
+    """
+    try:
+        conn, cur = get_db_connection()
+        query = "insert into users (username) values (%s) returning id"
+        cur.execute(query, (user_name, ))
+        conn.commit()
+        row = cur.fetchone()
+        return row['id']
+    except Exception as e:
+        app.logger.error(f"Failed to create user identity {user_name}. {e}")
+        raise
 
 
 def resolve_function(user_id, function_uuid):
@@ -215,14 +259,19 @@ def resolve_function(user_id, function_uuid):
         The uuid of the container image to use
     """
 
+    start = time.time()
     function_code = None
     function_entry = None
     container_uuid = None
+
     try:
         conn, cur = get_db_connection()
         query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
         cur.execute(query, (function_uuid, user_id))
         r = cur.fetchone()
+        if not r:
+            raise MissingFunction(function_uuid)
+
         function_code = r['function_code']
         function_entry = r['entry_point']
         function_id = r['id']
@@ -232,13 +281,15 @@ def resolve_function(user_id, function_uuid):
                 "order by function_containers.id desc limit 1"
         cur.execute(query, (function_id,))
         r = cur.fetchone()
-        try:
+
+        if r and 'container_uuid' in r:
             container_uuid = r['container_uuid']
-        except:
-            pass
+
     except Exception as e:
-        print(e)
-        app.logger.error(e)
+        app.logger.exception(e)
+        raise
+    delta = time.time() - start
+    app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
     return function_code, function_entry, container_uuid
 
 
@@ -301,3 +352,139 @@ def get_redis_client():
         return redis_client
     except Exception as e:
         print(e)
+
+
+def update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    function_uuid : str
+        The uuid of the function
+    function_name : str
+        The name of the function
+    function_desc : str
+        The description of the function
+    function_entry_point : str
+        The entry point of the function
+    function_code : str
+        The code of the function
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "302" for success and redirect
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted function
+            "500" for try statement error
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
+            (function_uuid,))
+        func = cur.fetchone()
+        if func != None:
+            if func['deleted'] == False:
+                if func['username'] == user_name:
+                    cur.execute(
+                        "UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s",
+                        (function_name, function_desc, function_entry_point, function_code, function_uuid))
+                    conn.commit()
+                    return 302
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
+        return 500
+
+
+def delete_function(user_name, function_uuid):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    function_uuid : str
+        The uuid of the function
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "302" for success and redirect
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted function
+            "500" for try statement error
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
+            (function_uuid,))
+        func = cur.fetchone()
+        if func != None:
+            if func['deleted'] == False:
+                if func['username'] == user_name:
+                    cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
+                    conn.commit()
+                    return 302
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
+        return 500
+
+
+def delete_endpoint(user_name, endpoint_uuid):
+    """Delete a function
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    endpoint_uuid : str
+        The uuid of the endpoint
+
+    Returns
+    -------
+    str
+        The result as a status code integer
+            "302" for success and redirect
+            "403" for unauthorized
+            "404" for a non-existent or previously-deleted endpoint
+            "500" for try statement error
+    """
+    try:
+        conn, cur = get_db_connection()
+        cur.execute(
+            "SELECT username, sites.deleted FROM sites, users WHERE endpoint_uuid = %s AND sites.user_id = users.id",
+            (endpoint_uuid,))
+        site = cur.fetchone()
+        if site != None:
+            if site['deleted'] == False:
+                if site['username'] == user_name:
+                    cur.execute("UPDATE sites SET deleted = True WHERE endpoint_uuid = %s", (endpoint_uuid,))
+                    conn.commit()
+                    return 302
+                else:
+                    return 403
+            else:
+                return 404
+        else:
+            return 404
+    except Exception as e:
+        print(e)
+        return 500

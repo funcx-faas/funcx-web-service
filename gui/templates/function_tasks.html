@@ -1,27 +1,26 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1 class="container PAGE-TITLE">Your Functions</h1>
-    {% if functions|length < 1 %}
+    <h1 class="container PAGE-TITLE">
+        Tasks for function <a href="{{ url_for('guiapi.function_view', uuid=func.function_uuid) }}">"{{ func.function_name }}"</a>
+    </h1>
+
+    {% if func_tasks|length < 1 %}
         <div class="container PADDING-0">
-            <span>You do not have any functions. <a href="{{ url_for('guiapi.function_new') }}">Create one here!</a></span>
+            <span>You do not have any tasks for this function.</span>
         </div>
     {% else %}
-
-{#        <div class="container PADDING-0">#}
-{#            <a href="{{ url_for('guiapi.function_new') }}">New Function &Gt;</a>#}
-{#        </div>#}
 
         <section class="container TABLE-INFO PADDING-0">
             <div class="row SIDE-MARGIN-0">
                 <div class="col PADDING-0">
-                    {% if functions|length == 1 %}
-                        <span class="TABLE-TOTAL">You have 1 function.
+                    {% if func_tasks|length == 1 %}
+                        <span class="TABLE-TOTAL">You have 1 task for this function.</span>
                     {% else %}
-                        <span class="TABLE-TOTAL">You have {{ functions_total }} functions.
-                    {% endif %}<a href="{{ url_for('guiapi.function_new') }}">Write a new function &Gt;</a></span>
+                        <span class="TABLE-TOTAL">You have {{ tasks_total }} tasks for this function.</span>
+                    {% endif %}
                 </div>
 
-                <nav class="col PADDING-0 FLEX-RIGHT">
+                <nav class="col PADDING-0 FLEX-RIGHT FLEX-BOTTOM">
         {#            <a href="#">Previous</a>#}
                     <div class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Page</a>
@@ -38,11 +37,13 @@
 
         <section class="container PADDING-0">
             <div class="row TABLE-LABELS SIDE-MARGIN-0">
-                <div class="col-6">Function</div>
-                <div class="col-3">Date Created</div>
-                <div class="col-3">Date Edited</div>
+                <div class="col-4">Task ID</div>
+                <div class="col-4">Endpoint Name</div>
+                <div class="col">Status</div>
+                <div class="col-2">Date Started</div>
             </div>
         </section>
+
         <section class="container TABLE PADDING-0">
             <div class="tab-content">
                 {% set num = [0] %}
@@ -55,14 +56,29 @@
                     {% endif %}
                     <section class="tab-pane {{ status }}" id="page{{ page }}">
                         {% for results in range(30) %}
-                            {% if num[0] < functions_total %}
-                                {% set func = functions[num[0]] %}
+                            {% if num[0] < tasks_total %}
+                                {% set task = func_tasks[num[0]] %}
                                 <section class="row TABLE-ROW SIDE-MARGIN-0">
-                                    <div class="col-6 TABLE-COL-B">
-                                        <a href="{{ url_for('guiapi.function_view', uuid=func.function_uuid) }}">{{ func.function_name }}</a>
+                                    <div class="col-4 TABLE-COL-B">
+                                        <a href="{{ url_for('guiapi.task_view', task_id=task.task_id) }}">
+                                            {{ task.task_id }}
+                                        </a>
                                     </div>
-                                    <div class="col-3 TABLE-COL">{{ func.timestamp.date() }} {{ func.timestamp.strftime('%X') }}</div>
-                                    <div class="col-3 TABLE-COL">{{ func.modified_at.date() }} {{ func.modified_at.strftime('%X') }}</div>
+                                    <div class="col-4 TABLE-COL-B">{{ task.endpoint_name }}</div>
+                                    {% if task.status == 'SUCCEEDED' %}
+                                        <div class="col TABLE-COL-B text-success">{{ task.status }}</div>
+                                    {% elif task.status == 'FAILED' %}
+                                        <div class="col TABLE-COL-B text-danger">{{ task.status }}</div>
+                                    {% elif task.status == 'ACTIVE' %}
+                                        <div class="col TABLE-COL-B text-primary">{{ task.status }}</div>
+                                    {% elif task.status == 'PENDING' %}
+                                        <div class="col TABLE-COL-B text-warning">{{ task.status }}</div>
+                                    {% elif task.status == 'UNKNOWN' %}
+                                        <div class="col TABLE-COL-B text-info">{{ task.status }}</div>
+                                    {% else %}}
+                                        <div class="col TABLE-COL-B">{{ task.status }}</div>
+                                    {% endif %}
+                                    <div class="col-2 TABLE-COL">{{ task.created_at.date() }} {{ task.created_at.strftime('%X') }}</div>
                                 </section>
                                 {% if num.append(num.pop() + 1) %}{% endif %}
                             {% endif %}

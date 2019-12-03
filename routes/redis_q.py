@@ -1,11 +1,17 @@
 import redis
 import queue
-
-from forwarder.queues.base import FuncxQueue, NotConnected
 import json
 
+class NotConnected(Exception):
+    """ Queue is not connected/active
+    """
+    def __init__(self, queue):
+        self.queue = queue
 
-class RedisQueue(FuncxQueue):
+    def __repr__(self):
+        return "Queue {} is not connected. Cannot execute queue operations".format(self.queue)
+
+class RedisQueue(object):
     """ A basic redis queue
 
     The queue only connects when the `connect` method is called to avoid
@@ -13,7 +19,6 @@ class RedisQueue(FuncxQueue):
 
     Parameters
     ----------
-
     hostname : str
        Hostname of the redis server
 
@@ -41,6 +46,36 @@ class RedisQueue(FuncxQueue):
                                                                                   self.port))
 
             raise
+
+    '''
+    def get(self, endpoint_id, timeout=1):
+        """ Get an item from the redis queue
+
+        Parameters
+        ----------
+        timeout : int
+           Timeout for the blocking get in seconds
+        """
+        try:
+            x = self.redis_client.blpop(f'{self.prefix}_{endpoint_id}_list', timeout=timeout)
+            if not x:
+                raise queue.Empty
+
+            task_list, task_id = x
+            jtask_info = self.redis_client.get(f'{self.prefix}_{endpoint_id}:{task_id}')
+            task_info = json.loads(jtask_info)
+        except queue.Empty:
+            raise
+
+        except AttributeError:
+            raise NotConnected(self)
+
+        except redis.exceptions.ConnectionError:
+            print(f"ConnectionError while trying to connect to Redis@{self.hostname}:{self.port}")
+            raise
+
+        return task_id, task_info
+    '''
 
     def get(self, kind, timeout=1):
         """ Get an item from the redis queue
@@ -73,11 +108,36 @@ class RedisQueue(FuncxQueue):
 
         return task_id, task_info
 
-    def put(self, key, kind, payload):
+    '''
+    def put(self, endpoint_id, key, payload):
         """ Put's the key:payload into a dict and pushes the key onto a queue
         Parameters
         ----------
+        endpoint_id : str
+            Target endpoint id
+
         key : str
+            The task_id to be pushed
+
+        payload : dict
+            Dict of task information to be stored
+        """
+        try:
+            self.redis_client.set(f'{self.prefix}_{endpoint_id}:{key}', json.dumps(payload))
+            self.redis_client.rpush(f'{self.prefix}_{endpoint_id}_list', key)
+        except AttributeError:
+            raise NotConnected(self)
+        except redis.exceptions.ConnectionError:
+            print("ConnectionError while trying to connect to Redis@{}:{}".format(self.hostname,
+                                                                                  self.port))
+            raise
+    '''
+
+    def put(self, task_id, kind, payload):
+        """ Put's the task_id:payload into a dict and pushes the task_id onto a queue
+        Parameters
+        ----------
+        task_id : str
             The task_id to be pushed
 
         kind : str
@@ -87,8 +147,8 @@ class RedisQueue(FuncxQueue):
             Dict of task information to be stored
         """
         try:
-            self.redis_client.hset(f'task_{key}', kind, json.dumps(payload))
-            self.redis_client.rpush(f'{self.prefix}_list', key)
+            self.redis_client.hset(f'task_{task_id}', kind, json.dumps(payload))
+            self.redis_client.rpush(f'{self.prefix}_list', task_id)
         except AttributeError:
             raise NotConnected(self)
         except redis.exceptions.ConnectionError:
@@ -105,6 +165,8 @@ class RedisQueue(FuncxQueue):
 
     def __repr__(self):
         return "<RedisQueue at {}:{}#{}".format(self.hostname, self.port, self.prefix)
+
+
 
 
 def test():

@@ -1,5 +1,6 @@
 from authentication.auth import get_auth_client
-from flask import request, flash, redirect, session, url_for, Blueprint
+from models.utils import resolve_user
+from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
 
@@ -23,7 +24,10 @@ def callback():
     # Set up our Globus Auth/OAuth2 state
     redirect_uri = 'https://dev.funcx.org/callback'
     client = get_auth_client()
-    client.oauth2_start_flow(redirect_uri, refresh_tokens=False)
+    requested_scopes = ['https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all', 'profile',
+                        'urn:globus:auth:scope:transfer.api.globus.org:all',
+                        'urn:globus:auth:scope:auth.globus.org:view_identities', 'openid']
+    client.oauth2_start_flow(redirect_uri, requested_scopes=requested_scopes, refresh_tokens=False)
 
     # If there's no "code" query string parameter, we're in this route
     # starting a Globus Auth login flow.
@@ -35,9 +39,18 @@ def callback():
         # and can start the process of exchanging an auth code for a token.
         code = request.args.get('code')
         tokens = client.oauth2_exchange_code_for_tokens(code)
+        app.logger.debug(tokens)
         id_token = tokens.decode_id_token(client)
+
+        # Make sure the user exists in the database
+        user_id = resolve_user(id_token.get('preferred_username'))
+
         session.update(
             tokens=tokens.by_resource_server,
+            username=id_token.get('preferred_username'),
+            user_id=user_id,
+            name=id_token.get('name'),
+            email=id_token.get('email'),
             is_authenticated=True
         )
 
@@ -68,13 +81,11 @@ def logout():
     # Destroy the session state
     session.clear()
 
-    redirect_uri = url_for('home', _external=True)
-
     ga_logout_url = list()
     ga_logout_url.append('https://auth.globus.org/v2/web/logout')
     ga_logout_url.append('?client=6a47fd0c-6423-4851-80a2-c0947c1d884d')
-    ga_logout_url.append('&redirect_uri={}'.format(redirect_uri))
-    ga_logout_url.append('&redirect_name=https://funcx.org')
+    ga_logout_url.append('&redirect_uri=https://dev.funcx.org')
+    ga_logout_url.append('&redirect_name=https://dev.funcx.org')
 
     # Redirect the user to the Globus Auth logout page
     return redirect(''.join(ga_logout_url))

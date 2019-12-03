@@ -16,6 +16,7 @@ class Config(object):
     DB_USER = os.environ.get('db_user')
     DB_NAME = os.environ.get('db_name')
     DB_PASSWORD = os.environ.get('db_password')
+    FORWARDER_IP = os.environ.get('forwarder_ip')
 
     REDIS_PORT = os.environ.get('redis_port')
     REDIS_HOST = os.environ.get('redis_host')

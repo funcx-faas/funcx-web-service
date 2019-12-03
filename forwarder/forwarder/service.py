@@ -6,12 +6,13 @@ creates an appropriate forwarder to which the endpoint can connect up.
 
 
 import bottle
-from bottle import post, run, request, app, route
+from bottle import post, run, request, app, route, get
 import argparse
 import json
 import uuid
 import sys
 import logging
+import redis
 
 from forwarder.forwarder import Forwarder, spawn_forwarder
 
@@ -21,6 +22,67 @@ def ping():
     """ Minimal liveness response
     """
     return "pong"
+
+
+@get('/map.json')
+def get_map_json():
+    """ Paint a map of utilization
+    """
+    results = []
+    redis_client = request.app.redis_client
+    csv_string = "org,core_hrs,lat,long\n</br>"
+    for key in redis_client.keys('ep_status_*'):
+        try:
+            print("Getting key {}".format(key))
+            items = redis_client.lrange(key, 0, 0)
+            if items:
+                last = json.loads(items[0])
+            else:
+                continue
+            ep_id = key.split('_')[2]
+            ep_meta = redis_client.hgetall('endpoint:{}'.format(ep_id))
+            print(ep_meta, last)
+            lat, lon = ep_meta['loc'].split(',')
+            current = {'org': ep_meta['org'].replace(',', '. '),
+                       'core_hrs': last['total_core_hrs'],
+                       'lat': lat,
+                       'long': lon}
+            results.append(current)
+
+        except Exception as e:
+            print(f"Failed to parse for key {key}")
+            print(f"Error : {e}")
+
+    print("To return : ", results)
+    return dict(data=results)
+
+
+@get('/map.csv')
+def get_map():
+    """ Paint a map of utilization
+    """
+    results = {"data": []}
+    redis_client = request.app.redis_client
+    csv_string = "org,core_hrs,lat,long\n</br>"
+    for key in redis_client.keys('ep_status_*'):
+        try:
+            print("Getting key {}".format(key))
+            items = redis_client.lrange(key, 0, 0)
+            if items:
+                last = json.loads(items[0])
+            else:
+                continue
+            ep_id = key.split('_')[2]
+            ep_meta = redis_client.hgetall('endpoint:{}'.format(ep_id))
+            print(ep_meta, last)
+            current = "{},{},{}\n</br>".format(ep_meta['org'].replace(',', '.'), last['total_core_hrs'], ep_meta['loc'])
+            csv_string += current
+
+        except Exception as e:
+            print(f"Failed to parse for key {key}")
+            print(f"Error : {e}")
+
+    return csv_string
 
 
 @post('/register')
@@ -45,8 +107,8 @@ def register():
     fw = spawn_forwarder(request.app.address,
                          endpoint_details['redis_address'],
                          endpoint_id,
+                         endpoint_addr=endpoint_details['endpoint_addr'],
                          logging_level=logging.DEBUG if request.app.debug else logging.INFO)
-
 
     connection_info = fw.connection_info
     ret_package = {'endpoint_id': endpoint_id}
@@ -71,6 +133,10 @@ def cli():
                         help="Address at which the service is running. This is the address passed to the endpoints")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")
+    parser.add_argument("-r", "--redishost", required=True,
+                        help="Redis host address")
+    parser.add_argument("--redisport", default=6379,
+                        help="Redis port")
     parser.add_argument("-d", "--debug", action='store_true',
                         help="Enables debug logging")
 
@@ -80,6 +146,10 @@ def cli():
     app.address = args.address
     app.debug = args.debug
     app.ep_mapping = {}
+
+    app.redis_client = redis.StrictRedis(host=args.redishost,
+                                         port=int(args.redisport),
+                                         decode_responses=True)
 
     try:
         run(host='0.0.0.0', app=app, port=int(args.port), debug=True)
