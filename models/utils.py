@@ -156,6 +156,9 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     try:
         conn, cur = get_db_connection()
         if endpoint_uuid:
+            # Check it is a valid uuid
+            uuid.UUID(endpoint_uuid)
+
             # Check if the endpoint id already exists
             query = "SELECT * from sites where endpoint_uuid = %s"
             cur.execute(query, (endpoint_uuid, ))
@@ -168,6 +171,8 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                     cur.execute(query, (endpoint_name, endpoint_uuid, user_id))
                     conn.commit()
                     return result_eid
+                else:
+                    return None
         else:
             endpoint_uuid = str(uuid.uuid4())
 
