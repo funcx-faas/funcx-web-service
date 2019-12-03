@@ -156,17 +156,31 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     try:
         conn, cur = get_db_connection()
         if endpoint_uuid:
-            # Make sure it exists
-            query = "SELECT * from sites where user_id = %s and endpoint_uuid = %s"
-            cur.execute(query, (user_id, endpoint_uuid))
+            # Check it is a valid uuid
+            uuid.UUID(endpoint_uuid)
+
+            # Check if the endpoint id already exists
+            query = "SELECT * from sites where endpoint_uuid = %s"
+            cur.execute(query, (endpoint_uuid, ))
             rows = cur.fetchall()
             if len(rows) > 0:
-                return endpoint_uuid
-        endpoint_uuid = str(uuid.uuid4())
+                # If it does, make sure the user owns it
+                if rows[0]['user_id'] == user_id:
+                    result_eid = endpoint_uuid
+                    query = "UPDATE sites set endpoint_name = %s where endpoint_uuid = %s and user_id = %s"
+                    cur.execute(query, (endpoint_name, endpoint_uuid, user_id))
+                    conn.commit()
+                    return result_eid
+                else:
+                    return None
+        else:
+            endpoint_uuid = str(uuid.uuid4())
+
         query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
                 "values (%s, %s, %s, %s, %s, %s)"
         cur.execute(query, (user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid))
         conn.commit()
+
     except Exception as e:
         print(e)
         app.logger.error(e)

@@ -188,7 +188,6 @@ class Forwarder(Process):
             # Task is now submitted. Tack a callback on that.
             fu.add_done_callback(partial(self.handle_app_update, task_id))
 
-
     def update_endpoint_metadata(self):
         """ Geo locate the endpoint and push as metadata into redis
         """
