@@ -168,6 +168,7 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
+
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
 def result(user_name, task_id):
@@ -231,8 +232,8 @@ def result(user_name, task_id):
 
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def task_status(user_name, task_id):
-    """Check the status of a task.
+def get_task(user_name, task_id):
+    """Get a task.
 
     Parameters
     ----------
@@ -279,8 +280,57 @@ def task_status(user_name, task_id):
 
         task['task_id'] = task_id
 
-        app.logger.debug("Status Response: {}".format(str(task)))
+        app.logger.debug("Status Response: {}".format(str(task['status'])))
         return jsonify(task)
+
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'FAILED',
+                        'reason': 'InternalError: {}'.format(e)})
+
+
+@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
+@authenticated
+def get_task_status(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+
+        # Get the task from redis
+        try:
+            result_obj = rc.hget(f"task_{task_id}", 'result')
+            app.logger.debug(f"Result_obj : {result_obj}")
+            if result_obj:
+                task = json.loads(result_obj)
+                if 'status' not in task:
+                    task['status'] = 'COMPLETED'
+            else:
+                task = {'status': 'PENDING'}
+        except Exception as e:
+            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+
+        app.logger.debug("Status Response: {}".format(str(task['status'])))
+        return jsonify({'status': task['status']})
 
     except Exception as e:
         app.logger.error(e)
