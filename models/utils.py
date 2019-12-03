@@ -154,7 +154,6 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     user_id = resolve_user(user_name)
 
     try:
-        result_eid = None
         conn, cur = get_db_connection()
         if endpoint_uuid:
             # Check if the endpoint id already exists
@@ -165,8 +164,10 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                 # If it does, make sure the user owns it
                 if rows[0]['user_id'] == user_id:
                     result_eid = endpoint_uuid
-
-                return result_eid
+                    query = "UPDATE sites set endpoint_name = %s where endpoint_uuid = %s and user_id = %s"
+                    cur.execute(query, (endpoint_name, endpoint_uuid, user_id))
+                    conn.commit()
+                    return result_eid
         else:
             endpoint_uuid = str(uuid.uuid4())
 
@@ -174,7 +175,7 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                 "values (%s, %s, %s, %s, %s, %s)"
         cur.execute(query, (user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid))
         conn.commit()
-        result_eid = endpoint_uuid
+
     except Exception as e:
         print(e)
         app.logger.error(e)
