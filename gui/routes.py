@@ -33,8 +33,6 @@ def start():
 
     core_hours = ""
 
-    return render_template('start.html', title='Start', burned=core_hours)
-
     if 'redis_client' not in g:
         g.redis_client = redis.Redis(
             host=app.config['REDIS_HOST'],
