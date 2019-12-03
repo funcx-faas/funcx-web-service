@@ -182,8 +182,8 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
         conn.commit()
 
     except Exception as e:
-        print(e)
         app.logger.error(e)
+        raise e
     return endpoint_uuid
 
 
