@@ -16,23 +16,7 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    try:
-        conn, cur = get_db_connection()
-        cur.execute(
-            "SELECT tasks.created_at, tasks.modified_at FROM tasks;")
-        all_tasks = cur.fetchall()
-        times = list()
-        for task in all_tasks:
-            times.append(task['modified_at'] - task['created_at'])
-        count = timedelta(hours=0)
-        for time in times:
-            count += time
-        total_CPU = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
-    except:
-        flash('There was an issue handling your request.', 'danger')
-
     core_hours = ""
-
     if 'redis_client' not in g:
         g.redis_client = redis.Redis(
             host=app.config['REDIS_HOST'],
