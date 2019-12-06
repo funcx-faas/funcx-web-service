@@ -45,6 +45,10 @@ def run(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Failed to resolve user_name:{}'.format(user_name)})
 
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
     # Parse out the function info
     try:
         post_req = request.json['body']
@@ -68,13 +72,15 @@ def run(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Function UUID:{} could not be resolved'.format(function_uuid)})
 
+    if isinstance(endpoint, str):
+        endpoint = [endpoint]
+
+    for ep in endpoint:
+        if not authorize_endpoint(user_id, ep, token):
+            return jsonify({'status': 'Failed',
+                            'reason': f'Unauthorized access to endpoint: {ep}'})
+
     task_id = str(uuid.uuid4())
-    # TODO: Check if the user can use the endpoint
-    if 'redis_task_queue' not in g:
-        g.redis_task_queue = RedisQueue(f"task_{endpoint}",
-                                        hostname=app.config['REDIS_HOST'],
-                                        port=app.config['REDIS_PORT'])
-        g.redis_task_queue.connect()
 
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
@@ -90,10 +96,16 @@ def run(user_name):
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
-    g.redis_task_queue.put(task_header, 'task', payload)
 
-    app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{endpoint}")
-    app.logger.debug("Redis Queue : {}".format(g.redis_task_queue))
+    for ep in endpoint:
+        redis_task_queue = RedisQueue(f"task_{ep}",
+                                      hostname=app.config['REDIS_HOST'],
+                                      port=app.config['REDIS_PORT'])
+        redis_task_queue.connect()
+        redis_task_queue.put(task_header, 'task', payload)
+
+        app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
+        app.logger.debug("Redis Queue : {}".format(redis_task_queue))
 
     automate_response = {
         "status": 'ACTIVE',
