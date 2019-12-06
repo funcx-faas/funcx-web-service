@@ -1,7 +1,6 @@
 from models.utils import get_db_connection
 from flask import request, current_app as app
-
-from models.utils import resolve_user
+import functools
 
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, GlobusAPIError, ConfidentialAppAuthClient
@@ -66,7 +65,8 @@ def check_group_membership(token, endpoint_groups):
     return False
 
 
-def authorize_endpoint(user_name, endpoint_uuid, token):
+@functools.lru_cache()
+def authorize_endpoint(user_id, endpoint_uuid, token):
     """Determine whether or not the user is allowed to access this endpoint.
     This is done in two steps: first, check if the user owns the endpoint. If not,
     check if there are any groups associated with the endpoint and determine if the user
@@ -74,7 +74,7 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
 
     Parameters
     ----------
-    user_name : str
+    user_id : str
         The primary identity of the user
     endpoint_uuid : str
         The uuid of the function
@@ -88,7 +88,6 @@ def authorize_endpoint(user_name, endpoint_uuid, token):
     """
 
     authorized = False
-    user_id = resolve_user(user_name)
     try:
         conn, cur = get_db_connection()
 
