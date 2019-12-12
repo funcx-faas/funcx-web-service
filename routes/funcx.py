@@ -66,15 +66,30 @@ def submit(user_name):
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
+        # container_uuid = post_req['container_uuid']
+
         serializer = None
         if 'serializer' in post_req:
             serializer = post_req['serializer']
+
+        if 'container_uuid' in post_req:
+            container_id = post_req['container_uuid']
+            container_type = "docker"  # We run both singularity and docker via singularity, so this is fine for now.
+            app.logger.debug(f"Getting container details: {container_id}")
+            container = get_container(container_id, container_type)
+            container_uuid = container['location']
+            # loc = container['location']
+            app.logger.debug(f"Got container: {container}")
+            # TODO: Concatenate this information ot the task.
+
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
     except Exception as e:
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(
@@ -100,6 +115,7 @@ def submit(user_name):
     payload = fn_code + input_data
     app.logger.debug("Payload : {}".format(payload))
 
+    # TODO: We want to be resolving plaintext container location here in service, not at manager. Save 2 hops.
     if not container_uuid:
         container_uuid = 'RAW'
 
