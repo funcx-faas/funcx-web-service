@@ -38,6 +38,7 @@ loglevels = {50: 'CRITICAL',
              10: 'DEBUG',
              0: 'NOTSET'}
 
+
 class Forwarder(Process):
     """ Forwards tasks/results between the executor and the queues
 
@@ -107,6 +108,24 @@ class Forwarder(Process):
         self.internal_q = Queue()
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
+        self.kill_event = False
+
+        heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
+        heartbeat_thread.start()
+
+    def heartbeat_endpoint(self):
+        """Send heartbeats to the endpoint. If we ever get two in a row
+        set a kill event so the forwarder will terminate.
+        """
+        failed_hbs = 0
+        while failed_hbs < 2:
+            try:
+                res = self.executor.wait_for_endpoint()
+                if res:
+                    failed_hbs = 0
+            except zmq.ZMQError:
+                failed_hbs += 1
+        self.kill_event = True
 
     def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
@@ -171,6 +190,13 @@ class Forwarder(Process):
             logger.warning("DEBUG : task_info {}".format(task_info))
             full_payload = task_info.encode()
 
+            # If the kill event has been set put the task back on the queue and break
+            if self.kill_event:
+                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task_id}")
+                self.task_q.put(task_id, 'task', task_info)
+                logger.warning("[TASKS] Breaking task-loop")
+                break
+
             try:
                 logger.debug("Submitting task to executor")
                 fu = self.executor.submit(full_payload, task_id=task_id)
@@ -230,6 +256,10 @@ class Forwarder(Process):
             self.executor.wait_for_endpoint()
             logger.info("[MAIN] Endpoint is now online")
             self.task_loop()
+            # if the kill event is set, exit.
+            if self.kill_event:
+                logger.critical("[MAIN] Kill event set. Exiting Run loop")
+                break
 
         logger.critical("[MAIN] Something has broken. Exiting Run loop")
         return
