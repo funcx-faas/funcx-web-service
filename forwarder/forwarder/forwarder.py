@@ -113,9 +113,15 @@ class Forwarder(Process):
         heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
         heartbeat_thread.start()
 
-    def heartbeat_endpoint(self):
+    def heartbeat_endpoint(self, interval=30):
         """Send heartbeats to the endpoint. If we ever get two in a row
         set a kill event so the forwarder will terminate.
+
+        Parameters
+        ----------
+
+        interval : int
+           Seconds to sleep between heartbeats
         """
         failed_hbs = 0
         while failed_hbs < 2:
@@ -125,6 +131,7 @@ class Forwarder(Process):
                     failed_hbs = 0
             except zmq.ZMQError:
                 failed_hbs += 1
+            time.sleep(interval)
         self.kill_event = True
 
     def handle_app_update(self, task_header, future):
