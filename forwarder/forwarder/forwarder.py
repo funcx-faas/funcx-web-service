@@ -110,9 +110,6 @@ class Forwarder(Process):
         self.fx_serializer = FuncXSerializer()
         self.kill_event = threading.Event()
 
-        heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
-        heartbeat_thread.start()
-
     def heartbeat_endpoint(self, interval=30):
         """Send heartbeats to the endpoint. If we ever get two in a row
         set a kill event so the forwarder will terminate.
@@ -256,6 +253,10 @@ class Forwarder(Process):
         conn_info = self.executor.connection_info
         self.internal_q.put(conn_info)
         logger.info("[MAIN] Endpoint connection info: {}".format(conn_info))
+
+        # Start the heartbeat thread
+        self.heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
+        self.heartbeat_thread.start()
 
         # Start the task loop
         while True:
