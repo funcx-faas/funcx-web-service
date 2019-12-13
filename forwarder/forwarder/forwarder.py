@@ -56,7 +56,8 @@ class Forwarder(Process):
     def __init__(self, task_q, result_q, executor, endpoint_id,
                  heartbeat_threshold=60, endpoint_addr=None,
                  redis_address=None,
-                 logdir="forwarder_logs", logging_level=logging.INFO):
+                 logdir="forwarder_logs", logging_level=logging.INFO,
+                 max_heartbeats_missed=3):
         """
         Parameters
         ----------
@@ -84,6 +85,9 @@ class Forwarder(Process):
         logging_level : int
         Logging level as defined in the logging module. Default: logging.INFO (20)
 
+        max_heartbeats_missed : int
+        The maximum heartbeats missed before the forwarder terminates
+
         """
         super().__init__()
         self.logdir = logdir
@@ -109,35 +113,7 @@ class Forwarder(Process):
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
         self.kill_event = threading.Event()
-
-    def heartbeat_endpoint(self, interval=30, threshold=2):
-        """Send heartbeats to the endpoint. If we ever get two in a row
-        set a kill event so the forwarder will terminate.
-
-        Parameters
-        ----------
-
-        interval : int
-           Seconds to sleep between heartbeats
-
-        threshold : int
-            Number of missed heartbeats before failing
-        """
-        failed_hbs = 0
-        while failed_hbs < threshold:
-            try:
-                res = self.executor.wait_for_endpoint()
-                if res:
-                    failed_hbs = 0
-            except zmq.ZMQError as e:
-                failed_hbs += 1
-                logger.debug(f"[Heartbeat] Missed heartbeat. {e}")
-            except Exception as e:
-                failed_hbs += 1
-                logger.debug(f"[Heartbeat] Missed heartbeat for unknown reason. {e}")
-            time.sleep(interval)
-        logger.debug(f"[Heartbeat] Setting kill event.")
-        self.kill_event.set()
+        self.max_heartbeats_missed = max_heartbeats_missed
 
     def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
@@ -175,6 +151,13 @@ class Forwarder(Process):
 
         logger.info("[TASKS] Entering task loop")
         while True:
+            # Check if too many heartbeats have been missed
+            if int(time.time - self.executor.last_response_time) > \
+                    (self.max_heartbeats_missed * self.heartbeat_threshold):
+                # Too many heartbeats have been missed. Set kill event
+                logger.warning("[TASKS] Too many heartbeats missed. Setting kill event.")
+                self.kill_event.set()
+                break
 
             # Get a task
             try:
@@ -261,10 +244,6 @@ class Forwarder(Process):
         conn_info = self.executor.connection_info
         self.internal_q.put(conn_info)
         logger.info("[MAIN] Endpoint connection info: {}".format(conn_info))
-
-        # Start the heartbeat thread
-        self.heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
-        self.heartbeat_thread.start()
 
         # Start the task loop
         while True:
