@@ -110,7 +110,7 @@ class Forwarder(Process):
         self.fx_serializer = FuncXSerializer()
         self.kill_event = threading.Event()
 
-    def heartbeat_endpoint(self, interval=30):
+    def heartbeat_endpoint(self, interval=30, threshold=2):
         """Send heartbeats to the endpoint. If we ever get two in a row
         set a kill event so the forwarder will terminate.
 
@@ -119,16 +119,24 @@ class Forwarder(Process):
 
         interval : int
            Seconds to sleep between heartbeats
+
+        threshold : int
+            Number of missed heartbeats before failing
         """
         failed_hbs = 0
-        while failed_hbs < 2:
+        while failed_hbs < threshold:
             try:
                 res = self.executor.wait_for_endpoint()
                 if res:
                     failed_hbs = 0
-            except zmq.ZMQError:
+            except zmq.ZMQError as e:
                 failed_hbs += 1
+                logger.debug(f"[Heartbeat] Missed heartbeat. {e}")
+            except Exception as e:
+                failed_hbs += 1
+                logger.debug(f"[Heartbeat] Missed heartbeat for unknown reason. {e}")
             time.sleep(interval)
+        logger.debug(f"[Heartbeat] Setting kill event.")
         self.kill_event.set()
 
     def handle_app_update(self, task_header, future):
