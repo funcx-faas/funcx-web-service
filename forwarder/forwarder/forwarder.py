@@ -108,7 +108,7 @@ class Forwarder(Process):
         self.internal_q = Queue()
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
-        self.kill_event = False
+        self.kill_event = threading.Event()
 
         heartbeat_thread = threading.Thread(target=self.heartbeat_endpoint)
         heartbeat_thread.start()
@@ -132,7 +132,7 @@ class Forwarder(Process):
             except zmq.ZMQError:
                 failed_hbs += 1
             time.sleep(interval)
-        self.kill_event = True
+        self.kill_event.set()
 
     def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
@@ -198,7 +198,7 @@ class Forwarder(Process):
             full_payload = task_info.encode()
 
             # If the kill event has been set put the task back on the queue and break
-            if self.kill_event:
+            if self.kill_event.is_set():
                 logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task_id}")
                 self.task_q.put(task_id, 'task', task_info)
                 logger.warning("[TASKS] Breaking task-loop")
@@ -264,7 +264,7 @@ class Forwarder(Process):
             logger.info("[MAIN] Endpoint is now online")
             self.task_loop()
             # if the kill event is set, exit.
-            if self.kill_event:
+            if self.kill_event.is_set():
                 logger.critical("[MAIN] Kill event set. Exiting Run loop")
                 break
 
