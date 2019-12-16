@@ -13,7 +13,7 @@ import uuid
 import sys
 import logging
 import redis
-
+import threading
 from forwarder.forwarder import Forwarder, spawn_forwarder
 
 
@@ -85,6 +85,9 @@ def get_map():
     return csv_string
 
 
+def wait_for_forwarder(fw):
+    fw.join()
+
 @post('/register')
 def register():
     """ Register an endpoint request
@@ -111,6 +114,10 @@ def register():
                          logging_level=logging.DEBUG if request.app.debug else logging.INFO)
 
     connection_info = fw.connection_info
+
+    fw_mon = threading.Thread(target=wait_for_forwarder, daemon=True, args=(fw,))
+    fw_mon.start()
+
     ret_package = {'endpoint_id': endpoint_id}
     ret_package.update(connection_info)
     print("Ret_package : ", ret_package)

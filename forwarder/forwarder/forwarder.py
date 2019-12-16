@@ -152,7 +152,7 @@ class Forwarder(Process):
         logger.info("[TASKS] Entering task loop")
         while True:
             # Check if too many heartbeats have been missed
-            if int(time.time - self.executor.last_response_time) > \
+            if int(time.time() - self.executor.last_response_time) > \
                     (self.max_heartbeats_missed * self.heartbeat_threshold):
                 # Too many heartbeats have been missed. Set kill event
                 logger.warning("[TASKS] Too many heartbeats missed. Setting kill event.")
@@ -245,10 +245,11 @@ class Forwarder(Process):
         self.internal_q.put(conn_info)
         logger.info("[MAIN] Endpoint connection info: {}".format(conn_info))
 
+        logger.info("[MAIN] Waiting for endpoint to connect")
+        self.executor.wait_for_endpoint()
+        
         # Start the task loop
         while True:
-            logger.info("[MAIN] Waiting for endpoint to connect")
-            self.executor.wait_for_endpoint()
             logger.info("[MAIN] Endpoint is now online")
             self.task_loop()
             # if the kill event is set, exit.
@@ -329,7 +330,6 @@ def spawn_forwarder(address,
                         endpoint_db=EndpointDB(redis_address),
                         endpoint_id=endpoint_id,
                         address=address)
-
     fw = Forwarder(task_q, result_q, executor,
                    endpoint_id,
                    endpoint_addr=endpoint_addr,
