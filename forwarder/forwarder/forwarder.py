@@ -57,7 +57,7 @@ class Forwarder(Process):
                  heartbeat_threshold=60, endpoint_addr=None,
                  redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO,
-                 max_heartbeats_missed=3):
+                 max_heartbeats_missed=2):
         """
         Parameters
         ----------
