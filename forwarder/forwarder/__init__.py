@@ -12,7 +12,7 @@ __version__ = VERSION
 def set_file_logger(filename,
                     name='funcx.forwarder',
                     level=logging.DEBUG,
-                    maxBytes=256*1024*1024,
+                    maxBytes=32*1024*1024,
                     backupCount=1,
                     format_string=None):
     """Add a stream log handler.
