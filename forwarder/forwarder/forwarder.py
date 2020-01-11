@@ -94,10 +94,11 @@ class Forwarder(Process):
         os.makedirs(self.logdir, exist_ok=True)
 
         global logger
-
-        if 'logger' not in globals():
+        logger = logging.getLogger(endpoint_id)
+        
+        if len(logger.handlers) == 0:
             logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
-                                    name="funcx",
+                                    name=endpoint_id,
                                     level=logging_level)
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
