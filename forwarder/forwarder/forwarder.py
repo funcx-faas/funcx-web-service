@@ -38,6 +38,7 @@ loglevels = {50: 'CRITICAL',
              10: 'DEBUG',
              0: 'NOTSET'}
 
+
 class Forwarder(Process):
     """ Forwards tasks/results between the executor and the queues
 
@@ -55,7 +56,8 @@ class Forwarder(Process):
     def __init__(self, task_q, result_q, executor, endpoint_id,
                  heartbeat_threshold=60, endpoint_addr=None,
                  redis_address=None,
-                 logdir="forwarder_logs", logging_level=logging.INFO):
+                 logdir="forwarder_logs", logging_level=logging.INFO,
+                 max_heartbeats_missed=2):
         """
         Parameters
         ----------
@@ -83,15 +85,21 @@ class Forwarder(Process):
         logging_level : int
         Logging level as defined in the logging module. Default: logging.INFO (20)
 
+        max_heartbeats_missed : int
+        The maximum heartbeats missed before the forwarder terminates
+
         """
         super().__init__()
         self.logdir = logdir
         os.makedirs(self.logdir, exist_ok=True)
 
         global logger
-        logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
-                                 name="funcx",
-                                 level=logging_level)
+        logger = logging.getLogger(endpoint_id)
+        
+        if len(logger.handlers) == 0:
+            logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
+                                    name=endpoint_id,
+                                    level=logging_level)
 
         logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
         logger.info("Log level set to {}".format(loglevels[logging_level]))
@@ -107,6 +115,8 @@ class Forwarder(Process):
         self.internal_q = Queue()
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
+        self.kill_event = threading.Event()
+        self.max_heartbeats_missed = max_heartbeats_missed
 
     def handle_app_update(self, task_header, future):
         """ Triggered when the executor sees a task complete.
@@ -144,6 +154,13 @@ class Forwarder(Process):
 
         logger.info("[TASKS] Entering task loop")
         while True:
+            # Check if too many heartbeats have been missed
+            if int(time.time() - self.executor.last_response_time) > \
+                    (self.max_heartbeats_missed * self.heartbeat_threshold):
+                # Too many heartbeats have been missed. Set kill event
+                logger.warning("[TASKS] Too many heartbeats missed. Setting kill event.")
+                self.kill_event.set()
+                break
 
             # Get a task
             try:
@@ -170,6 +187,13 @@ class Forwarder(Process):
             # Convert the payload to bytes
             logger.warning("DEBUG : task_info {}".format(task_info))
             full_payload = task_info.encode()
+
+            # If the kill event has been set put the task back on the queue and break
+            if self.kill_event.is_set():
+                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task_id}")
+                self.task_q.put(task_id, 'task', task_info)
+                logger.warning("[TASKS] Breaking task-loop")
+                break
 
             try:
                 logger.debug("Submitting task to executor")
@@ -224,12 +248,17 @@ class Forwarder(Process):
         self.internal_q.put(conn_info)
         logger.info("[MAIN] Endpoint connection info: {}".format(conn_info))
 
+        logger.info("[MAIN] Waiting for endpoint to connect")
+        self.executor.wait_for_endpoint()
+        
         # Start the task loop
         while True:
-            logger.info("[MAIN] Waiting for endpoint to connect")
-            self.executor.wait_for_endpoint()
             logger.info("[MAIN] Endpoint is now online")
             self.task_loop()
+            # if the kill event is set, exit.
+            if self.kill_event.is_set():
+                logger.critical("[MAIN] Kill event set. Exiting Run loop")
+                break
 
         logger.critical("[MAIN] Something has broken. Exiting Run loop")
         return
@@ -304,7 +333,6 @@ def spawn_forwarder(address,
                         endpoint_db=EndpointDB(redis_address),
                         endpoint_id=endpoint_id,
                         address=address)
-
     fw = Forwarder(task_q, result_q, executor,
                    endpoint_id,
                    endpoint_addr=endpoint_addr,
