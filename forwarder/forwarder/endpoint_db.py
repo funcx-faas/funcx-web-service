@@ -154,7 +154,7 @@ class EndpointDB(object):
         return "<RedisQueue at {}:{}".format(self.hostname, self.port)
 
     def close(self):
-        self.redis_client.close()
+        del self.redis_client
 
 
 def test():
