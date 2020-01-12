@@ -9,7 +9,7 @@ from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
-from models.utils import resolve_function, create_task
+from models.utils import resolve_function, log_invocation
 from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
@@ -125,7 +125,7 @@ def submit(user_name):
         # increment the counter
         rc.incr('funcx_invocation_counter')
         # add an invocation to the database
-        create_task(user_id, task_id, function_uuid, ep)
+        log_invocation(user_id, task_id, function_uuid, ep)
 
 
     return jsonify({'status': 'Success',

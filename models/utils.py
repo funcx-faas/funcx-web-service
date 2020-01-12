@@ -10,8 +10,8 @@ from flask import request, current_app as app
 from errors import *
 
 
-def create_task(user_id, task_id, function_id, endpoint_id):
-    """Insert a task into the database.
+def log_invocation(user_id, task_id, function_id, endpoint_id):
+    """Insert an invocation into the database.
 
     Parameters
     ----------
