@@ -19,28 +19,12 @@ def create_task(user_id, task_id, function_id, endpoint_id):
         The dictionary of the task
     """
     try:
-        user_id = task['user_id']
-        task_id = task['task_id']
-        function_id = task['function_id']
-        endpoint_id = task['endpoint_id']
-        created_at = datetime.datetime.fromtimestamp(task['created_at'])
-        modified_at = datetime.datetime.fromtimestamp(task['modified_at'])
-        status = task['status']
-        result = None
-        if 'result' in task:
-            result = task['result']
-        elif 'reason' in task:
-            result = task['reason']
 
+        status = 'CREATED'
         conn, cur = get_db_connection()
         query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
                 "created_at, modified_at, status) values (%s, %s, %s, %s, %s, %s, %s);"
-        cur.execute(query, (user_id, task_id, function_id, endpoint_id, created_at, modified_at, status))
-
-        # Add in a result if it is set
-        if result:
-            query = "insert into results (task_id, result) values (%s, %s)"
-            cur.execute(query, (task_id, str(result)))
+        cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
 
         conn.commit()
 
