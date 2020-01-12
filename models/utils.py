@@ -23,7 +23,7 @@ def create_task(user_id, task_id, function_id, endpoint_id):
         status = 'CREATED'
         conn, cur = get_db_connection()
         query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
-                "created_at, modified_at, status) values (%s, %s, %s, %s, %s, %s, %s);"
+                "status) values (%s, %s, %s, %s, %s);"
         cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
 
         conn.commit()
