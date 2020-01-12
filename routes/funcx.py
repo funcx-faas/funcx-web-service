@@ -9,7 +9,7 @@ from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
-from models.utils import resolve_function
+from models.utils import resolve_function, create_task
 from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated
@@ -109,6 +109,8 @@ def submit(user_name):
     task_header = f"{task_id};{container_uuid};{serializer}"
 
     # TODO: Store redis connections in g
+    rc = get_redis_client()
+
     for ep in endpoint:
         redis_task_queue = RedisQueue(f"task_{ep}",
                                       hostname=app.config['REDIS_HOST'],
@@ -118,6 +120,14 @@ def submit(user_name):
         redis_task_queue.put(task_header, 'task', payload)
         app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
         app.logger.debug("Redis Queue : {}".format(redis_task_queue))
+
+        # TODO: creating these connections each will be slow.
+        # increment the counter
+        rc.incr('funcx_invocation_counter')
+        # add an invocation to the database
+        create_task(user_id, task_id, function_uuid, ep)
+
+
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
 
