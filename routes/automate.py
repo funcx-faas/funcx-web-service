@@ -5,7 +5,7 @@ import datetime
 
 from models.utils import resolve_user, get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
-from models.utils import resolve_function, create_task
+from models.utils import resolve_function, log_invocation
 from flask import current_app as app, Blueprint, jsonify, request, abort, g
 
 from .redis_q import RedisQueue
@@ -112,7 +112,7 @@ def run(user_name):
         # increment the counter
         rc.incr('funcx_invocation_counter')
         # add an invocation to the database
-        create_task(user_id, task_id, function_uuid, ep)
+        log_invocation(user_id, task_id, function_uuid, ep)
 
     automate_response = {
         "status": 'ACTIVE',
