@@ -10,7 +10,7 @@ from flask import request, current_app as app
 from errors import *
 
 
-def create_task(task):
+def create_task(user_id, task_id, function_id, endpoint_id):
     """Insert a task into the database.
 
     Parameters

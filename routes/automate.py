@@ -5,7 +5,7 @@ import datetime
 
 from models.utils import resolve_user, get_redis_client
 from authentication.auth import authorize_endpoint, authenticated
-from models.utils import resolve_function
+from models.utils import resolve_function, create_task
 from flask import current_app as app, Blueprint, jsonify, request, abort, g
 
 from .redis_q import RedisQueue
@@ -96,6 +96,7 @@ def run(user_name):
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
+    rc = get_redis_client()
 
     for ep in endpoint:
         redis_task_queue = RedisQueue(f"task_{ep}",
@@ -106,6 +107,12 @@ def run(user_name):
 
         app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
         app.logger.debug("Redis Queue : {}".format(redis_task_queue))
+
+        # TODO: creating these connections each will be slow.
+        # increment the counter
+        rc.incr('funcx_invocation_counter')
+        # add an invocation to the database
+        create_task(user_id, task_id, function_uuid, ep)
 
     automate_response = {
         "status": 'ACTIVE',
