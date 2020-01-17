@@ -126,6 +126,7 @@ class Forwarder(Process):
         """
 
         task_id = task_header.split(';')[0]
+        print(f"*** TASK RETURN STARTED: {task_id} -- {time.time()} ***")
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res_dict = future.result()
@@ -141,7 +142,8 @@ class Forwarder(Process):
             # Todo : Since we caught an exception, we should wrap it here, and send it
             # back onto the results queue.
         else:
-            logger.debug("Task:{} succeeded".format(task_id))
+            print(f"*** TASK RETURN SUCCEEDED: {task_id} -- {time.time()}***")
+            logger.info("Task:{} succeeded".format(task_id))
 
     def task_loop(self):
         """ Task Loop
@@ -166,6 +168,7 @@ class Forwarder(Process):
             try:
                 task_id, task_info = self.task_q.get('task',
                                                      timeout=self.heartbeat_threshold)  # Timeout in s
+                
                 logger.debug("[TASKS] Got task_id {}".format(task_id))
 
             except queue.Empty:
@@ -198,6 +201,8 @@ class Forwarder(Process):
             try:
                 logger.debug("Submitting task to executor")
                 fu = self.executor.submit(full_payload, task_id=task_id)
+                t_fin = time.time()
+                print(f"*** FINISH {task_id} *** {t_fin}")
 
             except zmq.error.Again:
                 logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
