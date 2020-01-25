@@ -45,6 +45,7 @@ def submit(user_name):
         The task document
     """
     app.logger.debug(f"Submit invoked by user:{user_name}")
+    submit_t = time.time()
 
     if not user_name:
         abort(400, description="Could not find user. You must be "
@@ -111,27 +112,35 @@ def submit(user_name):
     # TODO: Store redis connections in g
     rc = get_redis_client()
 
+    # Create the redis task entry
+    task_info = {'payload': payload,
+                 'task_id': task_id,
+                 'details': {'status': 'ACTIVE',
+                             'submit_t': submit_t}
+                 }
+
     for ep in endpoint:
         redis_task_queue = RedisQueue(f"task_{ep}",
                                       hostname=app.config['REDIS_HOST'],
                                       port=app.config['REDIS_PORT'])
         redis_task_queue.connect()
 
-        redis_task_queue.put(task_header, 'task', payload)
+        redis_task_queue.put(task_header, 'task', task_info)
         app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
         app.logger.debug("Redis Queue : {}".format(redis_task_queue))
 
-        # TODO: creating these connections each will be slow.
         # increment the counter
         rc.incr('funcx_invocation_counter')
         # add an invocation to the database
         log_invocation(user_id, task_id, function_uuid, ep)
 
-
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
 
 
+##############
+# DEPRECATED #
+##############
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
@@ -193,6 +202,9 @@ def status(user_name, task_id):
                         'reason': 'InternalError: {}'.format(e)})
 
 
+##############
+# DEPRECATED #
+##############
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
 def result(user_name, task_id):
@@ -275,26 +287,20 @@ def get_task(user_name, task_id):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
-
     try:
         # Get a redis client
         rc = get_redis_client()
 
         # Get the task from redis
         try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-            else:
-                task = {'status': 'PENDING'}
+            task_info = rc.hgetall(f"task_{task_id}")
+            task_info.pop('payload')
+            app.logger.debug(f"Task info : {task_info}")
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            task_info = {'status': 'FAILED', 'reason': 'Unknown task id'}
         else:
-            if result_obj:
+            if task_info['details']['status'] != 'PENDING':
                 # Task complete, attempt flush
                 try:
                     rc.delete(f"task_{task_id}")
@@ -302,10 +308,7 @@ def get_task(user_name, task_id):
                     app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
                     pass
 
-        task['task_id'] = task_id
-
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify(task)
+        return jsonify(task_info)
 
     except Exception as e:
         app.logger.error(e)
