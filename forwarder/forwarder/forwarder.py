@@ -189,7 +189,7 @@ class Forwarder(Process):
 
             # Convert the payload to bytes
             logger.warning("DEBUG : task_info {}".format(task_info))
-            full_payload = task_info.encode()
+            full_payload = task_info['payload'].encode()
 
             # If the kill event has been set put the task back on the queue and break
             if self.kill_event.is_set():
