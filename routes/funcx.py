@@ -115,8 +115,8 @@ def submit(user_name):
     # Create the redis task entry
     task_info = {'payload': payload,
                  'task_id': task_id,
-                 'details': {'status': 'ACTIVE',
-                             'submit_t': submit_t}
+                 'status': 'ACTIVE',
+                 'details': {'submit_time': submit_t}
                  }
 
     for ep in endpoint:
@@ -294,13 +294,14 @@ def get_task(user_name, task_id):
         # Get the task from redis
         try:
             task_info = rc.hgetall(f"task_{task_id}")
+            # Remove the internally used payload
             task_info.pop('payload')
             app.logger.debug(f"Task info : {task_info}")
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task_info = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            task_info = {'task_id': task_id, 'details': {'status': 'FAILED', 'reason': 'Unknown task id'}}
         else:
-            if task_info['details']['status'] != 'PENDING':
+            if task_info['details']['status'] != 'ACTIVE':
                 # Task complete, attempt flush
                 try:
                     rc.delete(f"task_{task_id}")
@@ -337,27 +338,24 @@ def get_task_status(user_name, task_id):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
-
     try:
         # Get a redis client
         rc = get_redis_client()
-
         # Get the task from redis
         try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-            else:
-                task = {'status': 'PENDING'}
+            task_info = rc.hgetall(f"task_{task_id}")
+            # Remove internally used payload
+            task_info.pop('payload')
+            # If there is a result, pop that off too
+            if 'result' in task_info:
+                task_info.pop('result')
+            app.logger.debug(f"Task info : {task_info}")
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            task_info = {'status': 'FAILED', 'reason': 'Unknown task id'}
 
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify({'status': task['status']})
+        app.logger.debug("Status Response: {}".format(str(task_info['status'])))
+        return jsonify(task_info)
 
     except Exception as e:
         app.logger.error(e)
