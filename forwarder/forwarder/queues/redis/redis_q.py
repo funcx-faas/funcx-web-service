@@ -97,6 +97,31 @@ class RedisQueue(FuncxQueue):
                                                                                   self.port))
             raise
 
+    def update(self, key, kind, payload):
+        """ Updates the key with payload and pushes the key onto a queue
+        Parameters
+        ----------
+        key : str
+            The task_id to be pushed
+
+        kind : str
+            The type of payload
+
+        payload : dict
+            Dict of task information to be stored
+        """
+        try:
+            task_info = self.redis_client.hget_all(f'task_{key}')
+            task_info.update(payload)
+            self.redis_client.hset(f'task_{key}', kind, json.dumps(task_info))
+            self.redis_client.rpush(f'{self.prefix}_list', key)
+        except AttributeError:
+            raise NotConnected(self)
+        except redis.exceptions.ConnectionError:
+            print("ConnectionError while trying to connect to Redis@{}:{}".format(self.hostname,
+                                                                                  self.port))
+            raise
+
     @property
     def is_connected(self):
         return self.redis_client is not None
