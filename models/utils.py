@@ -251,7 +251,7 @@ def resolve_function(user_id, function_uuid):
     try:
         conn, cur = get_db_connection()
         query = "select * from functions where function_uuid = %s order by id DESC limit 1"
-        cur.execute(query, (function_uuid))
+        cur.execute(query, (function_uuid,))
         r = cur.fetchone()
         if not r:
             raise MissingFunction(function_uuid)
