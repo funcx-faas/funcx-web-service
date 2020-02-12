@@ -84,9 +84,9 @@ def submit(user_name):
     try:
         fn_code, fn_entry, container_uuid = resolve_function(
             user_id, function_uuid)
-    except:
+    except Exception as e:
         return jsonify({'status': 'Failed',
-                        'reason': 'Function UUID:{} could not be resolved'.format(function_uuid)})
+                        'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'})
 
     if isinstance(endpoint, str):
         endpoint = [endpoint]

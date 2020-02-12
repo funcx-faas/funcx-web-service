@@ -160,7 +160,7 @@ def authorize_function(user_id, function_uuid, token):
                 authorized = True
 
         if not authorized:
-            # Check if there are any groups associated with this endpoint
+            # Check if there are any groups associated with this function
             query = "select * from function_auth_groups where function_id = %s"
             cur.execute(query, (function_uuid,))
             rows = cur.fetchall()
