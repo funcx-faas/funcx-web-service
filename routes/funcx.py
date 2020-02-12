@@ -12,7 +12,7 @@ from models.utils import register_container, get_redis_client
 from models.utils import resolve_function, log_invocation
 from models.utils import update_function, delete_function, delete_endpoint
 
-from authentication.auth import authorize_endpoint, authenticated
+from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
 from .redis_q import RedisQueue
@@ -75,6 +75,10 @@ def submit(user_name):
     except Exception as e:
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    if not authorize_function(user_id, function_uuid, token):
+        return jsonify({'status': 'Failed',
+                        'reason': f'Unauthorized access to endpoint: {ep}'})
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(
