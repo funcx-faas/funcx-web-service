@@ -76,9 +76,10 @@ def submit(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
+    # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {ep}'})
+                        'reason': f'Unauthorized access to function: {function_uuid}'})
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(
