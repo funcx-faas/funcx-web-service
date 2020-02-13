@@ -104,15 +104,17 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
         if len(row) > 0:
             # If it is restricted we need to check the function is allowed, otherwise nothing else matters
             if row['restricted']:
+                app.logger.debug("Restricted endpoint, checking function is allowed.")
                 query = "select * from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
                 cur.execute(query, (endpoint_uuid, function_uuid))
                 funcs = cur.fetchall()
+                app.logger.debug(f"Length of query response: {len(funcs)}")
                 if len(funcs) == 0:
                     # There is no entry of this function, so reject it.
                     raise Exception(f"Function {function_uuid} not permitted on endpoint {endpoint_uuid}")
-            # Else, fail over to typical auth checks.
+            
             # Check if the user owns it
-            elif row['user_id'] == user_id:
+            if row['user_id'] == user_id:
                 authorized = True
             # Otherwise if the row is public
             elif row['public']:
