@@ -91,9 +91,9 @@ def submit(user_name):
     if isinstance(endpoint, str):
         endpoint = [endpoint]
 
-    # Make sure the user is allowed to use the endpoint
+    # Make sure the user is allowed to use the function on this endpoint
     for ep in endpoint:
-        if not authorize_endpoint(user_id, ep, token):
+        if not authorize_endpoint(user_id, ep, function_uuid, token):
             return jsonify({'status': 'Failed',
                             'reason': f'Unauthorized access to endpoint: {ep}'})
 
