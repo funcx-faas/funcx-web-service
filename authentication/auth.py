@@ -112,7 +112,7 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
                 if len(funcs) == 0:
                     # There is no entry of this function, so reject it.
                     raise Exception(f"Function {function_uuid} not permitted on endpoint {endpoint_uuid}")
-            
+
             # Check if the user owns it
             if row['user_id'] == user_id:
                 authorized = True
