@@ -1,6 +1,5 @@
 import uuid
 import json
-import time
 import requests
 from requests.models import Response
 
@@ -24,6 +23,150 @@ funcx_api = Blueprint("routes", __name__)
 endpoint_cache = {}
 
 caching = True
+
+
+def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serializer=None):
+    """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
+
+    Parameters
+    ==========
+
+    user_id : str
+       user id
+    function_uuid : str
+       uuid string for functions
+    endpoints : [str]
+       endpoint_uuid as list
+    input_data: [string_buffers]
+       input_data as a list in case many function launches are to be made
+    app : app object
+    token : globus token
+
+    Returns:
+       json object
+    """
+    # Check if the user is allowed to access the function
+    if not authorize_function(user_id, function_uuid, token):
+        return jsonify({'status': 'Failed',
+                        'reason': f'Unauthorized access to function: {function_uuid}'})
+
+    try:
+        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'})
+
+    # Make sure the user is allowed to use the function on this endpoint
+    for ep in endpoints:
+        if not authorize_endpoint(user_id, ep, function_uuid, token):
+            return jsonify({'status': 'Failed',
+                            'reason': f'Unauthorized access to endpoint: {ep}'})
+
+    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
+
+    # We should replace this with container_hdr = ";ctnr={container_uuid}"
+    if not container_uuid:
+        container_uuid = 'RAW'
+
+    # We should replace this with serialize_hdr = ";srlz={container_uuid}"
+    if not serializer:
+        serializer = "ANY"
+
+    task_header = f"{task_id};{container_uuid};{serializer}"
+
+    # TODO: Store redis connections in g
+    rc = get_redis_client()
+
+    if isinstance(input_data, list):
+        input_data_items = input_data
+    else:
+        input_data_items = [input_data]
+
+    task_ids = []
+
+    for input_data in input_data_items:
+        # At this point the packed function body and the args are concatable strings
+        payload = fn_code + input_data
+        app.logger.debug("Payload : {}".format(payload))
+        task_id = str(uuid.uuid4())
+
+        for ep in endpoint:
+            redis_task_queue = RedisQueue(f"task_{ep}",
+                                          hostname=app.config['REDIS_HOST'],
+                                          port=app.config['REDIS_PORT'])
+            redis_task_queue.connect()
+
+            redis_task_queue.put(task_header, 'task', payload)
+            app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
+            app.logger.debug("Redis Queue : {}".format(redis_task_queue))
+
+            # TODO: creating these connections each will be slow.
+            # increment the counter
+            rc.incr('funcx_invocation_counter')
+            # add an invocation to the database
+            log_invocation(user_id, task_id, function_uuid, ep)
+
+        task_ids.append(task_id)
+
+    return jsonify({'status': 'Success',
+                    'task_uuid': task_ids})
+
+
+@funcx_api.route('/submit_batch', methods=['POST'])
+@authenticated
+def submit_batch(user_name):
+    """Puts the task request(s) into Redis and returns a list of task UUID(s)
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    POST payload
+    ------------
+    {
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"Submit_batch invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    # Parse out the function info
+    try:
+        post_req = request.json
+        endpoints = post_req['endpoints']
+        function_uuid = post_req['func']
+        input_data = post_req['payload']
+        serializer = post_req.get('serializer', None)
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    return auth_and_launch(user_id,
+                           function_uuid,
+                           endpoints,
+                           token,
+                           app,
+                           input_data,
+                           serializer=serializer)
 
 
 @funcx_api.route('/submit', methods=['POST'])
