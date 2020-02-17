@@ -45,6 +45,13 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     Returns:
        json object
     """
+    app.logger.debug(f"user_id : {user_id}")
+    app.logger.debug(f"function_uuid : {function_uuid}")
+    app.logger.debug(f"endpoints : {endpoints}")
+    app.logger.debug(f"input_data : {input_data}")
+    app.logger.debug(f"serializer: {serializer}")
+    app.logger.debug(f"token: {token}")
+
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return jsonify({'status': 'Failed',
@@ -163,9 +170,9 @@ def submit_batch(user_name):
     return auth_and_launch(user_id,
                            function_uuid,
                            endpoints,
-                           token,
-                           app,
                            input_data,
+                           app,
+                           token,
                            serializer=serializer)
 
 
