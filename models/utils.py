@@ -10,6 +10,49 @@ from flask import request, current_app as app
 from errors import *
 
 
+def add_to_whitelist(user_name, endpoint_id, functions):
+    """Add a list of function to the endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+    functions : list
+        A list of the function ids to add to the whitelist.
+
+    Returns
+    -------
+    json
+        The result of adding the functions to the whitelist
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    # Check if the endpoint id already exists
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    try:
+        if len(rows) > 0:
+            for function_id in functions:
+                query = "INSERT INTO restricted_endpoint_functions (endpoint_id, function_id) values (%s, %s)"
+                cur.execute(query, (endpoint_id, function_id))
+            conn.commit()
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} to endpoint {endpoint_id}, {e}'}
+
+    return {'status': 'Success', 'reason': f'Added functions {functions} to endpoint {endpoint_id} whitelist.'}
+
+
 def log_invocation(user_id, task_id, function_id, endpoint_id):
     """Insert an invocation into the database.
 
