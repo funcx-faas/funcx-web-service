@@ -79,8 +79,6 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     if not serializer:
         serializer = "ANY"
 
-    task_header = f"{task_id};{container_uuid};{serializer}"
-
     # TODO: Store redis connections in g
     rc = get_redis_client()
 
@@ -96,6 +94,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         payload = fn_code + input_data
         app.logger.debug("Payload : {}".format(payload))
         task_id = str(uuid.uuid4())
+        task_header = f"{task_id};{container_uuid};{serializer}"
 
         for ep in endpoint:
             redis_task_queue = RedisQueue(f"task_{ep}",
