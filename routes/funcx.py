@@ -115,7 +115,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task_ids.append(task_id)
 
     return jsonify({'status': 'Success',
-                    'task_uuid': task_ids})
+                    'task_uuids': task_ids})
 
 
 @funcx_api.route('/submit_batch', methods=['POST'])
