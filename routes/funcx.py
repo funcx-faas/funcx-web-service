@@ -96,7 +96,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task_id = str(uuid.uuid4())
         task_header = f"{task_id};{container_uuid};{serializer}"
 
-        for ep in endpoint:
+        for ep in endpoints:
             redis_task_queue = RedisQueue(f"task_{ep}",
                                           hostname=app.config['REDIS_HOST'],
                                           port=app.config['REDIS_PORT'])
