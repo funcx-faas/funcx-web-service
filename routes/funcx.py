@@ -368,6 +368,10 @@ def batch_status(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    app.logger.debug("request : {}".format(request.json))
+    app.logger.debug("request.get_json : {}".format(request.get_json(force=True)))
+    app.logger.debug("request.data : {}".format(request.data))
+
     return jsonify({'response' : 'batch',
                     'request' : request.json,
                     'request_j' : request.get_json(force=True),
