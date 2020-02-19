@@ -346,7 +346,7 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
-@funcx_api.route("/batch_status", methods=['GET'])
+@funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
 def batch_status(user_name):
     """Check the status of a task.
