@@ -369,7 +369,10 @@ def batch_status(user_name):
                                "logged in to perform this function.")
 
     return jsonify({'response' : 'batch',
-                    'request' : request.json})
+                    'request' : request.json,
+                    'request_j' : request.ge_json(force=True),
+                    'request_data': request.data,
+    })
 
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])
