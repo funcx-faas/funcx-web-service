@@ -370,7 +370,7 @@ def batch_status(user_name):
 
     return jsonify({'response' : 'batch',
                     'request' : request.json,
-                    'request_j' : request.ge_json(force=True),
+                    'request_j' : request.get_json(force=True),
                     'request_data': request.data,
     })
 
