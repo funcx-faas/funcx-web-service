@@ -346,6 +346,31 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
+@funcx_api.route("/batch_status", methods=['GET'])
+@authenticated
+def batch_status(user_name):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    return jsonify({'response' : 'batch',
+                    'request' : request.json})
+
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
