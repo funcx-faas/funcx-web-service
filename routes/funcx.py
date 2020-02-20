@@ -9,7 +9,7 @@ from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
-from models.utils import resolve_function, log_invocation
+from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import update_function, delete_function, delete_endpoint
 
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
@@ -25,6 +25,10 @@ endpoint_cache = {}
 
 caching = True
 
+def get_db_logger():
+    if 'db_logger' not in g:
+        g.db_logger = db_invocation_logger()
+    return g.db_logger
 
 def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serializer=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
@@ -90,6 +94,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
 
     task_ids = []
 
+    db_logger = get_db_logger()
     ep_queue = {}
     for ep in endpoints:
         redis_task_queue = RedisQueue(f"task_{ep}",
@@ -99,6 +104,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         ep_queue[ep] = redis_task_queue
 
     for input_data in input_data_items:
+        # Yadu : Remove timers
         timer_s = time.time()
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
@@ -109,16 +115,20 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         for ep in endpoints:
             ep_queue[ep].put(task_header, 'task', payload)
             app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
-            app.logger.debug("Redis Queue : {}".format(redis_task_queue))
 
             # TODO: creating these connections each will be slow.
             # increment the counter
-            # rc.incr('funcx_invocation_counter')
+            rc.incr('funcx_invocation_counter')
             # add an invocation to the database
             # log_invocation(user_id, task_id, function_uuid, ep)
+            db_logger.log(user_id, task_id, function_uuid, ep, deferred=True)
 
         task_ids.append(task_id)
-        app.logger.debug("Pushed task {} in {}s".format(task_id, time.time()-timer_s))
+        app.logger.debug("Pushed task {} in {}ms".format(task_id, 1000 * (time.time()-timer_s)))
+        # YADU : Remove timers
+        t = time.time()
+        db_logger.commit()
+        app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
 
     return jsonify({'status': 'Success',
                     'task_uuids': task_ids})
