@@ -118,9 +118,9 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task_ids.append(task_id)
         app.logger.debug("Pushed task {} in {}ms".format(task_id, 1000 * (time.time()-timer_s)))
         # YADU : Remove timers
-        t = time.time()
-        db_logger.commit()
-        app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
+    t = time.time()
+    db_logger.commit()
+    app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
 
     return jsonify({'status': 'Success',
                     'task_uuids': task_ids})
