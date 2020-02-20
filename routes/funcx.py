@@ -9,7 +9,8 @@ from errors import *
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
 from models.utils import resolve_function, log_invocation
-from models.utils import update_function, delete_function, delete_endpoint, add_to_whitelist
+from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+                         add_ep_whitelist, delete_ep_whitelist)
 
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
@@ -654,7 +655,7 @@ def get_request_addr():
         return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
 
-@funcx_api.route("/<endpoint_id>/whitelist", methods=['POST'])
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET', 'DELETE'])
 @authenticated
 def endpoint_whitelist(user_name, endpoint_id):
     """Add a function to this endpoint's whitelist.
@@ -689,8 +690,16 @@ def endpoint_whitelist(user_name, endpoint_id):
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
-    return add_to_whitelist(user_name, endpoint_id, functions)
+    # Either get, add, or delete based on request type
+    result = {}
+    if request.method == "POST":
+        result = add_ep_whitelist(user_name, endpoint_id, functions)
+    elif request.method == "GET":
+        result = get_ep_whitelist(user_name, endpoint_id, functions)
+    elif request.method == "DELETE":
+        result = delete_ep_whitelist(user_name, endpoint_id, functions)
 
+    return result
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
