@@ -50,13 +50,6 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     Returns:
        json object
     """
-    app.logger.debug(f"user_id : {user_id}")
-    app.logger.debug(f"function_uuid : {function_uuid}")
-    app.logger.debug(f"endpoints : {endpoints}")
-    app.logger.debug(f"input_data : {input_data}")
-    app.logger.debug(f"serializer: {serializer}")
-    app.logger.debug(f"token: {token}")
-
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return jsonify({'status': 'Failed',
@@ -108,7 +101,6 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         timer_s = time.time()
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
-        app.logger.debug("Payload : {}".format(payload))
         task_id = str(uuid.uuid4())
         task_header = f"{task_id};{container_uuid};{serializer}"
 
@@ -313,7 +305,6 @@ def get_tasks_from_redis(task_ids):
             # Get the task from redis
             try:
                 result_obj = rc.hget(f"task_{task_id}", 'result')
-                app.logger.debug(f"Result_obj : {result_obj}")
                 if result_obj:
                     task = json.loads(result_obj)
                     all_tasks[task_id] = task
@@ -332,7 +323,6 @@ def get_tasks_from_redis(task_ids):
                         app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
                         pass
 
-        app.logger.debug("Status Response: {}".format(str(task)))
         return all_tasks
 
     except Exception as e:
