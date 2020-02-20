@@ -90,6 +90,14 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
 
     task_ids = []
 
+    ep_queue = {}
+    for ep in endpoints:
+        redis_task_queue = RedisQueue(f"task_{ep}",
+                                      hostname=app.config['REDIS_HOST'],
+                                      port=app.config['REDIS_PORT'])
+        redis_task_queue.connect()
+        ep_queue[ep] = redis_task_queue
+
     for input_data in input_data_items:
         timer_s = time.time()
         # At this point the packed function body and the args are concatable strings
@@ -99,12 +107,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task_header = f"{task_id};{container_uuid};{serializer}"
 
         for ep in endpoints:
-            redis_task_queue = RedisQueue(f"task_{ep}",
-                                          hostname=app.config['REDIS_HOST'],
-                                          port=app.config['REDIS_PORT'])
-            redis_task_queue.connect()
-
-            redis_task_queue.put(task_header, 'task', payload)
+            ep_queue[ep].put(task_header, 'task', payload)
             app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
             app.logger.debug("Redis Queue : {}".format(redis_task_queue))
 
