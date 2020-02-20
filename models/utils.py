@@ -12,7 +12,7 @@ from errors import *
 class db_invocation_logger(object):
 
     def __init__(self):
-        self.conn, self.cur = get_db_connect()
+        self.conn, self.cur = get_db_connection()
 
     def log(self, user_id, task_id, function_id, endpoint_id, deferred=False):
         try:
