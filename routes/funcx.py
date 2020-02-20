@@ -1,6 +1,7 @@
 import uuid
 import json
 import requests
+import time
 from requests.models import Response
 
 from version import VERSION
@@ -90,6 +91,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     task_ids = []
 
     for input_data in input_data_items:
+        timer_s = time.time()
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         app.logger.debug("Payload : {}".format(payload))
@@ -108,11 +110,12 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
 
             # TODO: creating these connections each will be slow.
             # increment the counter
-            rc.incr('funcx_invocation_counter')
+            # rc.incr('funcx_invocation_counter')
             # add an invocation to the database
-            log_invocation(user_id, task_id, function_uuid, ep)
+            # log_invocation(user_id, task_id, function_uuid, ep)
 
         task_ids.append(task_id)
+        app.logger.debug("Pushed task {} in {}s".format(task_id, time.time()-timer_s))
 
     return jsonify({'status': 'Success',
                     'task_uuids': task_ids})
