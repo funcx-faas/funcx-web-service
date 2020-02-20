@@ -680,24 +680,24 @@ def endpoint_whitelist(user_name, endpoint_id):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
-    try:
-        post_req = request.json
-        functions = post_req['func']
-    except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+    if request.method == "GET":
+        result = get_ep_whitelist(user_name, endpoint_id)
+    else:
+        # Otherwise we need the list of functions passed in
+        try:
+            post_req = request.json
+            functions = post_req['func']
+        except KeyError as e:
+            return jsonify({'status': 'Failed',
+                            'reason': "Missing Key {}".format(str(e))})
+        except Exception as e:
+            return jsonify({'status': 'Failed',
+                            'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
-    # Either get, add, or delete based on request type
-    result = {}
-    if request.method == "POST":
-        result = add_ep_whitelist(user_name, endpoint_id, functions)
-    elif request.method == "GET":
-        result = get_ep_whitelist(user_name, endpoint_id, functions)
-    elif request.method == "DELETE":
-        result = delete_ep_whitelist(user_name, endpoint_id, functions)
+        if request.method == "POST":
+            result = add_ep_whitelist(user_name, endpoint_id, functions)
+        elif request.method == "DELETE":
+            result = delete_ep_whitelist(user_name, endpoint_id, functions)
 
     return result
 
