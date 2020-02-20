@@ -286,6 +286,46 @@ def submit(user_name):
                     'task_uuid': task_id})
 
 
+def get_tasks_from_redis(task_ids):
+
+    all_tasks = {}
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+        for task_id in task_ids:
+
+            # Get the task from redis
+            try:
+                result_obj = rc.hget(f"task_{task_id}", 'result')
+                app.logger.debug(f"Result_obj : {result_obj}")
+                if result_obj:
+                    task = json.loads(result_obj)
+                    all_tasks[task_id] = task
+                    all_tasks[task_id]['task_id'] = task_id
+                else:
+                    task = {'status': 'PENDING'}
+            except Exception as e:
+                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            else:
+                if result_obj:
+                    # Task complete, attempt flush
+                    try:
+                        rc.delete(f"task_{task_id}")
+                    except Exception as e:
+                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                        pass
+
+        app.logger.debug("Status Response: {}".format(str(task)))
+        return all_tasks
+
+    except Exception as e:
+        app.logger.error(e)
+        return {'status': 'Failed',
+                'reason': 'InternalError: {}'.format(e),
+                'partial': all_tasks}
+
+
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
@@ -369,10 +409,10 @@ def batch_status(user_name):
                                "logged in to perform this function.")
 
     app.logger.debug("request : {}".format(request.json))
+    results = get_tasks_from_redis(request.json['task_ids'])
 
     return jsonify({'response' : 'batch',
-                    'request' : request.json['task_ids'],
-    })
+                    'results' : results})
 
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])
