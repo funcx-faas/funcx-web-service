@@ -792,7 +792,7 @@ def del_endpoint_whitelist(user_name, endpoint_id, function_id):
         A dict describing the result of deleting from the endpoint's whitelist
     """
 
-    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user_name}")
+    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user_name}")
 
     if not user_name:
         abort(400, description="Could not find user. You must be "
