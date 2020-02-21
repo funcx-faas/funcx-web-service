@@ -114,7 +114,7 @@ def get_ep_whitelist(user_name, endpoint_id):
     return {'status': 'Success', 'result': functions}
 
 
-def delete_ep_whitelist(user_name, endpoint_id, functions):
+def delete_ep_whitelist(user_name, endpoint_id, function_id):
     """Delete the functions from an endpoint's whitelist.
 
     This function is only allowed by the owner of the endpoint.
@@ -125,11 +125,13 @@ def delete_ep_whitelist(user_name, endpoint_id, functions):
         The name of the user making the request
     endpoint_id : str
         The uuid of the endpoint to add the whitelist entries for
+    function_id : str
+        The uuid of the function to remove from the whitelist
 
     Returns
     -------
     json
-        The functions that were deleted
+        A dict describing the success or failure of removing the function
     """
     user_id = resolve_user(user_name)
 
@@ -141,8 +143,8 @@ def delete_ep_whitelist(user_name, endpoint_id, functions):
     rows = cur.fetchall()
     try:
         if len(rows) > 0:
-            query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id in %s"
-            cur.execute(query, (endpoint_id, functions))
+            query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
+            cur.execute(query, (endpoint_id, function_id))
             funcs = cur.fetchall()
         else:
             return {'status': 'Failed',
@@ -150,7 +152,7 @@ def delete_ep_whitelist(user_name, endpoint_id, functions):
     except Exception as e:
         return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
 
-    return {'status': 'Success', 'result': functions}
+    return {'status': 'Success', 'result': function_id}
 
 
 def log_invocation(user_id, task_id, function_id, endpoint_id):
