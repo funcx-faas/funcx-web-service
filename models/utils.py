@@ -145,6 +145,7 @@ def delete_ep_whitelist(user_name, endpoint_id, function_id):
         if len(rows) > 0:
             query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
             cur.execute(query, (endpoint_id, function_id))
+            conn.commit()
         else:
             return {'status': 'Failed',
                     'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
