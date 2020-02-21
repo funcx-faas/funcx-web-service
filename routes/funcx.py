@@ -1,6 +1,7 @@
 import uuid
 import json
 import requests
+import time
 from requests.models import Response
 
 from version import VERSION
@@ -8,7 +9,8 @@ from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
-from models.utils import resolve_function, log_invocation
+
+from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                          add_ep_whitelist, delete_ep_whitelist)
 
@@ -25,6 +27,10 @@ endpoint_cache = {}
 
 caching = True
 
+def get_db_logger():
+    if 'db_logger' not in g:
+        g.db_logger = db_invocation_logger()
+    return g.db_logger
 
 def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serializer=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
@@ -46,13 +52,6 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     Returns:
        json object
     """
-    app.logger.debug(f"user_id : {user_id}")
-    app.logger.debug(f"function_uuid : {function_uuid}")
-    app.logger.debug(f"endpoints : {endpoints}")
-    app.logger.debug(f"input_data : {input_data}")
-    app.logger.debug(f"serializer: {serializer}")
-    app.logger.debug(f"token: {token}")
-
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return jsonify({'status': 'Failed',
@@ -90,30 +89,40 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
 
     task_ids = []
 
+    db_logger = get_db_logger()
+    ep_queue = {}
+    for ep in endpoints:
+        redis_task_queue = RedisQueue(f"task_{ep}",
+                                      hostname=app.config['REDIS_HOST'],
+                                      port=app.config['REDIS_PORT'])
+        redis_task_queue.connect()
+        ep_queue[ep] = redis_task_queue
+
     for input_data in input_data_items:
+        # Yadu : Remove timers
+        timer_s = time.time()
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
-        app.logger.debug("Payload : {}".format(payload))
         task_id = str(uuid.uuid4())
         task_header = f"{task_id};{container_uuid};{serializer}"
 
         for ep in endpoints:
-            redis_task_queue = RedisQueue(f"task_{ep}",
-                                          hostname=app.config['REDIS_HOST'],
-                                          port=app.config['REDIS_PORT'])
-            redis_task_queue.connect()
-
-            redis_task_queue.put(task_header, 'task', payload)
+            ep_queue[ep].put(task_header, 'task', payload)
             app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
-            app.logger.debug("Redis Queue : {}".format(redis_task_queue))
 
             # TODO: creating these connections each will be slow.
             # increment the counter
             rc.incr('funcx_invocation_counter')
             # add an invocation to the database
-            log_invocation(user_id, task_id, function_uuid, ep)
+            # log_invocation(user_id, task_id, function_uuid, ep)
+            db_logger.log(user_id, task_id, function_uuid, ep, deferred=True)
 
         task_ids.append(task_id)
+        app.logger.debug("Pushed task {} in {}ms".format(task_id, 1000 * (time.time()-timer_s)))
+        # YADU : Remove timers
+    t = time.time()
+    db_logger.commit()
+    app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
 
     return jsonify({'status': 'Success',
                     'task_uuids': task_ids})
@@ -287,6 +296,44 @@ def submit(user_name):
                     'task_uuid': task_id})
 
 
+def get_tasks_from_redis(task_ids):
+
+    all_tasks = {}
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+        for task_id in task_ids:
+
+            # Get the task from redis
+            try:
+                result_obj = rc.hget(f"task_{task_id}", 'result')
+                if result_obj:
+                    task = json.loads(result_obj)
+                    all_tasks[task_id] = task
+                    all_tasks[task_id]['task_id'] = task_id
+                else:
+                    task = {'status': 'PENDING'}
+            except Exception as e:
+                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            else:
+                if result_obj:
+                    # Task complete, attempt flush
+                    try:
+                        rc.delete(f"task_{task_id}")
+                    except Exception as e:
+                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                        pass
+
+        return all_tasks
+
+    except Exception as e:
+        app.logger.error(e)
+        return {'status': 'Failed',
+                'reason': 'InternalError: {}'.format(e),
+                'partial': all_tasks}
+
+
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
@@ -346,6 +393,34 @@ def status(user_name, task_id):
         app.logger.error(e)
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
+
+@funcx_api.route("/batch_status", methods=['POST'])
+@authenticated
+def batch_status(user_name):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the task
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    app.logger.debug("request : {}".format(request.json))
+    results = get_tasks_from_redis(request.json['task_ids'])
+
+    return jsonify({'response' : 'batch',
+                    'results' : results})
 
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])

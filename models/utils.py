@@ -9,6 +9,26 @@ import psycopg2.extras
 from flask import request, current_app as app
 from errors import *
 
+class db_invocation_logger(object):
+
+    def __init__(self):
+        self.conn, self.cur = get_db_connection()
+
+    def log(self, user_id, task_id, function_id, endpoint_id, deferred=False):
+        try:
+            status = 'CREATED'
+            query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
+                    "status) values (%s, %s, %s, %s, %s);"
+            self.cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
+            if deferred is False:
+                self.conn.commit()
+
+        except Exception as e:
+            app.logger.exception("Caught error while writing log update to db")
+
+    def commit(self):
+        self.conn.commit()
+
 
 def add_ep_whitelist(user_name, endpoint_id, functions):
     """Add a list of function to the endpoint's whitelist.
