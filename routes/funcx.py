@@ -655,11 +655,12 @@ def get_request_addr():
         return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
 
-@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET', 'DELETE'])
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
 @authenticated
 def endpoint_whitelist(user_name, endpoint_id):
-    """Add a function to this endpoint's whitelist.
-    Users should POST a list of function id's (as func) they want added to the whitelist.
+    """Get or insert into the endpoint's whitelist.
+    If POST, insert the list of function ids into the whitelist.
+    if GET, return the list of function ids in the whitelist
 
     Parameters
     ----------
@@ -671,7 +672,7 @@ def endpoint_whitelist(user_name, endpoint_id):
     Returns
     -------
     json
-        A dict describing the result of adding to the endpoint's whitelist
+        A dict including a list of whitelisted functions for this endpoint
     """
 
     app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user_name}")
@@ -681,7 +682,7 @@ def endpoint_whitelist(user_name, endpoint_id):
                                "logged in to perform this function.")
 
     if request.method == "GET":
-        result = get_ep_whitelist(user_name, endpoint_id)
+        return get_ep_whitelist(user_name, endpoint_id)
     else:
         # Otherwise we need the list of functions passed in
         try:
@@ -693,13 +694,36 @@ def endpoint_whitelist(user_name, endpoint_id):
         except Exception as e:
             return jsonify({'status': 'Failed',
                             'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+        return add_ep_whitelist(user_name, endpoint_id, functions)
 
-        if request.method == "POST":
-            result = add_ep_whitelist(user_name, endpoint_id, functions)
-        elif request.method == "DELETE":
-            result = delete_ep_whitelist(user_name, endpoint_id, functions)
 
-    return result
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
+@authenticated
+def del_endpoint_whitelist(user_name, endpoint_id, function_id):
+    """Delete from an endpoint's whitelist. Return the success/failure of the delete.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+    function_id : str
+        The id of the function to delete
+
+    Returns
+    -------
+    json
+        A dict describing the result of deleting from the endpoint's whitelist
+    """
+
+    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    return delete_ep_whitelist(user_name, endpoint_id, function_id)
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
