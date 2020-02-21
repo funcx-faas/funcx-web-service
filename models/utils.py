@@ -30,6 +30,129 @@ class db_invocation_logger(object):
         self.conn.commit()
 
 
+def add_ep_whitelist(user_name, endpoint_id, functions):
+    """Add a list of function to the endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+    functions : list
+        A list of the function ids to add to the whitelist.
+
+    Returns
+    -------
+    json
+        The result of adding the functions to the whitelist
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    try:
+        if len(rows) > 0:
+            for function_id in functions:
+                query = "INSERT INTO restricted_endpoint_functions (endpoint_id, function_id) values (%s, %s)"
+                cur.execute(query, (endpoint_id, function_id))
+            conn.commit()
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} to endpoint {endpoint_id}, {e}'}
+
+    return {'status': 'Success', 'reason': f'Added functions {functions} to endpoint {endpoint_id} whitelist.'}
+
+
+def get_ep_whitelist(user_name, endpoint_id):
+    """Get the list of functions in an endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+
+    Returns
+    -------
+    json
+        The functions in the whitelist
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    functions = []
+    try:
+        if len(rows) > 0:
+            query = "SELECT * from restricted_endpoint_functions where endpoint_id = %s"
+            cur.execute(query, (endpoint_id,))
+            funcs = cur.fetchall()
+            for f in funcs:
+                functions.append(f['function_id'])
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+
+    return {'status': 'Success', 'result': functions}
+
+
+def delete_ep_whitelist(user_name, endpoint_id, functions):
+    """Delete the functions from an endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+
+    Returns
+    -------
+    json
+        The functions that were deleted
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    try:
+        if len(rows) > 0:
+            query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id in %s"
+            cur.execute(query, (endpoint_id, functions))
+            funcs = cur.fetchall()
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+
+    return {'status': 'Success', 'result': functions}
+
+
 def log_invocation(user_id, task_id, function_id, endpoint_id):
     """Insert an invocation into the database.
 

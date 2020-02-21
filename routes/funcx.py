@@ -9,8 +9,10 @@ from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
 from models.utils import register_container, get_redis_client
+
 from models.utils import resolve_function, log_invocation, db_invocation_logger
-from models.utils import update_function, delete_function, delete_endpoint
+from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+                         add_ep_whitelist, delete_ep_whitelist)
 
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
@@ -726,6 +728,53 @@ def get_request_addr():
         return jsonify({'ip': request.environ['REMOTE_ADDR']}), 200
     else:
         return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
+
+
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET', 'DELETE'])
+@authenticated
+def endpoint_whitelist(user_name, endpoint_id):
+    """Add a function to this endpoint's whitelist.
+    Users should POST a list of function id's (as func) they want added to the whitelist.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+
+    Returns
+    -------
+    json
+        A dict describing the result of adding to the endpoint's whitelist
+    """
+
+    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    if request.method == "GET":
+        result = get_ep_whitelist(user_name, endpoint_id)
+    else:
+        # Otherwise we need the list of functions passed in
+        try:
+            post_req = request.json
+            functions = post_req['func']
+        except KeyError as e:
+            return jsonify({'status': 'Failed',
+                            'reason': "Missing Key {}".format(str(e))})
+        except Exception as e:
+            return jsonify({'status': 'Failed',
+                            'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+        if request.method == "POST":
+            result = add_ep_whitelist(user_name, endpoint_id, functions)
+        elif request.method == "DELETE":
+            result = delete_ep_whitelist(user_name, endpoint_id, functions)
+
+    return result
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
