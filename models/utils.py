@@ -178,7 +178,7 @@ def log_invocation(user_id, task_id, function_id, endpoint_id):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point, container_uuid):
+def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, public):
     """Register the site in the database.
 
     Parameters
@@ -195,6 +195,8 @@ def register_function(user_name, function_name, description, function_code, entr
         The entry point to the function (function name)
     container_uuid : str
         The uuid of the container to map this to
+    public : bool
+        Whether or not the function is publicly available
 
     Returns
     -------
@@ -206,9 +208,9 @@ def register_function(user_name, function_name, description, function_code, entr
     conn, cur = get_db_connection()
     function_uuid = str(uuid.uuid4())
     query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-            "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+            "function_code, entry_point, public) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                        function_uuid, function_code, entry_point))
+                        function_uuid, function_code, entry_point, public))
 
     if container_uuid is not None:
         app.logger.debug(f'Inserting container mapping: {container_uuid}')

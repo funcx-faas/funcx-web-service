@@ -874,7 +874,8 @@ def reg_function(user_name):
       "entry_point" : <ENTRY_POINT>,
       "function_code" : <ENCODED_FUNTION_BODY>,
       "container_uuid" : <CONTAINER_UUID>,
-      "description" : <DESCRIPTION>
+      "description" : <DESCRIPTION>,
+      "public" : <BOOL>
     }
 
     Returns
@@ -892,6 +893,7 @@ def reg_function(user_name):
         description = request.json["description"]
         function_code = request.json["function_code"]
         container_uuid = request.json.get("container_uuid", None)
+        public = request.json.get("public", False)
 
     except Exception as e:
         app.logger.error(e)
@@ -900,7 +902,7 @@ def reg_function(user_name):
 
     try:
         function_uuid = register_function(
-            user_name, function_name, description, function_code, entry_point, container_uuid)
+            user_name, function_name, description, function_code, entry_point, container_uuid, public)
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".format(
             user_name,
