@@ -843,13 +843,14 @@ def get_ep_stats(user_name, endpoint_id):
     # TODO add rc to g.
     rc = get_redis_client()
 
-    stats = {}
+    stats = []
     try:
         end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
         print("Total len :", end)
         items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
         if items:
-            stats = items
+            for i in items:
+                stats.append(json.loads(i))
     except Exception as e:
         stats = {'status': 'Failed',
                  'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
