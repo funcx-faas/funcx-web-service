@@ -14,6 +14,8 @@ from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                          add_ep_whitelist, delete_ep_whitelist)
 
+from forwarder.forwarder.endpoint_db import EndpointDB
+
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
@@ -800,6 +802,56 @@ def del_endpoint_whitelist(user_name, endpoint_id, function_id):
 
     return delete_ep_whitelist(user_name, endpoint_id, function_id)
 
+
+@funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
+@authenticated
+def get_ep_stats(user_name, endpoint_id):
+    """Retrieve the status updates from an endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The primary identity of the user
+    endpoint_id : str
+        The endpoint uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the endpoint
+    """
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    if not authorize_endpoint(user_id, endpoint_id, None, token):
+        return jsonify({'status': 'Failed',
+                        'reason': f'Unauthorized access to endpoint: {ep}'})
+
+    if 'ep_db' not in g:
+        g.ep_db = EndpointDB(app.config['REDIS_HOST'], port=app.config['REDIS_PORT'],)
+        g.ep_db.connect()
+
+    stats = {}
+    try:
+        stats = g.ep_db.get(endpoint_id)
+    except Exception as e:
+        stats = {'status': 'Failed',
+                 'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+
+    return jsonify(stats)
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
