@@ -14,8 +14,6 @@ from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                          add_ep_whitelist, delete_ep_whitelist)
 
-from forwarder.forwarder.endpoint_db import EndpointDB
-
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
@@ -821,6 +819,8 @@ def get_ep_stats(user_name, endpoint_id):
         The status of the endpoint
     """
 
+    last = 10
+
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
@@ -838,20 +838,24 @@ def get_ep_stats(user_name, endpoint_id):
 
     if not authorize_endpoint(user_id, endpoint_id, None, token):
         return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {ep}'})
+                        'reason': f'Unauthorized access to endpoint: {endpoint_id}'})
 
-    if 'ep_db' not in g:
-        g.ep_db = EndpointDB(app.config['REDIS_HOST'], port=app.config['REDIS_PORT'],)
-        g.ep_db.connect()
+    # TODO add rc to g.
+    rc = get_redis_client()
 
     stats = {}
     try:
-        stats = g.ep_db.get(endpoint_id)
+        end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
+        print("Total len :", end)
+        items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
+        if items:
+            stats = items
     except Exception as e:
         stats = {'status': 'Failed',
                  'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
 
     return jsonify(stats)
+
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated
