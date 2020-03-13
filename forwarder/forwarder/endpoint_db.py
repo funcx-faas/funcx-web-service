@@ -1,6 +1,7 @@
 import redis
 import queue
 import uuid
+import time
 
 # from forwarder.queues.base import FuncxQueue, NotConnected
 import json
@@ -130,6 +131,7 @@ class EndpointDB(object):
         payload : dict
             Dict of task information to be stored
         """
+        payload['timestamp'] = time.time()
         try:
             # self.redis_client.set(f'{self.prefix}:{key}', json.dumps(payload))
             self.redis_client.lpush(f'ep_status_{endpoint_id}', json.dumps(payload))

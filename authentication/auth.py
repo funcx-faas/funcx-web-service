@@ -66,7 +66,7 @@ def check_group_membership(token, endpoint_groups):
 
 
 @functools.lru_cache()
-def authorize_endpoint(user_id, endpoint_uuid, token):
+def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
     """Determine whether or not the user is allowed to access this endpoint.
     This is done in two steps: first, check if the user owns the endpoint. If not,
     check if there are any groups associated with the endpoint and determine if the user
@@ -77,6 +77,8 @@ def authorize_endpoint(user_id, endpoint_uuid, token):
     user_id : str
         The primary identity of the user
     endpoint_uuid : str
+        The uuid of the endpoint
+    function_uuid : str
         The uuid of the function
     token : str
         The auth token
@@ -96,6 +98,77 @@ def authorize_endpoint(user_id, endpoint_uuid, token):
         cur.execute(query, (endpoint_uuid, ))
         row = cur.fetchone()
         app.logger.debug(f"Endpoint auth row: {row}")
+
+        # If the endpoint is flagged as protected we need to overwrite
+
+        if len(row) > 0:
+            # If it is restricted we need to check the function is allowed, otherwise nothing else matters
+            if row['restricted']:
+                app.logger.debug("Restricted endpoint, checking function is allowed.")
+                query = "select * from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
+                cur.execute(query, (endpoint_uuid, function_uuid))
+                funcs = cur.fetchall()
+                app.logger.debug(f"Length of query response: {len(funcs)}")
+                if len(funcs) == 0:
+                    # There is no entry of this function, so reject it.
+                    raise Exception(f"Function {function_uuid} not permitted on endpoint {endpoint_uuid}")
+
+            # Check if the user owns it
+            if row['user_id'] == user_id:
+                authorized = True
+            # Otherwise if the row is public
+            elif row['public']:
+                authorized = True
+
+        if not authorized:
+            # Check if there are any groups associated with this endpoint
+            query = "select * from auth_groups where endpoint_id = %s"
+            cur.execute(query, (endpoint_uuid,))
+            rows = cur.fetchall()
+            endpoint_groups = []
+            for row in rows:
+                endpoint_groups.append(row['group_id'])
+            if len(endpoint_groups) > 0:
+                authorized = check_group_membership(token, endpoint_groups)
+
+    except Exception as e:
+        print(e)
+        app.logger.error(e)
+    return authorized
+
+
+
+@functools.lru_cache()
+def authorize_function(user_id, function_uuid, token):
+    """Determine whether or not the user is allowed to access this function.
+    This is done in two steps: first, check if the user owns the function. If not,
+    check if there are any groups associated with the function and determine if the user
+    is a member of any of them.
+
+    Parameters
+    ----------
+    user_id : str
+        The primary identity of the user
+    function_uuid : str
+        The uuid of the function
+    token : str
+        The auth token
+
+    Returns
+    -------
+    bool
+        Whether or not the user is allowed access to the function
+    """
+
+    authorized = False
+    try:
+        conn, cur = get_db_connection()
+
+        # Check if the user owns the endpoint
+        query = "select * from functions where function_uuid = %s"
+        cur.execute(query, (function_uuid, ))
+        row = cur.fetchone()
+        app.logger.debug(f"Endpoint auth row: {row}")
         if len(row) > 0:
             # Check if the user owns it
             if row['user_id'] == user_id:
@@ -104,9 +177,9 @@ def authorize_endpoint(user_id, endpoint_uuid, token):
                 authorized = True
 
         if not authorized:
-            # Check if there are any groups associated with this endpoint
-            query = "select * from auth_groups where endpoint_id = %s"
-            cur.execute(query, (endpoint_uuid,))
+            # Check if there are any groups associated with this function
+            query = "select * from function_auth_groups where function_id = %s"
+            cur.execute(query, (function_uuid,))
             rows = cur.fetchall()
             endpoint_groups = []
             for row in rows:
