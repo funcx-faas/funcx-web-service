@@ -932,6 +932,7 @@ def reg_function(user_name):
       "function_code" : <ENCODED_FUNTION_BODY>,
       "container_uuid" : <CONTAINER_UUID>,
       "description" : <DESCRIPTION>,
+      "group": <GLOBUS GROUP ID>
       "public" : <BOOL>
     }
 
@@ -950,6 +951,7 @@ def reg_function(user_name):
         description = request.json["description"]
         function_code = request.json["function_code"]
         container_uuid = request.json.get("container_uuid", None)
+        group = request.json.get("group", None)
         public = request.json.get("public", False)
 
     except Exception as e:
@@ -959,7 +961,8 @@ def reg_function(user_name):
 
     try:
         function_uuid = register_function(
-            user_name, function_name, description, function_code, entry_point, container_uuid, public)
+            user_name, function_name, description, function_code, 
+            entry_point, container_uuid, group, public)
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".format(
             user_name,
