@@ -4,7 +4,7 @@ import time
 import datetime
 
 from models.utils import resolve_user, get_redis_client
-from authentication.auth import authorize_endpoint, authenticated
+from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from models.utils import resolve_function, log_invocation
 from flask import current_app as app, Blueprint, jsonify, request, abort, g
 
@@ -65,6 +65,11 @@ def run(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
+    # Check if the user is allowed to access the function
+    if not authorize_function(user_id, function_uuid, token):
+        return jsonify({'status': 'Failed',
+                        'reason': f'Unauthorized access to function: {function_uuid}'})
+
     try:
         fn_code, fn_entry, container_uuid = resolve_function(
             user_id, function_uuid)
@@ -76,7 +81,7 @@ def run(user_name):
         endpoint = [endpoint]
 
     for ep in endpoint:
-        if not authorize_endpoint(user_id, ep, token):
+        if not authorize_endpoint(user_id, ep, function_uuid, token):
             return jsonify({'status': 'Failed',
                             'reason': f'Unauthorized access to endpoint: {ep}'})
 

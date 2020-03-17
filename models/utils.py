@@ -9,6 +9,151 @@ import psycopg2.extras
 from flask import request, current_app as app
 from errors import *
 
+class db_invocation_logger(object):
+
+    def __init__(self):
+        self.conn, self.cur = get_db_connection()
+
+    def log(self, user_id, task_id, function_id, endpoint_id, deferred=False):
+        try:
+            status = 'CREATED'
+            query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
+                    "status) values (%s, %s, %s, %s, %s);"
+            self.cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
+            if deferred is False:
+                self.conn.commit()
+
+        except Exception as e:
+            app.logger.exception("Caught error while writing log update to db")
+
+    def commit(self):
+        self.conn.commit()
+
+
+def add_ep_whitelist(user_name, endpoint_id, functions):
+    """Add a list of function to the endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+    functions : list
+        A list of the function ids to add to the whitelist.
+
+    Returns
+    -------
+    json
+        The result of adding the functions to the whitelist
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    try:
+        if len(rows) > 0:
+            for function_id in functions:
+                query = "INSERT INTO restricted_endpoint_functions (endpoint_id, function_id) values (%s, %s)"
+                cur.execute(query, (endpoint_id, function_id))
+            conn.commit()
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} to endpoint {endpoint_id}, {e}'}
+
+    return {'status': 'Success', 'reason': f'Added functions {functions} to endpoint {endpoint_id} whitelist.'}
+
+
+def get_ep_whitelist(user_name, endpoint_id):
+    """Get the list of functions in an endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+
+    Returns
+    -------
+    json
+        The functions in the whitelist
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    functions = []
+    try:
+        if len(rows) > 0:
+            query = "SELECT * from restricted_endpoint_functions where endpoint_id = %s"
+            cur.execute(query, (endpoint_id,))
+            funcs = cur.fetchall()
+            for f in funcs:
+                functions.append(f['function_id'])
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+
+    return {'status': 'Success', 'result': functions}
+
+
+def delete_ep_whitelist(user_name, endpoint_id, function_id):
+    """Delete the functions from an endpoint's whitelist.
+
+    This function is only allowed by the owner of the endpoint.
+
+    Parameters
+    ----------
+    user_name : str
+        The name of the user making the request
+    endpoint_id : str
+        The uuid of the endpoint to add the whitelist entries for
+    function_id : str
+        The uuid of the function to remove from the whitelist
+
+    Returns
+    -------
+    json
+        A dict describing the success or failure of removing the function
+    """
+    user_id = resolve_user(user_name)
+
+    conn, cur = get_db_connection()
+
+    # Make sure the user owns the endpoint
+    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
+    cur.execute(query, (endpoint_id, user_id))
+    rows = cur.fetchall()
+    try:
+        if len(rows) > 0:
+            query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
+            cur.execute(query, (endpoint_id, function_id))
+            conn.commit()
+        else:
+            return {'status': 'Failed',
+                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+    except Exception as e:
+        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+
+    return {'status': 'Success', 'result': function_id}
+
 
 def log_invocation(user_id, task_id, function_id, endpoint_id):
     """Insert an invocation into the database.
@@ -33,7 +178,7 @@ def log_invocation(user_id, task_id, function_id, endpoint_id):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, group):
+def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, group, public):
     """Register the site in the database.
 
     Parameters
@@ -52,6 +197,8 @@ def register_function(user_name, function_name, description, function_code, entr
         The uuid of the container to map this to
     group : str
         A globus group id to share the function with
+    public : bool
+        Whether or not the function is publicly available
 
     Returns
     -------
@@ -63,9 +210,9 @@ def register_function(user_name, function_name, description, function_code, entr
     conn, cur = get_db_connection()
     function_uuid = str(uuid.uuid4())
     query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-            "function_code, entry_point) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+            "function_code, entry_point, public) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                        function_uuid, function_code, entry_point))
+                        function_uuid, function_code, entry_point, public))
 
     if container_uuid is not None:
         app.logger.debug(f'Inserting container mapping: {container_uuid}')
@@ -256,8 +403,8 @@ def resolve_function(user_id, function_uuid):
 
     try:
         conn, cur = get_db_connection()
-        query = "select * from functions where function_uuid = %s and user_id = %s order by id DESC limit 1"
-        cur.execute(query, (function_uuid, user_id))
+        query = "select * from functions where function_uuid = %s order by id DESC limit 1"
+        cur.execute(query, (function_uuid,))
         r = cur.fetchone()
         if not r:
             raise MissingFunction(function_uuid)
