@@ -14,6 +14,8 @@ from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                          add_ep_whitelist, delete_ep_whitelist)
 
+from models.serializer import serialize_inputs, deserialize_result
+
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
@@ -225,9 +227,10 @@ def submit(user_name):
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
-        serializer = None
-        if 'serializer' in post_req:
-            serializer = post_req['serializer']
+
+        serialize = False
+        if 'serialize' in post_req:
+            serialize = post_req['serialize']
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -260,6 +263,14 @@ def submit(user_name):
 
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
+    # Check if the serialize flag was set. If so, use the serivce to serialize the payload
+    if serialize:
+        res = serialize_inputs(input_data)
+        if res:
+            input_data = res
+        else:
+            return jsonify({'status': 'Failed',
+                           'reason': 'Unable to serialize input data'})
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
     app.logger.debug("Payload : {}".format(payload))
@@ -267,8 +278,8 @@ def submit(user_name):
     if not container_uuid:
         container_uuid = 'RAW'
 
-    if not serializer:
-        serializer = "ANY"
+    # TODO This is now deprecated.
+    serializer = "ANY"
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
@@ -489,6 +500,8 @@ def result(user_name, task_id):
 def get_task(user_name, task_id):
     """Get a task.
 
+    If the query parameter deserialized=True is set, we deserialize the result before returning it.
+
     Parameters
     ----------
     user_name : str
@@ -506,6 +519,9 @@ def get_task(user_name, task_id):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    # Allow the user to request the output be deserialized.
+    deserialize = request.args.get('deserialize')
+
     try:
         # Get a redis client
         rc = get_redis_client()
@@ -518,6 +534,10 @@ def get_task(user_name, task_id):
                 task = json.loads(result_obj)
                 if 'status' not in task:
                     task['status'] = 'COMPLETED'
+                if deserialize:
+                    # Deserialize the output before returning it to the user
+                    task['result'] = deserialize_result(task['result'])
+
             else:
                 task = {'status': 'PENDING'}
         except Exception as e:
