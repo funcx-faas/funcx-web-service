@@ -34,7 +34,7 @@ def get_db_logger():
         g.db_logger = db_invocation_logger()
     return g.db_logger
 
-def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serializer=None):
+def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
 
     Parameters
@@ -50,6 +50,9 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
        input_data as a list in case many function launches are to be made
     app : app object
     token : globus token
+    serialize : bool
+        Whether or not to serialize the input using the serialization service. This is used
+        when the input is not already serialized by the SDK.
 
     Returns:
        json object
@@ -78,8 +81,8 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         container_uuid = 'RAW'
 
     # We should replace this with serialize_hdr = ";srlz={container_uuid}"
-    if not serializer:
-        serializer = "ANY"
+    # TODO: this is deprecated.
+    serializer = "ANY"
 
     # TODO: Store redis connections in g
     rc = get_redis_client()
@@ -101,8 +104,10 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         ep_queue[ep] = redis_task_queue
 
     for input_data in input_data_items:
-        # Yadu : Remove timers
-        timer_s = time.time()
+        if serialize:
+            res = serialize_inputs(input_data)
+            if res:
+                input_data = res
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
@@ -120,11 +125,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             db_logger.log(user_id, task_id, function_uuid, ep, deferred=True)
 
         task_ids.append(task_id)
-        app.logger.debug("Pushed task {} in {}ms".format(task_id, 1000 * (time.time()-timer_s)))
-        # YADU : Remove timers
-    t = time.time()
     db_logger.commit()
-    app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
 
     return jsonify({'status': 'Success',
                     'task_uuids': task_ids})
@@ -170,7 +171,7 @@ def submit_batch(user_name):
         endpoints = post_req['endpoints']
         function_uuid = post_req['func']
         input_data = post_req['payload']
-        serializer = post_req.get('serializer', None)
+        serialize = post_req.get('serialize', None)
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -184,7 +185,7 @@ def submit_batch(user_name):
                            input_data,
                            app,
                            token,
-                           serializer=serializer)
+                           serialize=serialize)
 
 
 @funcx_api.route('/submit', methods=['POST'])
@@ -227,10 +228,7 @@ def submit(user_name):
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
-
-        serialize = False
-        if 'serialize' in post_req:
-            serialize = post_req['serialize']
+        serialize = post_req.get('serialize', None)
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -405,6 +403,7 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
+
 @funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
 def batch_status(user_name):
@@ -430,8 +429,8 @@ def batch_status(user_name):
     app.logger.debug("request : {}".format(request.json))
     results = get_tasks_from_redis(request.json['task_ids'])
 
-    return jsonify({'response' : 'batch',
-                    'results' : results})
+    return jsonify({'response': 'batch',
+                    'results': results})
 
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])

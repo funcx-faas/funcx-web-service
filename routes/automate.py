@@ -8,6 +8,8 @@ from authentication.auth import authorize_endpoint, authenticated, authorize_fun
 from models.utils import resolve_function, log_invocation
 from flask import current_app as app, Blueprint, jsonify, request, abort, g
 
+from models.serializer import serialize_inputs, deserialize_result
+
 from .redis_q import RedisQueue
 
 # Flask
@@ -33,7 +35,7 @@ def run(user_name):
         The task document
     """
 
-    app.logger.debug(f"Submit invoked by user:{user_name}")
+    app.logger.debug(f"Automate submit invoked by user:{user_name}")
 
     if not user_name:
         abort(400, description="Could not find user. You must be "
@@ -55,9 +57,7 @@ def run(user_name):
         endpoint = post_req['endpoint']
         function_uuid = post_req['func']
         input_data = post_req['payload']
-        serializer = None
-        if 'serializer' in post_req:
-            serializer = post_req['serializer']
+        serialize = post_req.get('serialize', None)
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -89,6 +89,14 @@ def run(user_name):
 
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
+    if serialize:
+        res = serialize_inputs(input_data)
+        if res:
+            input_data = res
+        else:
+            return jsonify({'status': 'Failed',
+                           'reason': 'Unable to serialize input data'})
+
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
     app.logger.debug("Payload : {}".format(payload))
@@ -96,8 +104,8 @@ def run(user_name):
     if not container_uuid:
         container_uuid = 'RAW'
 
-    if not serializer:
-        serializer = "JSON"
+    # TODO: This is deprecated.
+    serializer = "ANY"
 
     task_header = f"{task_id};{container_uuid};{serializer}"
 
@@ -166,11 +174,22 @@ def status(user_name, task_id):
                 task = json.loads(result_obj)
                 if 'status' not in task:
                     task['status'] = 'SUCCEEDED'
+                if 'result' in task:
+                    # deserialize the result for Automate to consume
+                    task['result'] = deserialize_result(task['result'])
             else:
                 task = {'status': 'ACTIVE'}
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
             task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+        else:
+            if result_obj:
+                # Task complete, attempt flush
+                try:
+                    g.redis_client.delete(f"task_{task_id}")
+                except Exception as e:
+                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                    pass
 
         task['task_id'] = task_id
 
