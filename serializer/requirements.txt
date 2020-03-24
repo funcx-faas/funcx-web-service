@@ -1,0 +1,9 @@
+requests>=2.20.0
+jsonschema>3.0.0
+sphinx_rtd_theme
+nbsphinx
+parsl
+configobj
+texttable
+redis
+bottle
