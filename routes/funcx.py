@@ -8,7 +8,7 @@ from version import VERSION
 from errors import *
 
 from models.utils import register_endpoint, register_function, get_container, resolve_user
-from models.utils import register_container, get_redis_client
+from models.utils import register_container, get_redis_client, get_tasks_from_redis
 
 from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
@@ -300,111 +300,11 @@ def submit(user_name):
         # add an invocation to the database
         log_invocation(user_id, task_id, function_uuid, ep)
 
-
     return jsonify({'status': 'Success',
                     'task_uuid': task_id})
 
 
-def get_tasks_from_redis(task_ids):
-
-    all_tasks = {}
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-        for task_id in task_ids:
-
-            # Get the task from redis
-            try:
-                result_obj = rc.hget(f"task_{task_id}", 'result')
-                if result_obj:
-                    task = json.loads(result_obj)
-                    all_tasks[task_id] = task
-                    all_tasks[task_id]['task_id'] = task_id
-                else:
-                    task = {'status': 'PENDING'}
-            except Exception as e:
-                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-            else:
-                if result_obj:
-                    # Task complete, attempt flush
-                    try:
-                        rc.delete(f"task_{task_id}")
-                    except Exception as e:
-                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                        pass
-
-        return all_tasks
-
-    except Exception as e:
-        app.logger.error(e)
-        return {'status': 'Failed',
-                'reason': 'InternalError: {}'.format(e),
-                'partial': all_tasks}
-
-
-@funcx_api.route("/<task_id>/status", methods=['GET'])
-@authenticated
-def status(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        details = {}
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-        else:
-            if result_obj:
-                # Task complete, attempt flush
-                try:
-                    rc.delete(f"task_{task_id}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                    pass
-
-        res = {'task_id': task_id}
-
-        task['task_id'] = task_id
-
-        app.logger.debug("Status Response: {}".format(str(task)))
-        return jsonify(task)
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
-
-
-@funcx_api.route("/batch_status", methods=['POST'])
+@funcx_api.route("/batch_result", methods=['POST'])
 @authenticated
 def batch_status(user_name):
     """Check the status of a task.
@@ -431,67 +331,6 @@ def batch_status(user_name):
 
     return jsonify({'response': 'batch',
                     'results': results})
-
-
-@funcx_api.route("/<task_id>/result", methods=['GET'])
-@authenticated
-def result(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        details = {}
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"ResulOBt_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-
-        res = {'task_id': task_id}
-        if 'status' in task:
-            res['status'] = task['status']
-
-        if 'result' in task:
-            details['result'] = task['result']
-        if 'reason' in task:
-            details['reason'] = task['reason']
-
-        if details:
-            res.update({'details': details})
-
-        app.logger.debug("Status Response: {}".format(str(res)))
-        return jsonify(res)
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
 
 
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])

@@ -475,6 +475,55 @@ def get_db_connection():
     return conn, cur
 
 
+def get_tasks_from_redis(task_ids):
+    """Get the statuses for a batch of tasks
+
+    Parameters
+    ----------
+    task_ids : [str]
+        The tasks to check on
+
+    Returns
+    -------
+    list
+        A list of statuses
+    """
+    all_tasks = {}
+    try:
+        # Get a redis client
+        rc = get_redis_client()
+        for task_id in task_ids:
+
+            # Get the task from redis
+            try:
+                result_obj = rc.hget(f"task_{task_id}", 'result')
+                if result_obj:
+                    task = json.loads(result_obj)
+                    all_tasks[task_id] = task
+                    all_tasks[task_id]['task_id'] = task_id
+                else:
+                    task = {'status': 'PENDING'}
+            except Exception as e:
+                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            else:
+                if result_obj:
+                    # Task complete, attempt flush
+                    try:
+                        rc.delete(f"task_{task_id}")
+                    except Exception as e:
+                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+                        pass
+
+        return all_tasks
+
+    except Exception as e:
+        app.logger.error(e)
+        return {'status': 'Failed',
+                'reason': 'InternalError: {}'.format(e),
+                'partial': all_tasks}
+
+
 def get_redis_client():
     """Return a redis client
 
