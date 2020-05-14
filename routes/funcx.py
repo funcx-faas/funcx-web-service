@@ -187,6 +187,63 @@ def submit(user_name):
                            serialize=serialize)
 
 
+@funcx_api.route('/submit_batch', methods=['POST'])
+@authenticated
+def submit_batch(user_name):
+    """Puts the task request(s) into Redis and returns a list of task UUID(s)
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    POST payload
+    ------------
+    {
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"Submit_batch invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    # Parse out the function info
+    try:
+        post_req = request.json
+        endpoints = post_req['endpoints']
+        function_uuid = post_req['func']
+        input_data = post_req['payload']
+        serialize = post_req.get('serialize', None)
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    return auth_and_launch(user_id,
+                           function_uuid,
+                           endpoints,
+                           input_data,
+                           app,
+                           token,
+                           serialize=serialize)
+
+
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
 def get_task(user_name, task_id):
@@ -304,63 +361,6 @@ def get_task_status(user_name, task_id):
                         'reason': 'InternalError: {}'.format(e)})
 
 
-@funcx_api.route('/submit_batch', methods=['POST'])
-@authenticated
-def submit_batch(user_name):
-    """Puts the task request(s) into Redis and returns a list of task UUID(s)
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-
-    POST payload
-    ------------
-    {
-    }
-    Returns
-    -------
-    json
-        The task document
-    """
-    app.logger.debug(f"Submit_batch invoked by user:{user_name}")
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    # Parse out the function info
-    try:
-        post_req = request.json
-        endpoints = post_req['endpoints']
-        function_uuid = post_req['func']
-        input_data = post_req['payload']
-        serialize = post_req.get('serialize', None)
-    except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
-
-    return auth_and_launch(user_id,
-                           function_uuid,
-                           endpoints,
-                           input_data,
-                           app,
-                           token,
-                           serialize=serialize)
-
-
 @funcx_api.route("/batch_result", methods=['POST'])
 @authenticated
 def batch_status(user_name):
@@ -388,35 +388,6 @@ def batch_status(user_name):
 
     return jsonify({'response': 'batch',
                     'results': results})
-
-
-@funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
-@authenticated
-def get_cont(user_name, container_id, container_type):
-    """Get the details of a container.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    container_id : str
-        The id of the container
-    container_type : str
-        The type of containers to return: Docker, Singularity, Shifter, etc.
-
-    Returns
-    -------
-    dict
-        A dictionary of container details
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-    app.logger.debug(f"Getting container details: {container_id}")
-    container = get_container(container_id, container_type)
-    app.logger.debug(f"Got container: {container}")
-    return jsonify({'container': container})
 
 
 @funcx_api.route("/containers", methods=['POST'])
@@ -448,43 +419,33 @@ def reg_container(user_name):
     return jsonify({'container_id': container_id})
 
 
-def register_with_hub(address, endpoint_id, endpoint_address):
-    """ This registers with the Forwarder micro service.
-
-    Can be used as an example of how to make calls this it, while the main API
-    is updated to do this calling on behalf of the endpoint in the second iteration.
+@funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
+@authenticated
+def get_cont(user_name, container_id, container_type):
+    """Get the details of a container.
 
     Parameters
     ----------
-    address : str
-       Address of the forwarder service of the form http://<IP_Address>:<Port>
+    user_name : str
+        The primary identity of the user
+    container_id : str
+        The id of the container
+    container_type : str
+        The type of containers to return: Docker, Singularity, Shifter, etc.
 
+    Returns
+    -------
+    dict
+        A dictionary of container details
     """
-    r = requests.post(address + '/register',
-                      json={'endpoint_id': endpoint_id,
-                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
-                            'endpoint_addr': endpoint_address,
-                            }
-                      )
-    if r.status_code != 200:
-        print(dir(r))
-        print(r)
-        raise RegistrationError(r.reason)
 
-    return r.json()
-
-
-@funcx_api.route("/version", methods=['GET'])
-def get_version():
-    return jsonify(VERSION)
-
-
-@funcx_api.route("/addr", methods=['GET'])
-def get_request_addr():
-    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        return jsonify({'ip': request.environ['REMOTE_ADDR']}), 200
-    else:
-        return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    app.logger.debug(f"Getting container details: {container_id}")
+    container = get_container(container_id, container_type)
+    app.logger.debug(f"Got container: {container}")
+    return jsonify({'container': container})
 
 
 @funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
@@ -672,7 +633,7 @@ def register_new_endpoint(user_name):
     return jsonify(response)
 
 
-@funcx_api.route("/register_function", methods=['POST'])
+@funcx_api.route("/functions", methods=['POST'])
 @authenticated
 def reg_function(user_name):
     """Register the function.
@@ -782,4 +743,43 @@ def del_endpoint(user_name):
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
+
+
+def register_with_hub(address, endpoint_id, endpoint_address):
+    """ This registers with the Forwarder micro service.
+
+    Can be used as an example of how to make calls this it, while the main API
+    is updated to do this calling on behalf of the endpoint in the second iteration.
+
+    Parameters
+    ----------
+    address : str
+       Address of the forwarder service of the form http://<IP_Address>:<Port>
+
+    """
+    r = requests.post(address + '/register',
+                      json={'endpoint_id': endpoint_id,
+                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
+                            'endpoint_addr': endpoint_address,
+                            }
+                      )
+    if r.status_code != 200:
+        print(dir(r))
+        print(r)
+        raise RegistrationError(r.reason)
+
+    return r.json()
+
+
+@funcx_api.route("/version", methods=['GET'])
+def get_version():
+    return jsonify(VERSION)
+
+
+@funcx_api.route("/addr", methods=['GET'])
+def get_request_addr():
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        return jsonify({'ip': request.environ['REMOTE_ADDR']}), 200
+    else:
+        return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
