@@ -2,6 +2,7 @@ import os
 from flask import Flask
 
 from routes.funcx import funcx_api
+from routes.funcx_v1 import funcx_api as funcx_api_v1
 from routes.automate import automate_api
 from routes.auth import auth_api
 from gui.routes import guiapi
@@ -34,7 +35,8 @@ application.config.from_object(os.environ['APP_SETTINGS'])
 
 
 # Include the API blueprint
-application.register_blueprint(funcx_api, url_prefix="/api/v1")
+application.register_blueprint(funcx_api_v1, url_prefix="/api/v1")
+application.register_blueprint(funcx_api, url_prefix="/api/v2")
 application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
 application.register_blueprint(guiapi)
