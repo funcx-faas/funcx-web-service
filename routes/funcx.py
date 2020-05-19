@@ -180,7 +180,7 @@ def batch_run(user_name):
 
     results = {'status': 'Success',
                'task_uuids': []}
-    for i in len(function_uuids):
+    for i in range(len(function_uuids)):
         res = auth_and_launch(user_id,
                               function_uuids[i],
                               endpoints[i],
