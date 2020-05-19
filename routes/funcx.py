@@ -59,20 +59,20 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     """
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
-        return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to function: {function_uuid}'})
+        return {'status': 'Failed',
+               'reason': f'Unauthorized access to function: {function_uuid}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
     except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'})
+        return {'status': 'Failed',
+                'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'}
 
     # Make sure the user is allowed to use the function on this endpoint
     for ep in endpoints:
         if not authorize_endpoint(user_id, ep, function_uuid, token):
-            return jsonify({'status': 'Failed',
-                            'reason': f'Unauthorized access to endpoint: {ep}'})
+            return {'status': 'Failed',
+                    'reason': f'Unauthorized access to endpoint: {ep}'}
 
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
@@ -127,9 +127,72 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task_ids.append(task_id)
     db_logger.commit()
 
-    return jsonify({'status': 'Success',
-                    'task_uuids': task_ids})
+    return {'status': 'Success',
+            'task_uuids': task_ids}
 
+@funcx_api.route('/batch_run', methods=['POST'])
+@authenticated
+def batch_run(user_name):
+    """Puts the task request(s) into Redis and returns a list of task UUID(s)
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
+
+    POST payload
+    ------------
+    {
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"batch_run invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    # Parse out the function info
+    try:
+        post_req = request.json
+        endpoints = post_req['endpoints']
+        function_uuids = post_req['functions']
+        input_data = post_req['payloads']
+        serialize = post_req.get('serialize', None)
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    results = {'status': 'Success',
+               'task_uuids': []}
+    for i in len(function_uuids):
+        res = auth_and_launch(user_id,
+                              function_uuids[i],
+                              endpoints[i],
+                              input_data[i],
+                              app,
+                              token,
+                              serialize=serialize)
+        if res.get('status', 'Failed') != 'Success':
+           return res
+        else:
+           results['task_uuids'].extend(res['task_uuids'])
+    return jsonify(results)
 
 @funcx_api.route('/submit_batch', methods=['POST'])
 @authenticated
@@ -179,13 +242,13 @@ def submit_batch(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
-    return auth_and_launch(user_id,
-                           function_uuid,
-                           endpoints,
-                           input_data,
-                           app,
-                           token,
-                           serialize=serialize)
+    return jsonify(auth_and_launch(user_id,
+                                   function_uuid,
+                                   endpoints,
+                                   input_data,
+                                   app,
+                                   token,
+                                   serialize=serialize))
 
 
 @funcx_api.route('/submit', methods=['POST'])
