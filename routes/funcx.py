@@ -183,7 +183,7 @@ def batch_run(user_name):
     for i in range(len(function_uuids)):
         res = auth_and_launch(user_id,
                               function_uuids[i],
-                              endpoints[i],
+                              [endpoints[i]],
                               input_data[i],
                               app,
                               token,
