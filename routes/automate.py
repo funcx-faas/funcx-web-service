@@ -162,16 +162,16 @@ def status(user_name, task_id):
                     task_results.append(task)
 
                 # If it is done, return it all
-                automate_response.details = task_results
+                automate_response['details'] = task_results
                 # They all have a success status
-                automate_response.status = task['status']
+                automate_response['status'] = task['status']
         else:
             # it is not a batch, get the single task result
             task = get_task(task_id)
             task['task_id'] = task_id
 
-            automate_response.details = task
-            automate_response.status = task['status']
+            automate_response['details'] = task
+            automate_response['status'] = task['status']
     except Exception as e:
         app.logger.error(e)
         return jsonify({'status': 'Failed',
@@ -238,7 +238,7 @@ def check_batch_status(task_ids):
     try:
         for task_id in task_ids:
             result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
+            app.logger.debug(f"Batch Result_obj : {result_obj}")
             if not result_obj:
                 return False
     except Exception as e:
