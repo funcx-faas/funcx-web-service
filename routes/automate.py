@@ -237,6 +237,7 @@ def check_batch_status(task_ids):
 
     try:
         for task_id in task_ids:
+            app.logger(f"Checking task id for: task_{task_id}")
             result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
             app.logger.debug(f"Batch Result_obj : {result_obj}")
             if not result_obj:
