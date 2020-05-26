@@ -130,50 +130,50 @@ def status(user_name, task_id):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
+
+    automate_response = {
+        "details": None,
+        "status": "ACTIVE",
+        "action_id": task_id,
+        "release_after": 'P30D'
+    }
+
+    # Get a redis client
+    if 'redis_client' not in g:
+        g.redis_client = get_redis_client()
+
+    task_results = None
+    # check if it is a batch:
     try:
-        automate_response = {
-            "details": None,
-            "status": "ACTIVE",
-            "action_id": task_id,
-            "release_after": 'P30D'
-        }
+        task_ids = g.redis_client.hget(f"batch_{task_id}")
+        if task_ids:
+            # Check the status on all the tasks.
+            batch_done = check_batch_status(task_ids)
+            if batch_done:
+                # Get all of their results
+                task_results = []
+                for tid in task_ids:
+                    task = get_task(tid)
+                    task['task_id'] = tid
+                    task_results.append(task)
 
-        # Get a redis client
-        if 'redis_client' not in g:
-            g.redis_client = get_redis_client()
-
-        task_results = None
-        # check if it is a batch:
-        try:
-            task_ids = g.redis_client.hget(f"batch_{task_id}")
-            if task_ids:
-                # Check the status on all the tasks.
-                batch_done = check_batch_status(task_ids)
-                if batch_done:
-                    # Get all of their results
-                    task_results = []
-                    for tid in task_ids:
-                        task = get_task(tid)
-                        task['task_id'] = tid
-                        task_results.append(task)
-
-                    # If it is done, return it all
-                    automate_response.details = task_results
-                    # They all have a success status
-                    automate_response.status = task['status']
-            else:
-                # it is not a batch, get the single task result
-                task = get_task(task_id)
-                task['task_id'] = task_id
-
-                automate_response.details = task
+                # If it is done, return it all
+                automate_response.details = task_results
+                # They all have a success status
                 automate_response.status = task['status']
-        except Exception as e:
-            app.logger.error(e)
-            return jsonify({'status': 'Failed',
-                            'reason': 'InternalError: {}'.format(e)})
+        else:
+            # it is not a batch, get the single task result
+            task = get_task(task_id)
+            task['task_id'] = task_id
 
-        return json.dumps(automate_response)
+            automate_response.details = task
+            automate_response.status = task['status']
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
+
+    return json.dumps(automate_response)
 
 
 def get_task(task_id):
