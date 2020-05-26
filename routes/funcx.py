@@ -165,15 +165,17 @@ def submit(user_name):
     token = str.replace(str(token_str), 'Bearer ', '')
 
     # Parse out the function info
+    tasks = []
     try:
         post_req = request.json
-        tasks = post_req.get('tasks', None)
-        if not tasks:
+        if 'tasks' in post_req:
+            tasks = post_req.get('tasks', [])
+        else:
             # Check if the old client was used and create a new task
             function_uuid = post_req.get('function', None)
             endpoint = post_req.get('endpoint', None)
             input_data = post_req.get('payload', None)
-            tasks = [function_uuid, endpoint, input_data]
+            tasks.append([function_uuid, endpoint, input_data])
 
         serialize = post_req.get('serialize', None)
 
