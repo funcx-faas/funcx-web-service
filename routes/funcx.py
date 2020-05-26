@@ -172,7 +172,7 @@ def submit(user_name):
             tasks = post_req.get('tasks', [])
         else:
             # Check if the old client was used and create a new task
-            function_uuid = post_req.get('function', None)
+            function_uuid = post_req.get('func', None)
             endpoint = post_req.get('endpoint', None)
             input_data = post_req.get('payload', None)
             tasks.append([function_uuid, endpoint, input_data])
