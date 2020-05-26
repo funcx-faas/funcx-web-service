@@ -150,7 +150,9 @@ def status(user_name, task_id):
     try:
         task_ids = g.redis_client.hget(f"batch_{task_id}", "batch")
         app.logger.info(f"batch task_ids: {task_ids}")
+
         if task_ids:
+            task_ids = json.loads(task_ids)
             # Check the status on all the tasks.
             batch_done = check_batch_status(task_ids)
             if batch_done:
