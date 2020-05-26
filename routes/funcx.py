@@ -187,7 +187,8 @@ def submit(user_name):
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
     results = {'status': 'Success',
-               'task_uuids': []}
+               'task_uuids': [],
+               'task_uuids': ""}
     for task in tasks:
         res = auth_and_launch(user_id,
                               task[0],
@@ -200,6 +201,9 @@ def submit(user_name):
             return res
         else:
             results['task_uuids'].extend(res['task_uuids'])
+            # For backwards compatibility. <=0.0.1a5 requires "task_uuid" in result
+            # Note: previous versions did not support batching, so returning the last one is ok.
+            results['task_uuid'] = res['task_uuids']
     return jsonify(results)
 
 
