@@ -26,7 +26,7 @@ def start():
     except:
         pass
     return render_template('start.html', title='Start',
-                           functions_executed=functions_executed)
+                           functions_executed=f'{functions_executed:,}')
 
 
 def num_delimiter(num, type):

@@ -55,7 +55,7 @@ def run(user_name):
     # Parse out the function info
     tasks = []
     try:
-        post_req = request.json
+        post_req = request.json['body']
         if 'tasks' in post_req:
             tasks = post_req.get('tasks', [])
         else:
