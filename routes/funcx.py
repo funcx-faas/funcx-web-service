@@ -202,8 +202,8 @@ def submit(user_name):
         else:
             results['task_uuids'].extend(res['task_uuids'])
             # For backwards compatibility. <=0.0.1a5 requires "task_uuid" in result
-            # Note: previous versions did not support batching, so returning the last one is ok.
-            results['task_uuid'] = res['task_uuids']
+            # Note: previous versions did not support batching, so returning the first one is ok.
+            results['task_uuid'] = res['task_uuids'][0]
     return jsonify(results)
 
 
