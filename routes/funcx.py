@@ -188,7 +188,7 @@ def submit(user_name):
 
     results = {'status': 'Success',
                'task_uuids': [],
-               'task_uuids': ""}
+               'task_uuid': ""}
     for task in tasks:
         res = auth_and_launch(user_id,
                               task[0],
