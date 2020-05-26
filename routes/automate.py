@@ -63,7 +63,7 @@ def run(user_name):
             function_uuid = post_req.get('func', None)
             endpoint = post_req.get('endpoint', None)
             input_data = post_req.get('payload', None)
-            tasks.append([function_uuid, endpoint, input_data])
+            tasks.append({'func': function_uuid, 'endpoint': endpoint, 'payload': input_data})
 
         # Sets serialize to True by default
         serialize = post_req.get('serialize', True)
@@ -79,9 +79,9 @@ def run(user_name):
     app.logger.info(f'tasks to submit: {tasks}')
     for task in tasks:
         res = auth_and_launch(user_id,
-                              task[0],
-                              [task[1]],
-                              task[2],
+                              task['func'],
+                              [task['endpoint']],
+                              task['payload'],
                               app,
                               token,
                               serialize=serialize)
