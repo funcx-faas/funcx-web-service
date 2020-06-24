@@ -40,6 +40,7 @@ def _trim_func_data(func_data):
     return {
         'function_name': func_data['function_name'],
         'function_code': func_data['function_code'],
+        'function_source': func_data['function_source'],
         'container_uuid': func_data.get('container_uuid', ''),
         'description': func_data['description'],
         'public': func_data['public'],
