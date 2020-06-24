@@ -2,7 +2,7 @@
 
 """
 import logging
-from forwarder.version import VERSION
+from forwarder.forwarder.version import VERSION
 from logging.handlers import RotatingFileHandler
 
 __author__ = "The funcX team"
