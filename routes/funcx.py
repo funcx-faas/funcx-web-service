@@ -922,14 +922,15 @@ def reg_function(user_name, user_uuid):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
     try:
-
         function_name = request.json["function_name"]
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
+        function_source = request.json.get("function_source", "")
         container_uuid = request.json.get("container_uuid", None)
         group = request.json.get("group", None)
         public = request.json.get("public", False)
+        searchable = request.json.get("searchable", True)
 
     except Exception as e:
         app.logger.error(e)
@@ -949,10 +950,13 @@ def reg_function(user_name, user_uuid):
         return jsonify({'status': 'Failed',
                         'reason': message})
 
+    response = jsonify({'function_uuid': function_uuid})
+    if not searchable:
+        return response
     try:
         ingest_function(
             user_name, user_uuid, function_uuid, function_name, description, function_code,
-            entry_point, container_uuid, group, public)
+            function_source, entry_point, container_uuid, group, public)
     except Exception as e:
         message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
             user_name,
@@ -962,7 +966,7 @@ def reg_function(user_name, user_uuid):
         return jsonify({'status': 'Failed',
                         'reason': message})
 
-    return jsonify({'function_uuid': function_uuid})
+    return response
 
 
 @funcx_api.route("/upd_function", methods=['POST'])
