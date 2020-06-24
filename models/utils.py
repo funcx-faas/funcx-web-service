@@ -231,7 +231,7 @@ def register_function(user_name, function_name, description, function_code, entr
     return function_uuid
 
 
-def ingest_function(user_name, user_uuid, func_uuid, function_name, description, function_code, entry_point, container_uuid, group, public):
+def ingest_function(user_name, user_uuid, func_uuid, function_name, description, function_code, function_source, entry_point, container_uuid, group, public):
     """Ingest a function into Globus Search
 
     Restructures data for ingest purposes.
@@ -243,6 +243,7 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
     function_name : str
     description : str
     function_code : str
+    function_source : str
     entry_point : str
     container_uuid : str
     group : str
@@ -255,6 +256,7 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
     data = {
         "function_name": function_name,
         "function_code": function_code,
+        "function_source": function_source,
         "container_uuid": container_uuid,
         "entry_point": entry_point,
         "description": description,
