@@ -1,27 +1,24 @@
-import traceback
-import uuid
 import json
-import requests
+import json
 import time
-from requests.models import Response
+import uuid
 
-from models.tasks import TaskState, Task
-from version import VERSION
-from errors import *
-
-from models.utils import register_endpoint, register_function, get_container, resolve_user
-from models.utils import register_container, get_redis_client
-
-from models.utils import resolve_function, log_invocation, db_invocation_logger
-from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
-                         add_ep_whitelist, delete_ep_whitelist)
-
-from models.serializer import serialize_inputs, deserialize_result
-
-from authentication.auth import authorize_endpoint, authenticated, authorize_function
+import requests
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
+from forwarder.forwarder.errors import RegistrationError
 
-from .redis_q import RedisQueue, EndpointQueue
+from authentication.auth import authenticated_w_uuid
+from authentication.auth import authorize_endpoint, authenticated, authorize_function
+from errors import *
+from models.serializer import serialize_inputs, deserialize_result
+from models.tasks import Task
+from models.utils import register_container, get_redis_client
+from models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
+from models.utils import resolve_function, db_invocation_logger
+from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+                          add_ep_whitelist, delete_ep_whitelist)
+from version import VERSION
+from .redis_q import EndpointQueue
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -261,7 +258,6 @@ def submit_batch(user_name):
 
 
 def get_tasks_from_redis(task_ids):
-
     all_tasks = {}
     try:
         # Get a redis client
@@ -721,7 +717,7 @@ def get_ep_stats(user_name, endpoint_id):
                 status['logs'].append(json.loads(i))
 
             # timestamp is created using time.time(), which returns seconds since epoch UTC
-            logs = status['logs'] # should have been json loaded already
+            logs = status['logs']  # should have been json loaded already
             newest_timestamp = logs[0]['timestamp']
             now = time.time()
             if now - newest_timestamp < alive_threshold:
@@ -793,8 +789,8 @@ def register_endpoint_2(user_name):
 
 
 @funcx_api.route("/register_function", methods=['POST'])
-@authenticated
-def reg_function(user_name):
+@authenticated_w_uuid
+def reg_function(user_name, user_uuid):
     """Register the function.
 
     Parameters
@@ -838,10 +834,23 @@ def reg_function(user_name):
 
     try:
         function_uuid = register_function(
-            user_name, function_name, description, function_code, 
+            user_name, function_name, description, function_code,
             entry_point, container_uuid, group, public)
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".format(
+            user_name,
+            function_name,
+            e)
+        app.logger.error(message)
+        return jsonify({'status': 'Failed',
+                        'reason': message})
+
+    try:
+        ingest_function(
+            user_name, user_uuid, function_uuid, function_name, description, function_code,
+            entry_point, container_uuid, group, public)
+    except Exception as e:
+        message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
             user_name,
             function_name,
             e)
@@ -878,6 +887,7 @@ def upd_function(user_name):
         function_code = request.json["code"]
         result = update_function(user_name, function_uuid, function_name,
                                  function_desc, function_entry_point, function_code)
+
         # app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:
