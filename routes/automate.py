@@ -245,6 +245,9 @@ def get_task(task_id, delete=True):
     ----------
     task_id : str
         The task id to check
+    delete : bool
+        Whether or not to delete the result from redis
+        # TODO: This is a hack. We should change /status to not return results
 
     Returns
     -------
