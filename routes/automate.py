@@ -159,6 +159,61 @@ def status(user_name, task_id):
                 # Get all of their results
                 task_results = []
                 for tid in task_ids:
+                    task = get_task(tid, delete=False)
+                    task['task_id'] = tid
+                    task_results.append(task)
+
+                # If it is done, return it all
+                automate_response['details'] = task_results
+                # They all have a success status
+                automate_response['status'] = task['status']
+        else:
+            # it is not a batch, get the single task result
+            task = get_task(task_id, delete=False)
+            task['task_id'] = task_id
+
+            automate_response['details'] = task
+            automate_response['status'] = task['status']
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify({'status': 'Failed',
+                        'reason': 'InternalError: {}'.format(e)})
+
+    return json.dumps(automate_response)
+
+
+@automate_api.route("/<task_id>/release", methods=['POST'])
+@authenticated
+def release(user_name, task_id):
+    """
+    Release the task. This does nothing as we already released the task.
+    """
+
+    automate_response = {
+        "details": None,
+        "status": "SUCCEEDED",
+        "action_id": task_id,
+        "release_after": 'P30D'
+    }
+
+    # Get a redis client
+    if 'redis_client' not in g:
+        g.redis_client = get_redis_client()
+
+    task_results = None
+    # check if it is a batch:
+    try:
+        task_ids = g.redis_client.hget(f"batch_{task_id}", "batch")
+        app.logger.info(f"batch task_ids: {task_ids}")
+
+        if task_ids:
+            task_ids = json.loads(task_ids)
+            # Check the status on all the tasks.
+            batch_done = check_batch_status(task_ids)
+            if batch_done:
+                # Get all of their results
+                task_results = []
+                for tid in task_ids:
                     task = get_task(tid)
                     task['task_id'] = tid
                     task_results.append(task)
@@ -182,7 +237,7 @@ def status(user_name, task_id):
     return json.dumps(automate_response)
 
 
-def get_task(task_id):
+def get_task(task_id, delete=True):
     """
     Get the task from Redis and delete it if it is finished.
 
@@ -190,6 +245,9 @@ def get_task(task_id):
     ----------
     task_id : str
         The task id to check
+    delete : bool
+        Whether or not to delete the result from redis
+        # TODO: This is a hack. We should change /status to not return results
 
     Returns
     -------
@@ -213,7 +271,7 @@ def get_task(task_id):
         app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
         task = {'status': 'FAILED', 'reason': 'Unknown task id'}
     else:
-        if result_obj:
+        if result_obj and delete:
             # Task complete, attempt flush
             try:
                 g.redis_client.delete(f"task_{task_id}")
