@@ -182,6 +182,20 @@ def status(user_name, task_id):
     return json.dumps(automate_response)
 
 
+@automate_api.route("/<task_id>/release", methods=['POST'])
+@authenticated
+def release(user_name, task_id):
+    """
+    Release the task. This does nothing as we already released the task.
+    """
+    automate_response = {
+        "status": 'Released',
+        "action_id": task_id,
+        "details": None,
+    }
+    return jsonify(automate_response)
+
+
 def get_task(task_id):
     """
     Get the task from Redis and delete it if it is finished.
