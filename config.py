@@ -21,6 +21,9 @@ class Config(object):
     REDIS_PORT = os.environ.get('redis_port')
     REDIS_HOST = os.environ.get('redis_host')
 
+    SERIALIZATION_ADDR = os.environ.get('serialization_addr')
+    SERIALIZATION_PORT = os.environ.get('serialization_port')
+
 
 class ProductionConfig(Config):
     DEBUG = False

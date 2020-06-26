@@ -14,6 +14,8 @@ from models.utils import resolve_function, log_invocation, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                          add_ep_whitelist, delete_ep_whitelist)
 
+from models.serializer import serialize_inputs, deserialize_result
+
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
@@ -22,17 +24,14 @@ from .redis_q import RedisQueue
 # Flask
 funcx_api = Blueprint("routes", __name__)
 
-# A cache for authorized endpoint usage by users
-endpoint_cache = {}
-
-caching = True
 
 def get_db_logger():
     if 'db_logger' not in g:
         g.db_logger = db_invocation_logger()
     return g.db_logger
 
-def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serializer=None):
+
+def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
 
     Parameters
@@ -48,26 +47,29 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
        input_data as a list in case many function launches are to be made
     app : app object
     token : globus token
+    serialize : bool
+        Whether or not to serialize the input using the serialization service. This is used
+        when the input is not already serialized by the SDK.
 
     Returns:
        json object
     """
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
-        return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to function: {function_uuid}'})
+        return {'status': 'Failed',
+               'reason': f'Unauthorized access to function: {function_uuid}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
     except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'})
+        return {'status': 'Failed',
+                'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'}
 
     # Make sure the user is allowed to use the function on this endpoint
     for ep in endpoints:
         if not authorize_endpoint(user_id, ep, function_uuid, token):
-            return jsonify({'status': 'Failed',
-                            'reason': f'Unauthorized access to endpoint: {ep}'})
+            return {'status': 'Failed',
+                    'reason': f'Unauthorized access to endpoint: {ep}'}
 
     app.logger.debug("Got function container_uuid :{}".format(container_uuid))
 
@@ -76,8 +78,8 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         container_uuid = 'RAW'
 
     # We should replace this with serialize_hdr = ";srlz={container_uuid}"
-    if not serializer:
-        serializer = "ANY"
+    # TODO: this is deprecated.
+    serializer = "ANY"
 
     # TODO: Store redis connections in g
     rc = get_redis_client()
@@ -99,8 +101,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         ep_queue[ep] = redis_task_queue
 
     for input_data in input_data_items:
-        # Yadu : Remove timers
-        timer_s = time.time()
+        if serialize:
+            res = serialize_inputs(input_data)
+            if res:
+                input_data = res
+
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
@@ -118,25 +123,102 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             db_logger.log(user_id, task_id, function_uuid, ep, deferred=True)
 
         task_ids.append(task_id)
-        app.logger.debug("Pushed task {} in {}ms".format(task_id, 1000 * (time.time()-timer_s)))
-        # YADU : Remove timers
-    t = time.time()
     db_logger.commit()
-    app.logger.debug("db logs committed in {}ms".format(1000 * (time.time()-timer_s)))
 
-    return jsonify({'status': 'Success',
-                    'task_uuids': task_ids})
+    return {'status': 'Success',
+            'task_uuids': task_ids}
 
 
-@funcx_api.route('/submit_batch', methods=['POST'])
+@funcx_api.route('/submit', methods=['POST'])
 @authenticated
-def submit_batch(user_name):
+def submit(user_name):
     """Puts the task request(s) into Redis and returns a list of task UUID(s)
     Parameters
     ----------
     user_name : str
     The primary identity of the user
 
+    POST payload
+    ------------
+    {
+        tasks: []
+    }
+    Returns
+    -------
+    json
+        The task document
+    """
+    app.logger.debug(f"batch_run invoked by user:{user_name}")
+
+    if not user_name:
+        abort(400, description="Could not find user. You must be "
+                               "logged in to perform this function.")
+    try:
+        user_id = resolve_user(user_name)
+    except Exception:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    # Parse out the function info
+    tasks = []
+    try:
+        post_req = request.json
+        if 'tasks' in post_req:
+            tasks = post_req.get('tasks', [])
+        else:
+            # Check if the old client was used and create a new task
+            function_uuid = post_req.get('func', None)
+            endpoint = post_req.get('endpoint', None)
+            input_data = post_req.get('payload', None)
+            tasks.append([function_uuid, endpoint, input_data])
+
+        serialize = post_req.get('serialize', None)
+
+    except KeyError as e:
+        return jsonify({'status': 'Failed',
+                        'reason': "Missing Key {}".format(str(e))})
+    except Exception as e:
+        return jsonify({'status': 'Failed',
+                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+
+    results = {'status': 'Success',
+               'task_uuids': [],
+               'task_uuid': ""}
+    for task in tasks:
+        res = auth_and_launch(user_id,
+                              task[0],
+                              [task[1]],
+                              task[2],
+                              app,
+                              token,
+                              serialize=serialize)
+        if res.get('status', 'Failed') != 'Success':
+            return res
+        else:
+            results['task_uuids'].extend(res['task_uuids'])
+            # For backwards compatibility. <=0.0.1a5 requires "task_uuid" in result
+            # Note: previous versions did not support batching, so returning the first one is ok.
+            results['task_uuid'] = res['task_uuids'][0]
+    return jsonify(results)
+
+
+# YADU'S BATCH ROUTE FOR ANNA -- CAN WE DELETE?
+# If we delete this we should change auth_and_launch to not accept
+# lists for input and endpoints
+@funcx_api.route('/submit_batch', methods=['POST'])
+@authenticated
+def submit_batch(user_name):
+    """
+    Puts the task request(s) into Redis and returns a list of task UUID(s)
+    Parameters
+    ----------
+    user_name : str
+    The primary identity of the user
     POST payload
     ------------
     {
@@ -168,7 +250,7 @@ def submit_batch(user_name):
         endpoints = post_req['endpoints']
         function_uuid = post_req['func']
         input_data = post_req['payload']
-        serializer = post_req.get('serializer', None)
+        serialize = post_req.get('serialize', None)
     except KeyError as e:
         return jsonify({'status': 'Failed',
                         'reason': "Missing Key {}".format(str(e))})
@@ -176,124 +258,13 @@ def submit_batch(user_name):
         return jsonify({'status': 'Failed',
                         'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
 
-    return auth_and_launch(user_id,
-                           function_uuid,
-                           endpoints,
-                           input_data,
-                           app,
-                           token,
-                           serializer=serializer)
-
-
-@funcx_api.route('/submit', methods=['POST'])
-@authenticated
-def submit(user_name):
-    """Puts the task request into Redis and returns a task UUID
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-
-    POST payload
-    ------------
-    {
-    }
-    Returns
-    -------
-    json
-        The task document
-    """
-    app.logger.debug(f"Submit invoked by user:{user_name}")
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    # Parse out the function info
-    try:
-        post_req = request.json
-        endpoint = post_req['endpoint']
-        function_uuid = post_req['func']
-        input_data = post_req['payload']
-        serializer = None
-        if 'serializer' in post_req:
-            serializer = post_req['serializer']
-    except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
-
-    # Check if the user is allowed to access the function
-    if not authorize_function(user_id, function_uuid, token):
-        return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to function: {function_uuid}'})
-
-    try:
-        fn_code, fn_entry, container_uuid = resolve_function(
-            user_id, function_uuid)
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'})
-
-    if isinstance(endpoint, str):
-        endpoint = [endpoint]
-
-    # Make sure the user is allowed to use the function on this endpoint
-    for ep in endpoint:
-        if not authorize_endpoint(user_id, ep, function_uuid, token):
-            return jsonify({'status': 'Failed',
-                            'reason': f'Unauthorized access to endpoint: {ep}'})
-
-    task_id = str(uuid.uuid4())
-
-    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
-
-    # At this point the packed function body and the args are concatable strings
-    payload = fn_code + input_data
-    app.logger.debug("Payload : {}".format(payload))
-
-    if not container_uuid:
-        container_uuid = 'RAW'
-
-    if not serializer:
-        serializer = "ANY"
-
-    task_header = f"{task_id};{container_uuid};{serializer}"
-
-    # TODO: Store redis connections in g
-    rc = get_redis_client()
-
-    for ep in endpoint:
-        redis_task_queue = RedisQueue(f"task_{ep}",
-                                      hostname=app.config['REDIS_HOST'],
-                                      port=app.config['REDIS_PORT'])
-        redis_task_queue.connect()
-
-        redis_task_queue.put(task_header, 'task', payload)
-        app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
-        app.logger.debug("Redis Queue : {}".format(redis_task_queue))
-
-        # TODO: creating these connections each will be slow.
-        # increment the counter
-        rc.incr('funcx_invocation_counter')
-        # add an invocation to the database
-        log_invocation(user_id, task_id, function_uuid, ep)
-
-
-    return jsonify({'status': 'Success',
-                    'task_uuid': task_id})
+    return jsonify(auth_and_launch(user_id,
+                                   function_uuid,
+                                   endpoints,
+                                   input_data,
+                                   app,
+                                   token,
+                                   serialize=serialize))
 
 
 def get_tasks_from_redis(task_ids):
@@ -394,6 +365,7 @@ def status(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
+
 @funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
 def batch_status(user_name):
@@ -419,8 +391,8 @@ def batch_status(user_name):
     app.logger.debug("request : {}".format(request.json))
     results = get_tasks_from_redis(request.json['task_ids'])
 
-    return jsonify({'response' : 'batch',
-                    'results' : results})
+    return jsonify({'response': 'batch',
+                    'results': results})
 
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])
@@ -489,6 +461,8 @@ def result(user_name, task_id):
 def get_task(user_name, task_id):
     """Get a task.
 
+    If the query parameter deserialized=True is set, we deserialize the result before returning it.
+
     Parameters
     ----------
     user_name : str
@@ -506,6 +480,9 @@ def get_task(user_name, task_id):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    # Allow the user to request the output be deserialized.
+    deserialize = request.args.get('deserialize')
+
     try:
         # Get a redis client
         rc = get_redis_client()
@@ -518,6 +495,10 @@ def get_task(user_name, task_id):
                 task = json.loads(result_obj)
                 if 'status' not in task:
                     task['status'] = 'COMPLETED'
+                if deserialize:
+                    # Deserialize the output before returning it to the user
+                    task['result'] = deserialize_result(task['result'])
+
             else:
                 task = {'status': 'PENDING'}
         except Exception as e:
@@ -932,6 +913,7 @@ def reg_function(user_name):
       "function_code" : <ENCODED_FUNTION_BODY>,
       "container_uuid" : <CONTAINER_UUID>,
       "description" : <DESCRIPTION>,
+      "group": <GLOBUS GROUP ID>
       "public" : <BOOL>
     }
 
@@ -950,6 +932,7 @@ def reg_function(user_name):
         description = request.json["description"]
         function_code = request.json["function_code"]
         container_uuid = request.json.get("container_uuid", None)
+        group = request.json.get("group", None)
         public = request.json.get("public", False)
 
     except Exception as e:
@@ -959,7 +942,8 @@ def reg_function(user_name):
 
     try:
         function_uuid = register_function(
-            user_name, function_name, description, function_code, entry_point, container_uuid, public)
+            user_name, function_name, description, function_code, 
+            entry_point, container_uuid, group, public)
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".format(
             user_name,

@@ -16,16 +16,17 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    core_hours = ""
+    functions_executed = ""
     if 'redis_client' not in g:
         g.redis_client = redis.Redis(
             host=app.config['REDIS_HOST'],
             port=app.config['REDIS_PORT'])
     try:
-        core_hours = round(float(g.redis_client.get('funcx_worldwide_counter')), 2)
+        functions_executed = int(g.redis_client.get('funcx_invocation_counter'))
     except:
         pass
-    return render_template('start.html', title='Start',  burned=core_hours)
+    return render_template('start.html', title='Start',
+                           functions_executed=f'{functions_executed:,}')
 
 
 def num_delimiter(num, type):

@@ -178,7 +178,7 @@ def log_invocation(user_id, task_id, function_id, endpoint_id):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, public):
+def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, group, public):
     """Register the site in the database.
 
     Parameters
@@ -195,6 +195,8 @@ def register_function(user_name, function_name, description, function_code, entr
         The entry point to the function (function name)
     container_uuid : str
         The uuid of the container to map this to
+    group : str
+        A globus group id to share the function with
     public : bool
         Whether or not the function is publicly available
 
@@ -219,6 +221,10 @@ def register_function(user_name, function_name, description, function_code, entr
                 "(SELECT id from functions where function_uuid = %s))"
         cur.execute(query, (container_uuid, function_uuid))
 
+    if group is not None:
+        app.logger.debug(f'Inserting group mapping: {group} : {function_uuid}')
+        query = "INSERT into function_auth_groups (group_id, function_id) values (%s, %s)"
+        cur.execute(query, (group, function_uuid))
     conn.commit()
     return function_uuid
 
