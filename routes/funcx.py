@@ -799,7 +799,7 @@ def get_ep_stats(user_name, endpoint_id):
     json
         The status of the endpoint
     """
-
+    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
     last = 10
 
     if not user_name:
@@ -824,19 +824,26 @@ def get_ep_stats(user_name, endpoint_id):
     # TODO add rc to g.
     rc = get_redis_client()
 
-    stats = []
+    status = {'status': 'offline', 'logs': []}
     try:
         end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
         print("Total len :", end)
         items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
         if items:
             for i in items:
-                stats.append(json.loads(i))
-    except Exception as e:
-        stats = {'status': 'Failed',
-                 'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+                status['logs'].append(json.loads(i))
 
-    return jsonify(stats)
+            # timestamp is created using time.time(), which returns seconds since epoch UTC
+            newest_timestamp = items[0]['timestamp']
+            now = time.time()
+            if now - newest_timestamp < alive_threshold:
+                status['status'] = 'online'
+
+    except Exception as e:
+        status = {'status': 'Failed',
+                  'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+
+    return jsonify(status)
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
