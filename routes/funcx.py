@@ -834,12 +834,14 @@ def get_ep_stats(user_name, endpoint_id):
                 status['logs'].append(json.loads(i))
 
             # timestamp is created using time.time(), which returns seconds since epoch UTC
-            newest_timestamp = items[0]['timestamp']
+            logs = status['logs'] # should have been json loaded already
+            newest_timestamp = logs[0]['timestamp']
             now = time.time()
             if now - newest_timestamp < alive_threshold:
                 status['status'] = 'online'
 
     except Exception as e:
+        app.logger.error("Unable to retrieve ")
         status = {'status': 'Failed',
                   'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
 
