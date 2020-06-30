@@ -18,9 +18,15 @@ def get_search_client():
     """Creates a Globus Search Client using FuncX's client token"""
     auth_client = authentication.auth.get_auth_client()
     tokens = auth_client.oauth2_client_credentials_tokens(requested_scopes=[SEARCH_SCOPE])
+    app.logger.debug(f"CC Tokens for Search: {tokens}")
     search_token = tokens.by_scopes[SEARCH_SCOPE]
-    authorizer = AccessTokenAuthorizer(search_token)
+    app.logger.debug(f"Search token: {search_token}")
+    access_token = search_token['access_token']
+    app.logger.debug(f"Access token")
+    authorizer = AccessTokenAuthorizer(access_token)
+    app.logger.debug("Acquired AccessTokenAuthorizer for search")
     search_client = SearchClient(authorizer)
+    app.logger.debug("Acquired SearchClient with that authorizer")
     return search_client
 
 
