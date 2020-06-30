@@ -8,7 +8,7 @@ import psycopg2.extras
 
 from flask import request, current_app as app
 from errors import *
-from models import search
+import models.search
 
 
 class db_invocation_logger(object):
@@ -264,7 +264,7 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
         "group": group
     }
     user_urn = f"urn:globus:auth:identity:{user_uuid}"
-    search.ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+    models.search.ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
 
 
 def register_container(user_name, container_name, location, description, container_type):

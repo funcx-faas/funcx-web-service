@@ -1,7 +1,7 @@
 from flask import request
 from globus_sdk import AccessTokenAuthorizer, SearchClient, SearchAPIError
 
-from authentication.auth import get_auth_client
+import authentication.auth
 
 SEARCH_INDEX_NAME = 'funcx'
 SEARCH_INDEX_ID = '673a4b58-3231-421d-9473-9df1b6fa3a9d'
@@ -16,7 +16,7 @@ DEFAULT_SEARCH_LIMIT = 10
 
 def get_search_client():
     """Creates a Globus Search Client using FuncX's client token"""
-    auth_client = get_auth_client()
+    auth_client = authentication.auth.get_auth_client()
     tokens = auth_client.oauth2_client_credentials_tokens(requested_scopes=[SEARCH_SCOPE])
     search_token = tokens.by_scopes[SEARCH_SCOPE]
     authorizer = AccessTokenAuthorizer(search_token)
