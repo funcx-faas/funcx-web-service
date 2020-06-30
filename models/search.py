@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, current_app as app
 from globus_sdk import AccessTokenAuthorizer, SearchClient, SearchAPIError
 
 import authentication.auth
@@ -84,6 +84,7 @@ def ingest_or_update(func_uuid, func_data, author="", author_urn=""):
     author_urn : str
     """
     client = get_search_client()
+    app.logger.debug("Acquired search client")
     acl = []
     if func_data['public']:
         acl.append('public')
@@ -107,6 +108,7 @@ def ingest_or_update(func_uuid, func_data, author="", author_urn=""):
 
     # Since we associate only 1 entry with each subject (func_uuid), there is basically
     # no difference between creating and updating, other than the method...
+    app.logger.debug(f"Ingesting the following data to {SEARCH_INDEX_ID}: {ingest_data}")
 
     if not _exists(client, func_uuid):
         client.create_entry(SEARCH_INDEX_ID, ingest_data)
