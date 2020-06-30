@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 
 import requests
@@ -6,7 +7,6 @@ from flask import current_app as app, Blueprint, jsonify, request, abort, send_f
 
 from authentication.auth import authorize_endpoint, authenticated, authorize_function, authenticated_w_uuid
 from errors import *
-from forwarder.forwarder.errors import RegistrationError
 from models.serializer import serialize_inputs, deserialize_result
 from models.utils import register_container, get_redis_client
 from models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
