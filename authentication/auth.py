@@ -31,6 +31,30 @@ def authenticated(f):
     return decorated_function
 
 
+def authenticated_w_uuid(f):
+    """Decorator for globus auth."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'Authorization' not in request.headers:
+            abort(401, 'You must be logged in to perform this function.')
+
+        token = request.headers.get('Authorization')
+        token = str.replace(str(token), 'Bearer ', '')
+        user_name = None
+        user_uuid = None
+        try:
+            client = get_auth_client()
+            auth_detail = client.oauth2_token_introspect(token)
+            app.logger.debug(auth_detail)
+            user_name = auth_detail['username']
+            user_uuid = auth_detail['client_id']
+        except Exception as e:
+            print(e)
+            abort(400, "Failed to authenticate user.")
+        return f(user_name, user_uuid, *args, **kwargs)
+    return decorated_function
+
+
 def check_group_membership(token, endpoint_groups):
     """Determine whether or not the user is a member
     of any of the groups

@@ -1,24 +1,20 @@
-import uuid
 import json
+import uuid
+
 import requests
-import time
-from requests.models import Response
-
-from version import VERSION
-from errors import *
-
-from models.utils import register_endpoint, register_function, get_container, resolve_user
-from models.utils import register_container, get_redis_client
-
-from models.utils import resolve_function, log_invocation, db_invocation_logger
-from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
-                         add_ep_whitelist, delete_ep_whitelist)
-
-from models.serializer import serialize_inputs, deserialize_result
-
-from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
+from authentication.auth import authorize_endpoint, authenticated, authorize_function, authenticated_w_uuid
+from errors import *
+from forwarder.forwarder.errors import RegistrationError
+from models import search
+from models.serializer import serialize_inputs, deserialize_result
+from models.utils import register_container, get_redis_client
+from models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
+from models.utils import resolve_function, db_invocation_logger
+from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+                          add_ep_whitelist, delete_ep_whitelist)
+from version import VERSION
 from .redis_q import RedisQueue
 
 # Flask
@@ -906,8 +902,8 @@ def register_endpoint_2(user_name):
 
 
 @funcx_api.route("/register_function", methods=['POST'])
-@authenticated
-def reg_function(user_name):
+@authenticated_w_uuid
+def reg_function(user_name, user_uuid):
     """Register the function.
 
     Parameters
@@ -935,14 +931,15 @@ def reg_function(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
     try:
-
         function_name = request.json["function_name"]
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
+        function_source = request.json.get("function_source", "")
         container_uuid = request.json.get("container_uuid", None)
         group = request.json.get("group", None)
         public = request.json.get("public", False)
+        searchable = request.json.get("searchable", True)
 
     except Exception as e:
         app.logger.error(e)
@@ -962,7 +959,23 @@ def reg_function(user_name):
         return jsonify({'status': 'Failed',
                         'reason': message})
 
-    return jsonify({'function_uuid': function_uuid})
+    response = jsonify({'function_uuid': function_uuid})
+    if not searchable:
+        return response
+    try:
+        ingest_function(
+            user_name, user_uuid, function_uuid, function_name, description, function_code,
+            function_source, entry_point, container_uuid, group, public)
+    except Exception as e:
+        message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
+            user_name,
+            function_name,
+            e)
+        app.logger.error(message)
+        return jsonify({'status': 'Failed',
+                        'reason': message})
+
+    return response
 
 
 @funcx_api.route("/upd_function", methods=['POST'])
@@ -991,6 +1004,8 @@ def upd_function(user_name):
         function_code = request.json["code"]
         result = update_function(user_name, function_uuid, function_name,
                                  function_desc, function_entry_point, function_code)
+
+
         # app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:
