@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 
 from redis import StrictRedis
@@ -16,6 +17,8 @@ class TaskState(Enum):
 class Task:
     """
     ORM-esque class to wrap access to properties of tasks for better style and encapsulation
+
+    TODO: have a cache and TTL on the properties so that we aren't making so many redis gets?
     """
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
@@ -89,6 +92,25 @@ class Task:
     def container(self, c):
         self._set('container', c)
 
+    @property
+    def payload(self):
+        return json.loads(self._get('payload'))
+
+    @payload.setter
+    def payload(self, p):
+        self._set('payload', json.dumps(p))
+
+    @property
+    def result(self):
+        r = self._get('result')
+        if r:
+            r = json.loads(r)
+        return r
+
+    @result.setter
+    def result(self, r):
+        self._set('result', json.dumps(r))
+
     @classmethod
     def exists(cls, rc: StrictRedis, task_id: str):
         task_hname = cls._generate_hname(task_id)
@@ -97,3 +119,7 @@ class Task:
     @classmethod
     def from_id(cls, rc, task_id):
         return cls(rc, task_id)
+
+    def delete(self):
+        """Removes this task from Redis, to be used after the result is gotten"""
+        self.rc.delete(self._task_hname)
