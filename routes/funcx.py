@@ -113,11 +113,9 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
-        # header = f"{task_id};{container_uuid};{serializer}"
         task = Task(rc, task_id, container_uuid, serializer, payload)
 
         for ep in endpoints:
-            # ep_queue[ep].put(header, 'task', payload)
             ep_queue[ep].enqueue(task)
             app.logger.debug(f"Task:{task_id} placed on queue for endpoint:{ep}")
 
