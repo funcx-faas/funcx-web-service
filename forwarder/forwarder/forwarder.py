@@ -1,27 +1,24 @@
 import logging
-import threading
-from functools import partial
-import uuid
 import os
 import queue
+import threading
 import time
-import zmq
-import pickle
-import requests
-
+from functools import partial
+from multiprocessing import Process
 from multiprocessing import Queue
-from parsl.providers import LocalProvider
-from parsl.channels import LocalChannel
-from parsl.app.errors import RemoteExceptionWrapper
 
+import requests
+import zmq
 from funcx.executors import HighThroughputExecutor as HTEX
 from funcx.serialize import FuncXSerializer
-
-from multiprocessing import Process
-from forwarder.queues import RedisQueue
-from forwarder.endpoint_db import EndpointDB
+from parsl.channels import LocalChannel
+from parsl.providers import LocalProvider
 
 from forwarder import set_file_logger
+from forwarder.endpoint_db import EndpointDB
+from forwarder.queues import RedisQueue
+from forwarder.queues.redis.redis_q import EndpointQueue
+from forwarder.queues.redis.tasks import Task, TaskState
 
 
 def double(x):
@@ -53,7 +50,7 @@ class Forwarder(Process):
     out from some DB ?
     """
 
-    def __init__(self, task_q, result_q, executor, endpoint_id,
+    def __init__(self, task_q, executor, endpoint_id,
                  heartbeat_threshold=60, endpoint_addr=None,
                  redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO,
@@ -61,11 +58,8 @@ class Forwarder(Process):
         """
         Parameters
         ----------
-        task_q : A queue object
+        task_q : EndpointQueue
         Any queue object that has get primitives. This must be a thread-safe queue.
-
-        result_q : A queue object
-        Any queue object that has put primitives. This must be a thread-safe queue.
 
         executor: Executor object
         Executor to which tasks are to be forwarded
@@ -106,7 +100,7 @@ class Forwarder(Process):
 
         self.endpoint_addr = endpoint_addr
         self.task_q = task_q
-        self.result_q = result_q
+        # self.result_q = result_q
         self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
@@ -118,32 +112,46 @@ class Forwarder(Process):
         self.kill_event = threading.Event()
         self.max_heartbeats_missed = max_heartbeats_missed
 
-    def handle_app_update(self, task_header, future):
+    def handle_app_update(self, task_id, future):
         """ Triggered when the executor sees a task complete.
 
         This can be further optimized at the executor level, where we trigger this
         or a similar function when we see a results item inbound from the interchange.
         """
 
-        task_id = task_header.split(';')[0]
         print(f"*** TASK RETURN STARTED: {task_id} -- {time.time()} ***")
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res_dict = future.result()
             logger.info("Res_dict : {}".format(res_dict))
+            task = Task.from_id(self.task_q.redis_client, task_id)
+
+            # TODO: What does the res_dict look like?  Can we just set task.result=res_dict?
             if 'result' in res_dict:
-                self.result_q.put(task_id, 'result', {'result': res_dict['result'],
-                                                      'completion_t': time.time()})
+                task.status = TaskState.SUCCESS
+                task.result = {
+                    'result': res_dict['result'],
+                    'completion_t': time.time()
+                }
             elif 'exception' in res_dict:
-                self.result_q.put(task_id, 'result', {'exception': res_dict['exception'],
-                                                      'completion_t': time.time()})
+                task.status = TaskState.FAILED
+                task.result = {
+                    'exception': res_dict['exception'],
+                    'completion_t': time.time()
+                }
+
         except Exception as e:
-            logger.error("Task update {} failed due to {}".format(task_id, e))
+            logger.error(f"Task update {task_id} failed due to {e}")
             # Todo : Since we caught an exception, we should wrap it here, and send it
             # back onto the results queue.
         else:
             print(f"*** TASK RETURN SUCCEEDED: {task_id} -- {time.time()}***")
-            logger.info("Task:{} succeeded".format(task_id))
+            logger.info(f"Task:{task_id} succeeded")
+
+    def heartbeat_fail(self):
+        """Return true if too many heartbeats have been missed"""
+        return int(time.time() - self.executor.last_response_time) > \
+                    (self.max_heartbeats_missed * self.heartbeat_threshold)
 
     def task_loop(self):
         """ Task Loop
@@ -157,8 +165,7 @@ class Forwarder(Process):
         logger.info("[TASKS] Entering task loop")
         while True:
             # Check if too many heartbeats have been missed
-            if int(time.time() - self.executor.last_response_time) > \
-                    (self.max_heartbeats_missed * self.heartbeat_threshold):
+            if self.heartbeat_fail():
                 # Too many heartbeats have been missed. Set kill event
                 logger.warning("[TASKS] Too many heartbeats missed. Setting kill event.")
                 self.kill_event.set()
@@ -166,10 +173,8 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get('task',
-                                                     timeout=self.heartbeat_threshold)  # Timeout in s
-                
-                logger.debug("[TASKS] Got task_id {}".format(task_id))
+                task = self.task_q.dequeue(timeout=self.heartbeat_threshold)
+                logger.debug(f"[TASKS] Got task_id {task.task_id}")
 
             except queue.Empty:
                 try:
@@ -185,37 +190,37 @@ class Forwarder(Process):
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
-            logger.debug("Task_info block :{}".format(task_info))
+            task_payload = task.payload
+            logger.debug(f"Task payload block:{task_payload}")
 
             # Convert the payload to bytes
-            logger.warning("DEBUG : task_info {}".format(task_info))
-            full_payload = task_info.encode()
+            full_payload = task_payload.encode()
 
             # If the kill event has been set put the task back on the queue and break
             if self.kill_event.is_set():
-                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task_id}")
-                self.task_q.put(task_id, 'task', task_info)
+                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task.task_id}")
+                self.task_q.enqueue(task)
                 logger.warning("[TASKS] Breaking task-loop")
                 break
 
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(full_payload, task_id=task_id)
+                fu = self.executor.submit(full_payload, task_id=task.task_id)
                 t_fin = time.time()
-                print(f"*** FINISH {task_id} *** {t_fin}")
+                print(f"*** FINISH {task.task_id} *** {t_fin}")
 
             except zmq.error.Again:
-                logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
-                self.task_q.put(task_id, 'task', task_info)
+                logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task.task_id}")
+                self.task_q.enqueue(task)
                 logger.warning("[TASKS] Breaking task-loop to switch to endpoint liveness loop")
                 break
             except Exception:
                 # Broad catch to avoid repeating the task reput,
-                logger.exception("[TASKS] Some unhandled error occurred")
-                self.task_q.put(task_id, 'task', task_info)
-
-            # Task is now submitted. Tack a callback on that.
-            fu.add_done_callback(partial(self.handle_app_update, task_id))
+                logger.exception(f"[TASKS] Some unhandled error occurred, re-queueing task={task.task_id}")
+                self.task_q.enqueue(task)
+            else:
+                # Task is now submitted. Tack a callback on that.
+                fu.add_done_callback(partial(self.handle_app_update, task.task_id))
 
     def update_endpoint_metadata(self):
         """ Geo locate the endpoint and push as metadata into redis
@@ -231,20 +236,18 @@ class Forwarder(Process):
         """ Process entry point.
         """
         logger.info("[MAIN] Loop starting")
-        logger.info("[MAIN] Executor: {}".format(self.executor))
+        logger.info(f"[MAIN] Executor: {self.executor}")
+        logger.info(f"[MAIN] Attempting to resolve endpoint_addr: {self.endpoint_addr}")
 
-        logger.info("[MAIN] Attempting to resolve endpoint_addr: {}".format(self.endpoint_addr))
         try:
             resp = self.update_endpoint_metadata()
-
-        except Exception as e:
-            logger.exception("Failed to geo locate {}".format(self.endpoint_addr))
+        except Exception:
+            logger.exception(f"Failed to geo locate {self.endpoint_addr}")
         else:
-            logger.info("Endpoint is at {}".format(resp))
+            logger.info(f"Endpoint is at {resp}")
 
         try:
             self.task_q.connect()
-            self.result_q.connect()
         except Exception:
             logger.exception("Connecting to the queues have failed")
 
@@ -320,7 +323,8 @@ def spawn_forwarder(address,
          A Forwarder object
     """
     if not task_q:
-        task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
+        # task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
+        task_q = EndpointQueue(endpoint_id, redis_address)
     if not result_q:
         # result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
         # Change of design. We want all tasks to go to a results table and results_list queue

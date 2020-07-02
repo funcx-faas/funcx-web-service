@@ -1,9 +1,11 @@
+import traceback
 import uuid
 import json
 import requests
 import time
 from requests.models import Response
 
+from models.tasks import TaskState, Task
 from version import VERSION
 from errors import *
 
@@ -19,7 +21,7 @@ from models.serializer import serialize_inputs, deserialize_result
 from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
-from .redis_q import RedisQueue
+from .redis_q import RedisQueue, EndpointQueue
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -57,7 +59,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return {'status': 'Failed',
-               'reason': f'Unauthorized access to function: {function_uuid}'}
+                'reason': f'Unauthorized access to function: {function_uuid}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
@@ -71,7 +73,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             return {'status': 'Failed',
                     'reason': f'Unauthorized access to endpoint: {ep}'}
 
-    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
+    app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
     # We should replace this with container_hdr = ";ctnr={container_uuid}"
     if not container_uuid:
@@ -94,9 +96,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     db_logger = get_db_logger()
     ep_queue = {}
     for ep in endpoints:
-        redis_task_queue = RedisQueue(f"task_{ep}",
-                                      hostname=app.config['REDIS_HOST'],
-                                      port=app.config['REDIS_PORT'])
+        redis_task_queue = EndpointQueue(
+            ep,
+            hostname=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT']
+        )
         redis_task_queue.connect()
         ep_queue[ep] = redis_task_queue
 
@@ -109,11 +113,13 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
-        task_header = f"{task_id};{container_uuid};{serializer}"
+        # header = f"{task_id};{container_uuid};{serializer}"
+        task = Task(rc, task_id, container_uuid, serializer, payload)
 
         for ep in endpoints:
-            ep_queue[ep].put(task_header, 'task', payload)
-            app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
+            # ep_queue[ep].put(header, 'task', payload)
+            ep_queue[ep].enqueue(task)
+            app.logger.debug(f"Task:{task_id} placed on queue for endpoint:{ep}")
 
             # TODO: creating these connections each will be slow.
             # increment the counter
@@ -150,15 +156,12 @@ def submit(user_name):
     """
     app.logger.debug(f"batch_run invoked by user:{user_name}")
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     try:
         user_id = resolve_user(user_name)
     except Exception:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+        msg = f"Failed to resolve user_name:{user_name} to user_id"
+        app.logger.error(msg)
+        abort(500, description=msg)
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -169,34 +172,26 @@ def submit(user_name):
     try:
         post_req = request.json
         if 'tasks' in post_req:
-            tasks = post_req.get('tasks', [])
+            # new client is being used
+            tasks = post_req['tasks']
         else:
-            # Check if the old client was used and create a new task
-            function_uuid = post_req.get('func', None)
-            endpoint = post_req.get('endpoint', None)
-            input_data = post_req.get('payload', None)
+            # old client was used and create a new task
+            function_uuid = post_req['func']
+            endpoint = post_req['endpoint']
+            input_data = post_req['payload']
             tasks.append([function_uuid, endpoint, input_data])
-
         serialize = post_req.get('serialize', None)
-
     except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+        abort(422, description=f"Missing key: {e}")
 
     results = {'status': 'Success',
                'task_uuids': [],
                'task_uuid': ""}
     for task in tasks:
-        res = auth_and_launch(user_id,
-                              task[0],
-                              [task[1]],
-                              task[2],
-                              app,
-                              token,
-                              serialize=serialize)
+        res = auth_and_launch(
+            user_id, function_uuid=task[0], endpoints=[task[1]],
+            input_data=task[2], app=app, token=token, serialize=serialize
+        )
         if res.get('status', 'Failed') != 'Success':
             return res
         else:
@@ -322,48 +317,24 @@ def status(user_name, task_id):
     json
         The status of the task
     """
+    rc = get_redis_client()
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
+    if not Task.exists(rc, task_id):
+        abort(400, "task_id not found")
 
-    try:
-        # Get a redis client
-        rc = get_redis_client()
+    task = Task.from_id(rc, task_id)
+    task_status = task.status
+    task_result = task.result
+    if task_result:
+        task.delete()
 
-        details = {}
+    response = {
+        'task_id': task_id,
+        'task_status': task_status,
+        'task_result': task_result
+    }
 
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-        else:
-            if result_obj:
-                # Task complete, attempt flush
-                try:
-                    rc.delete(f"task_{task_id}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                    pass
-
-        res = {'task_id': task_id}
-
-        task['task_id'] = task_id
-
-        app.logger.debug("Status Response: {}".format(str(task)))
-        return jsonify(task)
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
+    return jsonify(response)
 
 
 @funcx_api.route("/batch_status", methods=['POST'])
@@ -522,56 +493,6 @@ def get_task(user_name, task_id):
         app.logger.error(e)
         return jsonify({'status': 'FAILED',
                         'reason': 'InternalError: {}'.format(e)})
-
-
-@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
-@authenticated
-def get_task_status(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify({'status': task['status']})
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'FAILED',
-                        'reason': 'InternalError: {}'.format(e)})
-
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 @authenticated
