@@ -204,7 +204,7 @@ class Forwarder(Process):
 
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(full_payload, task_id=task.task_id)
+                fu = self.executor.submit(full_payload, task_id=task.header)
                 t_fin = time.time()
                 print(f"*** FINISH {task.task_id} *** {t_fin}")
 
