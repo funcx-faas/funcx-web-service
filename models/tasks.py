@@ -70,6 +70,7 @@ class Task:
 
     @property
     def status(self) -> TaskState:
+        """Get or set status in Redis"""
         return TaskState(self._get('status'))
 
     @status.setter
@@ -78,6 +79,7 @@ class Task:
 
     @property
     def endpoint(self):
+        """Get or set endpoint id in Redis"""
         return self._get('endpoint')
 
     @endpoint.setter
@@ -86,6 +88,7 @@ class Task:
 
     @property
     def container(self):
+        """Get or set container id in Redis"""
         return self._get('container')
 
     @container.setter
@@ -94,6 +97,7 @@ class Task:
 
     @property
     def payload(self):
+        """Get or set payload object in Redis (automatically json.loads or json.dumps)"""
         return json.loads(self._get('payload'))
 
     @payload.setter
@@ -102,6 +106,7 @@ class Task:
 
     @property
     def result(self):
+        """Get or set result object in Redis (automatically json.loads or json.dumps)"""
         r = self._get('result')
         if r:
             r = json.loads(r)
@@ -113,11 +118,13 @@ class Task:
 
     @classmethod
     def exists(cls, rc: StrictRedis, task_id: str):
+        """Check if a given task_id exists in Redis"""
         task_hname = cls._generate_hname(task_id)
         return rc.exists(task_hname)
 
     @classmethod
-    def from_id(cls, rc, task_id):
+    def from_id(cls, rc: StrictRedis, task_id: str):
+        """For more readable code, use this to find a task by id, using the redis client"""
         return cls(rc, task_id)
 
     def delete(self):
