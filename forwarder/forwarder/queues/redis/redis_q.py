@@ -1,11 +1,21 @@
 import redis
 import queue
-import time
-from forwarder.queues.base import FuncxQueue, NotConnected
 import json
 
+from forwarder.queues.redis.tasks import Task, TaskState
 
-class RedisQueue(FuncxQueue):
+
+class NotConnected(Exception):
+    """ Queue is not connected/active
+    """
+    def __init__(self, queue):
+        self.queue = queue
+
+    def __repr__(self):
+        return "Queue {} is not connected. Cannot execute queue operations".format(self.queue)
+
+
+class RedisQueue(object):
     """ A basic redis queue
 
     The queue only connects when the `connect` method is called to avoid
@@ -13,7 +23,6 @@ class RedisQueue(FuncxQueue):
 
     Parameters
     ----------
-
     hostname : str
        Hostname of the redis server
 
@@ -42,7 +51,7 @@ class RedisQueue(FuncxQueue):
 
             raise
 
-    def get(self, kind, timeout=1, logger=None):
+    def get(self, kind, timeout=1):
         """ Get an item from the redis queue
 
         Parameters
@@ -59,7 +68,6 @@ class RedisQueue(FuncxQueue):
                 raise queue.Empty
 
             task_list, task_id = x
-            print(f"*** Start {task_id} -- {time.time()}***")
             jtask_info = self.redis_client.hget(f'task_{task_id}', kind)
             task_info = json.loads(jtask_info)
         except queue.Empty:
@@ -74,11 +82,11 @@ class RedisQueue(FuncxQueue):
 
         return task_id, task_info
 
-    def put(self, key, kind, payload):
-        """ Put's the key:payload into a dict and pushes the key onto a queue
+    def put(self, task_id, kind, payload):
+        """ Put's the task_id:payload into a dict and pushes the task_id onto a queue
         Parameters
         ----------
-        key : str
+        task_id : str
             The task_id to be pushed
 
         kind : str
@@ -88,8 +96,8 @@ class RedisQueue(FuncxQueue):
             Dict of task information to be stored
         """
         try:
-            self.redis_client.hset(f'task_{key}', kind, json.dumps(payload))
-            self.redis_client.rpush(f'{self.prefix}_list', key)
+            self.redis_client.hset(f'task_{task_id}', kind, json.dumps(payload))
+            self.redis_client.rpush(f'{self.prefix}_list', task_id)
         except AttributeError:
             raise NotConnected(self)
         except redis.exceptions.ConnectionError:
@@ -106,6 +114,34 @@ class RedisQueue(FuncxQueue):
 
     def __repr__(self):
         return "<RedisQueue at {}:{}#{}".format(self.hostname, self.port, self.prefix)
+
+
+class EndpointQueue(RedisQueue):
+    """Encapsulates functionality required for placing tasks on Queue for an Endpoint in Redis"""
+    def __init__(self, endpoint: str, hostname: str, port: int=6379):
+        super(EndpointQueue, self).__init__(f"task_{endpoint}", hostname, port=port)
+        self.queue_name = f'{self.prefix}_list'
+        self.endpoint = endpoint
+
+    def enqueue(self, task: Task):
+        # want to track more data so the task knows what endpoint queue it is living in
+        # as well as whether it is currently running.  This is to distinguish the queued
+        # from the running TaskState
+        task.endpoint = self.endpoint
+        task.status = TaskState.WAITING_FOR_EP
+        self.redis_client.rpush(self.queue_name, task.task_id)
+
+    def dequeue(self, timeout=1) -> Task:
+        """Blocking dequeue for timeout in seconds"""
+        # blpop returns a tuple of the list name (in case of popping across > 1 list) and the element
+        res = self.redis_client.blpop(self.queue_name, timeout=timeout)
+        if not res:
+            raise queue.Empty
+
+        # we only query 1 list, so we can ignore the list name
+        _, task_id = res
+        return Task.from_id(self.redis_client, task_id)
+
 
 
 def test():
