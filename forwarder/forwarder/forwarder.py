@@ -100,7 +100,6 @@ class Forwarder(Process):
 
         self.endpoint_addr = endpoint_addr
         self.task_q = task_q
-        # self.result_q = result_q
         self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
@@ -288,7 +287,6 @@ def spawn_forwarder(address,
                     endpoint_addr=None,
                     executor=None,
                     task_q=None,
-                    result_q=None,
                     logging_level=logging.INFO):
     """ Spawns a forwarder and returns the forwarder process for tracking.
 
@@ -325,15 +323,9 @@ def spawn_forwarder(address,
     if not task_q:
         # task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
         task_q = EndpointQueue(endpoint_id, redis_address)
-    if not result_q:
-        # result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
-        # Change of design. We want all tasks to go to a results table and results_list queue
-        # This would allow any frontend service to access the results stream.
-        result_q = RedisQueue('results', redis_address)
 
     print("Logging_level: {}".format(logging_level))
     print("Task_q: {}".format(task_q))
-    print("Result_q: {}".format(result_q))
 
     if not executor:
         executor = HTEX(label='htex',
@@ -342,7 +334,7 @@ def spawn_forwarder(address,
                         endpoint_db=EndpointDB(redis_address),
                         endpoint_id=endpoint_id,
                         address=address)
-    fw = Forwarder(task_q, result_q, executor,
+    fw = Forwarder(task_q, executor,
                    endpoint_id,
                    endpoint_addr=endpoint_addr,
                    redis_address=redis_address,
