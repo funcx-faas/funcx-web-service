@@ -298,10 +298,14 @@ def get_tasks_from_redis(task_ids):
                 'partial': all_tasks}
 
 
+# TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed, we should remove this route
 @funcx_api.route("/<task_id>/status", methods=['GET'])
+@funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def status(user_name, task_id):
-    """Check the status of a task.
+def status_and_result(user_name, task_id):
+    """Check the status of a task.  Return result if available.
+
+    If the query param deserialize=True is passed, then we deserialize the result object.
 
     Parameters
     ----------
@@ -326,6 +330,10 @@ def status(user_name, task_id):
     if task_result:
         task.delete()
 
+    deserialize = request.args.get("deserialize", False)
+    if deserialize:
+        task_result = deserialize_result(task_result)
+
     response = {
         'task_id': task_id,
         'task_status': task_status,
@@ -333,6 +341,33 @@ def status(user_name, task_id):
     }
 
     return jsonify(response)
+
+
+@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
+@authenticated
+def status(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name
+    task_id
+
+    Returns
+    -------
+    json
+        'status' : task status
+    """
+    rc = get_redis_client()
+
+    if not Task.exists(rc, task_id):
+        abort(400, "task_id not found")
+
+    task = Task.from_id(rc, task_id)
+
+    return jsonify({
+        'status': task.status
+    })
 
 
 @funcx_api.route("/batch_status", methods=['POST'])
@@ -424,73 +459,6 @@ def result(user_name, task_id):
         return jsonify({'status': 'Failed',
                         'reason': 'InternalError: {}'.format(e)})
 
-
-@funcx_api.route("/tasks/<task_id>", methods=['GET'])
-@authenticated
-def get_task(user_name, task_id):
-    """Get a task.
-
-    If the query parameter deserialized=True is set, we deserialize the result before returning it.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    # Allow the user to request the output be deserialized.
-    deserialize = request.args.get('deserialize')
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-                if deserialize:
-                    # Deserialize the output before returning it to the user
-                    task['result'] = deserialize_result(task['result'])
-
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-        else:
-            if result_obj:
-                # Task complete, attempt flush
-                try:
-                    rc.delete(f"task_{task_id}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                    pass
-
-        task['task_id'] = task_id
-
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify(task)
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'FAILED',
-                        'reason': 'InternalError: {}'.format(e)})
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 @authenticated
