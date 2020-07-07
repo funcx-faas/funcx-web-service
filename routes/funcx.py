@@ -287,7 +287,7 @@ def get_tasks_from_redis(task_ids):
         }
 
         # Note: this is for backwards compat, when we can't include a None result and have a
-        # non-complete status, we must forego the result field if task not complete.
+        # non-complete status, we must forgo the result field if task not complete.
         if not task_result:
             del all_tasks[task_id]['result']
     return all_tasks
@@ -326,14 +326,22 @@ def status_and_result(user_name, task_id):
         task.delete()
 
     deserialize = request.args.get("deserialize", False)
-    if deserialize:
+    if deserialize and task_result:
         task_result = deserialize_result(task_result)
 
+    # TODO: change client to have better naming conventions
+    # these fields like 'status' should be changed to 'task_status', because 'status' is normally
+    # used for HTTP codes.
     response = {
         'task_id': task_id,
-        'task_status': task_status,
-        'task_result': task_result
+        'status': task_status,
+        'result': task_result
     }
+
+    # Note: this is for backwards compat, when we can't include a None result and have a
+    # non-complete status, we must forgo the result field if task not complete.
+    if task_result is None:
+        del response['result']
 
     return jsonify(response)
 
