@@ -47,6 +47,8 @@ class Task:
 
         if serializer:
             self.serializer = serializer
+        else:
+            self.serializer = "None"
 
         if payload:
             self.payload = payload
