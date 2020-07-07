@@ -1,4 +1,5 @@
 import traceback
+import requests
 import uuid
 
 from models.tasks import TaskState, Task
