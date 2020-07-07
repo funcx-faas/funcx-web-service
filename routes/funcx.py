@@ -1,8 +1,8 @@
 import json
 import time
 import uuid
-
 import requests
+
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 from forwarder.forwarder.errors import RegistrationError
 
