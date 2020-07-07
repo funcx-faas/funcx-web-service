@@ -4,7 +4,8 @@ from enum import Enum
 from redis import StrictRedis
 
 
-class TaskState(Enum):
+# We subclass from str so that the enum can be JSON-encoded without adjustment
+class TaskState(str, Enum):
     RECEIVED = "received"  # on receiving a task web-side
     WAITING_FOR_EP = "waiting-for-ep"  # while waiting for ep to accept/be online
     WAITING_FOR_NODES = "waiting-for-nodes"  # jobs are pending at the scheduler
@@ -46,6 +47,8 @@ class Task:
 
         if serializer:
             self.serializer = serializer
+        else:
+            self.serializer = "None"
 
         if payload:
             self.payload = payload
