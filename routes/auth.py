@@ -22,7 +22,7 @@ def callback():
         return redirect(url_for('home'))
 
     # Set up our Globus Auth/OAuth2 state
-    redirect_uri = 'https://dev.funcx.org/callback'
+    redirect_uri = f"{app.config['HOSTNAME']}/callback"
     client = get_auth_client()
     requested_scopes = ['https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all', 'profile',
                         'urn:globus:auth:scope:transfer.api.globus.org:all',

@@ -24,6 +24,8 @@ class Config(object):
     SERIALIZATION_ADDR = os.environ.get('serialization_addr')
     SERIALIZATION_PORT = os.environ.get('serialization_port')
 
+    HOSTNAME = os.environ.get('hostname')
+
 
 class ProductionConfig(Config):
     DEBUG = False
