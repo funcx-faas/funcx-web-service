@@ -119,6 +119,23 @@ class Task:
     def result(self, r):
         self._set('result', json.dumps(r))
 
+    @property
+    def exception(self):
+        """Get or set result object in Redis (automatically json.loads or json.dumps)"""
+        return self._get('exception')
+
+    @exception.setter
+    def exception(self, e):
+        self._set('exception', e)
+
+    @property
+    def completion_time(self):
+        return self._get('completion_time')
+
+    @completion_time.setter
+    def completion_time(self, t):
+        self._set('completion_time', t)
+
     @classmethod
     def exists(cls, rc: StrictRedis, task_id: str):
         """Check if a given task_id exists in Redis"""
