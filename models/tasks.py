@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from enum import Enum
 
 from redis import StrictRedis
@@ -21,6 +22,8 @@ class Task:
 
     TODO: have a cache and TTL on the properties so that we aren't making so many redis gets?
     """
+    TASK_TTL = timedelta(weeks=1)
+
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
         task entry.
@@ -55,6 +58,8 @@ class Task:
 
         self.header = self._generate_header()
 
+        self._set_expire()
+
     @staticmethod
     def _generate_hname(task_id):
         return f'task_{task_id}'
@@ -62,6 +67,13 @@ class Task:
     def _generate_header(self):
         """Used to pass bits of information to EP"""
         return f'{self.task_id};{self.container};{self.serializer}'
+
+    def _set_expire(self):
+        """Expires task after TASK_TTL, if not already set."""
+        ttl = self.rc.ttl(self._task_hname)
+        if ttl < 0:
+            # expire was not already set
+            self.rc.expire(self._task_hname, Task.TASK_TTL)
 
     def _get(self, key):
         """Get's the value of key via redis"""
