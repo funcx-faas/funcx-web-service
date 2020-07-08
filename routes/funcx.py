@@ -263,39 +263,34 @@ def submit_batch(user_name):
 def get_tasks_from_redis(task_ids):
 
     all_tasks = {}
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-        for task_id in task_ids:
 
-            # Get the task from redis
-            try:
-                result_obj = rc.hget(f"task_{task_id}", 'result')
-                if result_obj:
-                    task = json.loads(result_obj)
-                    all_tasks[task_id] = task
-                    all_tasks[task_id]['task_id'] = task_id
-                else:
-                    task = {'status': 'PENDING'}
-            except Exception as e:
-                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-            else:
-                if result_obj:
-                    # Task complete, attempt flush
-                    try:
-                        rc.delete(f"task_{task_id}")
-                    except Exception as e:
-                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                        pass
+    rc = get_redis_client()
+    for task_id in task_ids:
+        # Get the task from redis
+        if not Task.exists(rc, task_id):
+            all_tasks[task_id] = {
+                'status': 'failed',
+                'reason': 'unknown task id'
+            }
+            continue
 
-        return all_tasks
+        task = Task.from_id(rc, task_id)
+        task_status = task.status
+        task_result = task.result
+        if task_result:
+            task.delete()
 
-    except Exception as e:
-        app.logger.error(e)
-        return {'status': 'Failed',
-                'reason': 'InternalError: {}'.format(e),
-                'partial': all_tasks}
+        all_tasks[task_id] = {
+            'task_id': task_id,
+            'status': task_status,
+            'result': task_result
+        }
+
+        # Note: this is for backwards compat, when we can't include a None result and have a
+        # non-complete status, we must forgo the result field if task not complete.
+        if not task_result:
+            del all_tasks[task_id]['result']
+    return all_tasks
 
 
 # TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed, we should remove this route
@@ -331,14 +326,22 @@ def status_and_result(user_name, task_id):
         task.delete()
 
     deserialize = request.args.get("deserialize", False)
-    if deserialize:
+    if deserialize and task_result:
         task_result = deserialize_result(task_result)
 
+    # TODO: change client to have better naming conventions
+    # these fields like 'status' should be changed to 'task_status', because 'status' is normally
+    # used for HTTP codes.
     response = {
         'task_id': task_id,
-        'task_status': task_status,
-        'task_result': task_result
+        'status': task_status,
+        'result': task_result
     }
+
+    # Note: this is for backwards compat, when we can't include a None result and have a
+    # non-complete status, we must forgo the result field if task not complete.
+    if task_result is None:
+        del response['result']
 
     return jsonify(response)
 
@@ -387,11 +390,6 @@ def batch_status(user_name):
     json
         The status of the task
     """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
     app.logger.debug("request : {}".format(request.json))
     results = get_tasks_from_redis(request.json['task_ids'])
 
