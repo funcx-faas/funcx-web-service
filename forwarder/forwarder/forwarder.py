@@ -128,16 +128,12 @@ class Forwarder(Process):
             # TODO: What does the res_dict look like?  Can we just set task.result=res_dict?
             if 'result' in res_dict:
                 task.status = TaskState.SUCCESS
-                task.result = {
-                    'result': res_dict['result'],
-                    'completion_t': time.time()
-                }
+                task.result = res_dict['result']
+                task.completion_time = time.time()
             elif 'exception' in res_dict:
                 task.status = TaskState.FAILED
-                task.result = {
-                    'exception': res_dict['exception'],
-                    'completion_t': time.time()
-                }
+                task.exception = res_dict['exception']
+                task.completion_time = time.time()
 
         except Exception as e:
             logger.error(f"Task update {task_id} failed due to {e}")

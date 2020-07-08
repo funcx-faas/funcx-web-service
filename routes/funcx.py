@@ -272,13 +272,17 @@ def get_tasks_from_redis(task_ids):
         task = Task.from_id(rc, task_id)
         task_status = task.status
         task_result = task.result
-        if task_result:
+        task_exception = task.exception
+        task_completion_t = task.completion_time
+        if task_result or task_exception:
             task.delete()
 
         all_tasks[task_id] = {
             'task_id': task_id,
             'status': task_status,
-            'result': task_result
+            'result': task_result,
+            'completion_t': task_completion_t,
+            'exception': task_exception
         }
 
         # Note: this is for backwards compat, when we can't include a None result and have a
@@ -317,7 +321,9 @@ def status_and_result(user_name, task_id):
     task = Task.from_id(rc, task_id)
     task_status = task.status
     task_result = task.result
-    if task_result:
+    task_exception = task.exception
+    task_completion_t = task.completion_time
+    if task_result or task_exception:
         task.delete()
 
     deserialize = request.args.get("deserialize", False)
@@ -330,7 +336,9 @@ def status_and_result(user_name, task_id):
     response = {
         'task_id': task_id,
         'status': task_status,
-        'result': task_result
+        'result': task_result,
+        'completion_t': task_completion_t,
+        'exception': task_exception
     }
 
     # Note: this is for backwards compat, when we can't include a None result and have a
