@@ -16,6 +16,16 @@ class TaskState(str, Enum):
 
 
 class RedisField:
+    """
+    Descriptor class that stores data in redis.
+
+    Uses owning class's redis client in `owner.rc` to connect, and uses owner's hname in `owner.hname` to uniquely
+    identify the keys.
+
+    Serializer and deserializer parameters are callables that are executed on get and set so that things like
+    dicts can be stored in redis.
+    """
+    # TODO: have a cache and TTL on the properties so that we aren't making so many redis gets?
     def __init__(self, serializer=None, deserializer=None):
         self.key = ""
         self.serializer = serializer
@@ -34,6 +44,12 @@ class RedisField:
 
 
 def auto_name_fields(klass):
+    """Class decorator to auto name RedisFields
+    Inspects class attributes, and tells RedisFields what their keys are based on attribute name.
+
+    This isn't necessary, but avoids duplication.  Otherwise we'd have to say e.g.
+        status = RedisField("status")
+    """
     for name, attr in klass.__dict__.items():
         if isinstance(attr, RedisField):
             attr.key = name
@@ -44,8 +60,6 @@ def auto_name_fields(klass):
 class Task:
     """
     ORM-esque class to wrap access to properties of tasks for better style and encapsulation
-
-    TODO: have a cache and TTL on the properties so that we aren't making so many redis gets?
     """
     status = RedisField(serializer=lambda ts: ts.value, deserializer=TaskState)
     endpoint = RedisField()
