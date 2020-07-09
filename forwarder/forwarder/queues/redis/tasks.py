@@ -15,12 +15,46 @@ class TaskState(str, Enum):
     FAILED = "failed"
 
 
+class RedisField:
+    def __init__(self, serializer=None, deserializer=None):
+        self.key = ""
+        self.serializer = serializer
+        self.deserializer = deserializer
+
+    def __get__(self, owner, ownertype):
+        val = owner.rc.hget(owner.hname, self.key)
+        if self.deserializer:
+            val = self.deserializer(val)
+        return val
+
+    def __set__(self, owner, val):
+        if self.serializer:
+            val = self.serializer(val)
+        owner.rc.hset(owner.hname, self.key, val)
+
+
+def auto_name_fields(klass):
+    for name, attr in klass.__dict__.items():
+        if isinstance(attr, RedisField):
+            attr.key = name
+    return klass
+
+
+@auto_name_fields
 class Task:
     """
     ORM-esque class to wrap access to properties of tasks for better style and encapsulation
 
     TODO: have a cache and TTL on the properties so that we aren't making so many redis gets?
     """
+    status = RedisField(serializer=lambda ts: ts.value, deserializer=TaskState)
+    endpoint = RedisField()
+    container = RedisField()
+    payload = RedisField(serializer=json.dumps, deserializer=json.loads)
+    result = RedisField()
+    exception = RedisField()
+    completion_time = RedisField()
+
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
         task entry.
@@ -38,13 +72,15 @@ class Task:
         """
         self.rc = rc
         self.task_id = task_id
-        self._task_hname = self._generate_hname(self.task_id)
+        self.hname = self._generate_hname(self.task_id)
 
         # If passed, we assume they should be set (i.e. in cases of new tasks)
         # if not passed,
         if container:
             self.container = container
 
+        # Serializer is weird: it's basically deprecated, but keep it around for old-time's sake
+        # Don't store in redis, so we need to provide default value.
         if serializer:
             self.serializer = serializer
         else:
@@ -63,79 +99,6 @@ class Task:
         """Used to pass bits of information to EP"""
         return f'{self.task_id};{self.container};{self.serializer}'
 
-    def _get(self, key):
-        """Get's the value of key via redis"""
-        return self.rc.hget(self._task_hname, key)
-
-    def _set(self, key, value):
-        """Sets key -> value in Redis"""
-        self.rc.hset(self._task_hname, key, value)
-
-    @property
-    def status(self) -> TaskState:
-        """Get or set status in Redis"""
-        return TaskState(self._get('status'))
-
-    @status.setter
-    def status(self, s: TaskState):
-        self._set('status', s.value)
-
-    @property
-    def endpoint(self):
-        """Get or set endpoint id in Redis"""
-        return self._get('endpoint')
-
-    @endpoint.setter
-    def endpoint(self, ep):
-        self._set('endpoint', ep)
-
-    @property
-    def container(self):
-        """Get or set container id in Redis"""
-        return self._get('container')
-
-    @container.setter
-    def container(self, c):
-        self._set('container', c)
-
-    @property
-    def payload(self):
-        """Get or set payload object in Redis (automatically json.loads or json.dumps)"""
-        return json.loads(self._get('payload'))
-
-    @payload.setter
-    def payload(self, p):
-        self._set('payload', json.dumps(p))
-
-    @property
-    def result(self):
-        """Get or set result object in Redis (automatically json.loads or json.dumps)"""
-        r = self._get('result')
-        if r:
-            r = json.loads(r)
-        return r
-
-    @result.setter
-    def result(self, r):
-        self._set('result', json.dumps(r))
-
-    @property
-    def exception(self):
-        """Get or set result object in Redis (automatically json.loads or json.dumps)"""
-        return self._get('exception')
-
-    @exception.setter
-    def exception(self, e):
-        self._set('exception', e)
-
-    @property
-    def completion_time(self):
-        return self._get('completion_time')
-
-    @completion_time.setter
-    def completion_time(self, t):
-        self._set('completion_time', t)
-
     @classmethod
     def exists(cls, rc: StrictRedis, task_id: str):
         """Check if a given task_id exists in Redis"""
@@ -149,4 +112,4 @@ class Task:
 
     def delete(self):
         """Removes this task from Redis, to be used after the result is gotten"""
-        self.rc.delete(self._task_hname)
+        self.rc.delete(self.hname)
