@@ -46,4 +46,13 @@ class TestingConfig(Config):
 
 
 class LocalDevelopmentConfig(DevelopmentConfig):
-    DB_HOST = "rds"
+    DB_HOST = "mockrds"
+    DB_USER = "funcx"
+    DB_PASSWORD = "local-dev-password"
+
+    FORWARDER_IP = "forwarder"
+
+    REDIS_HOST = "mockredis"
+    REDIS_PORT = "6379"
+
+    HOSTNAME = "localhost"
