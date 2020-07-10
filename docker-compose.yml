@@ -1,0 +1,21 @@
+version: '2'
+services:
+  funcx-web-service:
+    build: dockers/funcx-web-service
+    ports:
+      - "8080:8080"
+    env_file: funcx-web-service.env
+    volumes:
+      - .:/opt/funcx-web-service
+  forwarder:
+    build: dockers/forwarder
+    ports:
+      - "8080:8080"
+  mockrds:
+    build: dockers/rds
+    ports:
+      - "5432:5432"
+  mockredis:
+    build: dockers/redis
+    ports:
+      - "6379:6379"
