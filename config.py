@@ -43,3 +43,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+
+
+class LocalDevelopmentConfig(DevelopmentConfig):
+    DB_HOST = "rds"
