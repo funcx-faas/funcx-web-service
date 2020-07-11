@@ -159,6 +159,7 @@ def cli():
                                          decode_responses=True)
 
     try:
+        print("Starting forwarder service")
         run(host='0.0.0.0', app=app, port=int(args.port), debug=True)
 
     except Exception as e:

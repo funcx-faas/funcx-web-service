@@ -69,6 +69,7 @@ def cli():
     args = parser.parse_args()
 
     try:
+        print("Starting serializer!")
         app.run(host='0.0.0.0', port=int(args.port), threaded=True)
     except Exception as e:
         # This doesn't do anything
