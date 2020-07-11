@@ -3,7 +3,7 @@ import queue
 import uuid
 import time
 
-# from forwarder.queues.base import FuncxQueue, NotConnected
+# from forwarderservice.queues.base import FuncxQueue, NotConnected
 import json
 
 

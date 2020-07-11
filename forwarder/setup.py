@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 version_ns = {}
-with open(os.path.join("forwarder", "version.py")) as f:
+with open(os.path.join("forwarderservice", "version.py")) as f:
     exec(f.read(), version_ns)
 version = version_ns['VERSION']
 print("Version : ", version)
@@ -11,7 +11,7 @@ with open('requirements.txt') as f:
     install_requires = f.readlines()
 
 setup(
-    name='forwarder',
+    name='forwarderservice',
     version=version,
     packages=find_packages(),
     description='funcX Forwarder: High Performance Function Serving for Science',
@@ -32,7 +32,7 @@ setup(
         "Function Serving"
     ],
     entry_points={'console_scripts':
-                  ['forwarder-service=forwarder.service:cli',
+                  ['forwarderservice-service=forwarderservice.service:cli',
                   ]
     },
     author='funcX team',

@@ -1,7 +1,7 @@
 import argparse
 from funcx.serialize import FuncXSerializer
 # from funcx.queues import RedisQueue
-from forwarder.queues import RedisQueue
+from forwarderservice.queues import RedisQueue
 import time
 
 def slow_double(i, duration=0):

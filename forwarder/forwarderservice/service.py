@@ -1,7 +1,7 @@
 """ The broker service
 
 This REST service fields incoming registration requests from endpoints,
-creates an appropriate forwarder to which the endpoint can connect up.
+creates an appropriate forwarderservice to which the endpoint can connect up.
 """
 
 
@@ -14,7 +14,7 @@ import sys
 import logging
 import redis
 import threading
-from forwarder.forwarder import Forwarder, spawn_forwarder
+from forwarderservice.forwarder import Forwarder, spawn_forwarder
 
 
 @route('/ping')
