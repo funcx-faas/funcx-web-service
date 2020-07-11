@@ -1,3 +1,5 @@
+dockers/secrets/
+
 *~
 *.pyc
 parsl.egg-info/*
