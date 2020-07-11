@@ -2,9 +2,9 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
-def read_file_secret(fname):
-    with open(f"/run/secrets/{fname}") as r:
-        return r.read()
+def read_file_secret(name):
+    with open(f"/run/secrets/{name}") as r:
+        return r.read().strip()
 
 
 class Config(object):
@@ -51,8 +51,8 @@ class TestingConfig(Config):
 
 
 class LocalDevelopmentConfig(DevelopmentConfig):
-    GLOBUS_CLIENT = read_file_secret("globus_client.txt")
-    GLOBUS_KEY = read_file_secret("globus_key.txt")
+    GLOBUS_CLIENT = read_file_secret("globus_client")
+    GLOBUS_KEY = read_file_secret("globus_key")
 
     DB_HOST = "mockrds"
     DB_USER = "funcx"
@@ -66,4 +66,4 @@ class LocalDevelopmentConfig(DevelopmentConfig):
     SERIALIZATION_ADDR = "serializer"
     SERIALIZATION_PORT = "8080"
 
-    HOSTNAME = "localhost"
+    HOSTNAME = "localhost:8080"
