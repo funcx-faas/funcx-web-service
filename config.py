@@ -2,6 +2,11 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+def read_file_secret(fname):
+    with open(f"/run/secrets/{fname}") as r:
+        return r.read()
+
+
 class Config(object):
     DEBUG = False
     TESTING = False
@@ -46,6 +51,9 @@ class TestingConfig(Config):
 
 
 class LocalDevelopmentConfig(DevelopmentConfig):
+    GLOBUS_CLIENT = read_file_secret("globus_client.txt")
+    GLOBUS_KEY = read_file_secret("globus_key.txt")
+
     DB_HOST = "mockrds"
     DB_USER = "funcx"
     DB_PASSWORD = "local-dev-password"
