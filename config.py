@@ -55,4 +55,7 @@ class LocalDevelopmentConfig(DevelopmentConfig):
     REDIS_HOST = "mockredis"
     REDIS_PORT = "6379"
 
+    SERIALIZATION_ADDR = "serializer"
+    SERIALIZATION_PORT = "8080"
+
     HOSTNAME = "localhost"
