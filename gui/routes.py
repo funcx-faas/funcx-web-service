@@ -16,7 +16,7 @@ guiapi = Blueprint("guiapi", __name__)
 
 @guiapi.route('/')
 def start():
-    functions_executed = ""
+    functions_executed = 0
     if 'redis_client' not in g:
         g.redis_client = redis.Redis(
             host=app.config['REDIS_HOST'],
