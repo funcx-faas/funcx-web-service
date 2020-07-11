@@ -56,6 +56,7 @@ class LocalDevelopmentConfig(DevelopmentConfig):
 
     DB_HOST = "mockrds"
     DB_USER = "funcx"
+    DB_NAME = "funcx"
     DB_PASSWORD = "local-dev-password"
 
     FORWARDER_IP = "forwarder"
