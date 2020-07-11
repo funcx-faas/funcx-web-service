@@ -22,6 +22,8 @@ services:
     build: serializer
     ports:
       - "8082:8080"
+    environment:
+      - FLASK_ENV=development
     volumes:
       - ./serializer/serializer:/opt/serializer
   mockrds:
@@ -32,6 +34,8 @@ services:
     build: dockers/redis
     ports:
       - "6379:6379"
+    sysctls:
+      net.core.somaxconn: 1024
 secrets:
   globus_client:
     file: dockers/secrets/globus_client.txt
