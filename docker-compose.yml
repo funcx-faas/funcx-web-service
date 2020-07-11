@@ -4,9 +4,11 @@ services:
     build: .
     ports:
       - "8080:8080"
+    environment:
+      - FLASK_APP=funcx-web-service
+      - FLASK_DEBUG=1
     env_file: funcx-web-service.env
-    volumes:
-      - .:/opt/funcx-web-service
+    volumes: [".:/opt/funcx-web-service"]
     secrets:
       - globus_client
       - globus_key
