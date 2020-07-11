@@ -1,4 +1,4 @@
-version: '2'
+version: '3.8'
 services:
   funcx-web-service:
     build: .
@@ -7,6 +7,9 @@ services:
     env_file: funcx-web-service.env
     volumes:
       - .:/opt/funcx-web-service
+    secrets:
+      - globus_client
+      - globus_key
   forwarder:
     build: forwarder
     ports:
@@ -27,3 +30,9 @@ services:
     build: dockers/redis
     ports:
       - "6379:6379"
+secrets:
+  globus_client:
+    file: dockers/secrets/globus_client.txt
+  globus_key:
+    file: dockers/secrets/globus_key.txt
+
