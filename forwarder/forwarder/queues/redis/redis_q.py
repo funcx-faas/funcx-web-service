@@ -2,7 +2,7 @@ import redis
 import queue
 import json
 
-from forwarderservice.queues.redis.tasks import Task, TaskState
+from forwarder.queues.redis.tasks import Task, TaskState
 
 
 class NotConnected(Exception):

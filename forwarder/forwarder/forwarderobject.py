@@ -14,20 +14,19 @@ from funcx.serialize import FuncXSerializer
 from parsl.channels import LocalChannel
 from parsl.providers import LocalProvider
 
-import sys
 import os
-parent_dir = os.path.dirname(__file__)
-if parent_dir in sys.path:
-    sys.path.remove(parent_dir)
-print(sys.path)
-import forwarderservice
-print(forwarderservice.__file__)
+# import sys
+# print(sys.path)
+# sys.path.insert(0, "/opt/forwarder")
+# print(sys.path)
+# sys.path = sys.path[3:]
+# print(sys.path)
 
-from forwarderservice import set_file_logger
-from forwarderservice.endpoint_db import EndpointDB
-from forwarderservice.queues import RedisQueue
-from forwarderservice.queues.redis.redis_q import EndpointQueue
-from forwarderservice.queues.redis.tasks import Task, TaskState
+from forwarder import set_file_logger
+from forwarder.endpoint_db import EndpointDB
+from forwarder.queues import RedisQueue
+from forwarder.queues.redis.redis_q import EndpointQueue
+from forwarder.queues.redis.tasks import Task, TaskState
 
 
 def double(x):
@@ -89,7 +88,7 @@ class Forwarder(Process):
         Logging level as defined in the logging module. Default: logging.INFO (20)
 
         max_heartbeats_missed : int
-        The maximum heartbeats missed before the forwarderservice terminates
+        The maximum heartbeats missed before the forwarder terminates
 
         """
         super().__init__()
@@ -100,11 +99,11 @@ class Forwarder(Process):
         logger = logging.getLogger(endpoint_id)
         
         if len(logger.handlers) == 0:
-            logger = set_file_logger(os.path.join(self.logdir, "forwarderservice.{}.log".format(endpoint_id)),
+            logger = set_file_logger(os.path.join(self.logdir, "forwarder.{}.log".format(endpoint_id)),
                                     name=endpoint_id,
                                     level=logging_level)
 
-        logger.info("Initializing forwarderservice for endpoint:{}".format(endpoint_id))
+        logger.info("Initializing forwarder for endpoint:{}".format(endpoint_id))
         logger.info("Log level set to {}".format(loglevels[logging_level]))
 
         self.endpoint_addr = endpoint_addr
@@ -293,7 +292,7 @@ def spawn_forwarder(address,
                     executor=None,
                     task_q=None,
                     logging_level=logging.INFO):
-    """ Spawns a forwarderservice and returns the forwarderservice process for tracking.
+    """ Spawns a forwarder and returns the forwarder process for tracking.
 
     Parameters
     ----------
@@ -314,13 +313,13 @@ def spawn_forwarder(address,
        Executor object to be instantiated.
 
     task_q : Queue object
-       Queue object matching forwarderservice.queues.base.FuncxQueue interface
+       Queue object matching forwarder.queues.base.FuncxQueue interface
 
     logging_level : int
        Logging level as defined in the logging module. Default: logging.INFO (20)
 
     endpoint_id : uuid string
-       Endpoint id for which the forwarderservice is being spawned.
+       Endpoint id for which the forwarder is being spawned.
 
     Returns:
          A Forwarder object

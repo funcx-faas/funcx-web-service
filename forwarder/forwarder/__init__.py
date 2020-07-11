@@ -2,7 +2,7 @@
 
 """
 import logging
-from forwarderservice.version import VERSION
+from forwarder.version import VERSION
 from logging.handlers import RotatingFileHandler
 
 __author__ = "The funcX team"
@@ -10,7 +10,7 @@ __version__ = VERSION
 
 
 def set_file_logger(filename,
-                    name='funcx.forwarderservice',
+                    name='funcx.forwarder',
                     level=logging.DEBUG,
                     maxBytes=32*1024*1024,
                     backupCount=1,
@@ -41,7 +41,7 @@ def set_file_logger(filename,
     return logger
 
 
-def set_stream_logger(name='forwarderservice', level=logging.DEBUG, format_string=None):
+def set_stream_logger(name='forwarder', level=logging.DEBUG, format_string=None):
     """Add a stream log handler.
 
     Args:
@@ -65,4 +65,4 @@ def set_stream_logger(name='forwarderservice', level=logging.DEBUG, format_strin
     logger.addHandler(handler)
 
 
-logging.getLogger('forwarderservice').addHandler(logging.NullHandler())
+logging.getLogger('forwarder').addHandler(logging.NullHandler())
