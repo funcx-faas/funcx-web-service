@@ -3,7 +3,7 @@ services:
   funcx-web-service:
     build: .
     ports:
-      - "8080:8080"
+      - "8080:80"
     environment:
       - FLASK_APP=funcx-web-service
       - FLASK_DEBUG=1
@@ -12,6 +12,15 @@ services:
     secrets:
       - globus_client
       - globus_key
+      - web_cert
+      - web_key
+    networks:
+      default:
+        aliases:
+          - funcx.org
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
   forwarder:
     build: forwarder
     ports:
@@ -36,9 +45,20 @@ services:
       - "6379:6379"
     sysctls:
       net.core.somaxconn: 1024
+  endpoints:
+    build: dockers/endpoints
+    secrets:
+      - web_cert
+    depends_on:
+      - funcx-web-service
+      - forwarder
 secrets:
   globus_client:
     file: dockers/secrets/globus_client.txt
   globus_key:
     file: dockers/secrets/globus_key.txt
+  web_cert:
+    file: dockers/secrets/web-cert.pem
+  web_key:
+    file: dockers/secrets/web-key.pem
 
