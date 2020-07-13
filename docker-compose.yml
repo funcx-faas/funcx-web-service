@@ -2,6 +2,7 @@ version: '3.8'
 services:
   funcx-web-service:
     build: .
+    restart: always
     ports:
       - "8080:80"
     environment:
@@ -27,6 +28,9 @@ services:
       - "8081:8080"
     volumes:
       - ./forwarder:/opt/forwarder
+    depends_on:
+      - funcx-web-service
+      - mockredis
   serializer:
     build: serializer
     ports:
@@ -47,8 +51,14 @@ services:
       net.core.somaxconn: 1024
   endpoints:
     build: dockers/endpoints
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./dockers/endpoints:/data
     secrets:
       - web_cert
+      - funcx_sdk_tokens
+      - funcx_config
     depends_on:
       - funcx-web-service
       - forwarder
@@ -61,4 +71,7 @@ secrets:
     file: dockers/secrets/web-cert.pem
   web_key:
     file: dockers/secrets/web-key.pem
-
+  funcx_sdk_tokens:
+    file: dockers/secrets/funcx-credentials/funcx_sdk_tokens.json
+  funcx_config:
+    file: dockers/secrets/funcx-config.py
