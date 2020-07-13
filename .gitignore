@@ -1,4 +1,5 @@
 dockers/secrets/
+dockers/certs/*
 
 *~
 *.pyc
