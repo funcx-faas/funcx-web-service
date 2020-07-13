@@ -37,6 +37,12 @@ Or copy and paste one of these URLs:
 Copy and paste this into your browser, and you will be plunked into your `dockers/endpoints/` directory that is
 mounted into the endpoint container.  You can make a jupyter notebook there, which will be saved on the host as well.
 
+**Note:** it would/will be possible to run the notebook from your laptop instead, but for a variety of reasons, it is
+better to run it from within the container network.  First, for library consistency.  We want the notebook to use the
+same library versions as exist in the containers, and so the easiest way to do that is to just run it in a
+container as well.  Second, the easy way of making the web server's certs causes some issues with the `requests`
+library when connecting from the host machine (the cert claims to be for `funcx.org`, which the host knows isn't true).
+
 ### Viewing logs
 For now, most service logs are dumped to the console where you ran `docker-compose up`.  Some logs from other processes
 however do not appear there.  The spawned forwarder logs are available on your host in `forwarder/forwarder_logs`.  You
