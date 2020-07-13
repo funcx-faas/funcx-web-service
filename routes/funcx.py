@@ -577,9 +577,10 @@ def register_with_hub(address, endpoint_id, endpoint_address):
        Address of the forwarder service of the form http://<IP_Address>:<Port>
 
     """
+    print(address + '/register')
     r = requests.post(address + '/register',
                       json={'endpoint_id': endpoint_id,
-                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
+                            'redis_address': app.config['REDIS_HOST'],
                             'endpoint_addr': endpoint_address,
                             }
                       )
@@ -792,6 +793,7 @@ def register_endpoint_2(user_name):
             f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
+        app.logger.error(e, exc_info=True)
         response = {'status': 'error',
                     'reason': f'Failed during broker start {e}'}
 
