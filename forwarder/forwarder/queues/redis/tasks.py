@@ -117,10 +117,10 @@ class Task:
 
     def _set_expire(self):
         """Expires task after TASK_TTL, if not already set."""
-        ttl = self.rc.ttl(self._task_hname)
+        ttl = self.rc.ttl(self.hname)
         if ttl < 0:
             # expire was not already set
-            self.rc.expire(self._task_hname, Task.TASK_TTL)
+            self.rc.expire(self.hname, Task.TASK_TTL)
             
     def _generate_header(self):
         """Used to pass bits of information to EP"""
