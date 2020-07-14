@@ -113,7 +113,7 @@ class Task:
     @staticmethod
     def _generate_hname(task_id):
         return f'task_{task_id}'
-
+      
     def _set_expire(self):
         """Expires task after TASK_TTL, if not already set."""
         ttl = self.rc.ttl(self._task_hname)

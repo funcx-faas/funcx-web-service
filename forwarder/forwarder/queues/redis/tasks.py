@@ -72,7 +72,7 @@ class Task:
 
     # must keep ttl and _set_expire in merge
     TASK_TTL = timedelta(weeks=1)
-
+    
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
         task entry.
@@ -108,6 +108,7 @@ class Task:
             self.payload = payload
 
         self.header = self._generate_header()
+
         self._set_expire()
 
     @staticmethod
@@ -120,7 +121,7 @@ class Task:
         if ttl < 0:
             # expire was not already set
             self.rc.expire(self._task_hname, Task.TASK_TTL)
-
+            
     def _generate_header(self):
         """Used to pass bits of information to EP"""
         return f'{self.task_id};{self.container};{self.serializer}'

@@ -368,7 +368,6 @@ def status(user_name, task_id):
 
     if not Task.exists(rc, task_id):
         abort(400, "task_id not found")
-
     task = Task.from_id(rc, task_id)
 
     return jsonify({
