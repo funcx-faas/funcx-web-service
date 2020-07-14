@@ -69,6 +69,8 @@ class Task:
     result = RedisField()
     exception = RedisField()
     completion_time = RedisField()
+
+    # must keep ttl and _set_expire in merge
     TASK_TTL = timedelta(weeks=1)
 
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
