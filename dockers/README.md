@@ -4,6 +4,16 @@ First build the funcX web base image:
 cd dockers/base
 docker build -t funcx-web-base .
 ```
+Next, we need to ensure that we have the correct directory structure.  You will need to move files around so that your
+tree has this:
+```
+funcx-faas/
+    docker-compose.yml
+    funcX/
+    funcx-web-service/
+```
+It is important that the main `docker-compose.yml` file and the two repos are at the same level. (This is due to the
+way in which the build context is sent to the docker daemon, and other solutions are clunky.)
 ## Secrets
 #### **WARNING**: make sure to have the `dockers/secrets` directory in your `.gitignore` if it is not already.  
 You'll need a few secrets for the app to work properly.  First, let's do the Globus secrets: the funcX Globus Confidential Client ID and Key.
@@ -22,8 +32,29 @@ cp ~/.funcx/credentials/funcx_sdk_tokens.json dockers/secrets/funcx-credentials/
 cp ~/.funcx/config.py dockers/secrets/funcx-config.py 
 ```  
 ## Testing your code
-Currently, it is only easy to test changes to the web service.  This will soon be updated to allow testing of new
-client code.  
+### Setting `funcX` sdk path
+
+In order to test changes to the `funcX` client/sdk as well as the web, you will need to set the path to your `funcX`
+install in `docker-compose.yml`.  Find the top-level `volumes` key (near the bottom of the file).  Set the `device` key
+to point to your local `funcX` repo (for me, it was a sibling of the `funcx-web-service` repo).    
+```yaml
+volumes:
+  funcx_install:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./funcX
+      o: bind
+```  
+If you would like to use a master version of `funcX` from PyPI, you can avoid doing this.  You must also then remove
+the mount lines for the `funcx_install` volume, which are keys under each service, and look like this:
+```yaml
+    volumes:
+      - funcx_install:/funcx
+```
+The three services that look for this are the `funcx_web_service`, the `serializer`, and the `forwarder`.  
+
+### Running
 
 From the main `funcx-web-service` directory, you can run:
 ```

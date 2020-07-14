@@ -1,15 +1,16 @@
 version: '3.8'
 services:
   funcx-web-service:
-    build: .
+    build: funcx-web-service/
     restart: always
     ports:
       - "8080:80"
     environment:
       - FLASK_APP=funcx-web-service
       - FLASK_DEBUG=1
-    env_file: funcx-web-service.env
-    volumes: [".:/opt/funcx-web-service"]
+    env_file: funcx-web-service/funcx-web-service.env
+    volumes:
+      - ./funcx-web-service:/opt/funcx-web-service
     secrets:
       - globus_client
       - globus_key
@@ -23,38 +24,41 @@ services:
       - NET_ADMIN
       - NET_RAW
   forwarder:
-    build: forwarder
+    build: funcx-web-service/forwarder
     ports:
       - "8081:8080"
     volumes:
-      - ./forwarder:/opt/forwarder
+      - ./funcx-web-service/forwarder:/opt/forwarder
+      - funcx_install:/funcx
     depends_on:
       - funcx-web-service
       - mockredis
   serializer:
-    build: serializer
+    build: funcx-web-service/serializer
     ports:
       - "8082:8080"
     environment:
       - FLASK_ENV=development
     volumes:
-      - ./serializer/serializer:/opt/serializer
+      - ./funcx-web-service/serializer/serializer:/opt/serializer
+      - funcx_install:/funcx
   mockrds:
-    build: dockers/rds
+    build: funcx-web-service/dockers/rds
     ports:
       - "5432:5432"
   mockredis:
-    build: dockers/redis
+    build: funcx-web-service/dockers/redis
     ports:
       - "6379:6379"
     sysctls:
       net.core.somaxconn: 1024
   endpoints:
-    build: dockers/endpoints
+    build: funcx-web-service/dockers/endpoints
     ports:
       - "8888:8888"
     volumes:
-      - ./dockers/endpoints:/data
+      - ./funcx-web-service/dockers/endpoints:/data
+      - funcx_install:/funcx
     secrets:
       - web_cert
       - funcx_sdk_tokens
@@ -64,14 +68,22 @@ services:
       - forwarder
 secrets:
   globus_client:
-    file: dockers/secrets/globus_client.txt
+    file: funcx-web-service/dockers/secrets/globus_client.txt
   globus_key:
-    file: dockers/secrets/globus_key.txt
+    file: funcx-web-service/dockers/secrets/globus_key.txt
   web_cert:
-    file: dockers/secrets/web-cert.pem
+    file: funcx-web-service/dockers/secrets/web-cert.pem
   web_key:
-    file: dockers/secrets/web-key.pem
+    file: funcx-web-service/dockers/secrets/web-key.pem
   funcx_sdk_tokens:
-    file: dockers/secrets/funcx-credentials/funcx_sdk_tokens.json
+    file: funcx-web-service/dockers/secrets/funcx-credentials/funcx_sdk_tokens.json
   funcx_config:
-    file: dockers/secrets/funcx-config.py
+    file: funcx-web-service/dockers/secrets/funcx-config.py
+
+volumes:
+  funcx_install:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/funcX
+      o: bind

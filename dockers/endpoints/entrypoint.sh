@@ -1,5 +1,8 @@
 cp /run/secrets/web_cert /usr/local/share/ca-certificates/
 update-ca-certificates
+
+[ -d "/funcx" ] && pip install -q -e /funcx
+
 mkdir /root/.funcx
 mkdir /root/.funcx/credentials
 cp /run/secrets/funcx_sdk_tokens /root/.funcx/credentials/funcx_sdk_tokens.json
