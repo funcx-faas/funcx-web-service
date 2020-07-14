@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from enum import Enum
 
 from redis import StrictRedis
@@ -69,6 +70,9 @@ class Task:
     exception = RedisField()
     completion_time = RedisField()
 
+    # must keep ttl and _set_expire in merge
+    TASK_TTL = timedelta(weeks=1)
+
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
         task entry.
@@ -104,10 +108,18 @@ class Task:
             self.payload = payload
 
         self.header = self._generate_header()
+        self._set_expire()
 
     @staticmethod
     def _generate_hname(task_id):
         return f'task_{task_id}'
+
+    def _set_expire(self):
+        """Expires task after TASK_TTL, if not already set."""
+        ttl = self.rc.ttl(self._task_hname)
+        if ttl < 0:
+            # expire was not already set
+            self.rc.expire(self._task_hname, Task.TASK_TTL)
 
     def _generate_header(self):
         """Used to pass bits of information to EP"""
