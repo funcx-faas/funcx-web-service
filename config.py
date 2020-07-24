@@ -3,6 +3,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 def read_file_secret(name):
+    if not os.path.exists(f"/run/secrets/{name}"):
+        return ""
     with open(f"/run/secrets/{name}") as r:
         return r.read().strip()
 
