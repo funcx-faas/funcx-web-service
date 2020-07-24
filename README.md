@@ -21,15 +21,17 @@ Place them in `dockers/secrets/globus_client.txt` and `dockers/secrets/globus_ke
 self-signed cert/key pair, also in the `secrets` directory.  This will be for our web service, which will have the
 domain `funcx.org` within the Docker network.   
 ```
+cd funcx-web-service/dockers/secrets
 openssl req -x509 -newkey rsa:4096 -keyout web-key.pem -out web-cert.pem -nodes    
 ```  
 This will prompt for a bunch of information, none of which matters, except that you set the `Common Name` to
 `funcx.org`.  Next, for convenience, let's place your funcx credentials and config in the endpoint container. 
-If you do not do this, you will need to change the endpoint `entrypoint.sh`, and manually log in every time. 
+If you do not do this, you will need to change the endpoint `entrypoint.sh`, and manually log in every time.  This
+should be done from within the `dockers/secrets` directory.  
 ```
-mkdir dockers/secrets/funcx-credentials
-cp ~/.funcx/credentials/funcx_sdk_tokens.json dockers/secrets/funcx-credentials/
-cp ~/.funcx/config.py dockers/secrets/funcx-config.py 
+mkdir funcx-credentials
+cp ~/.funcx/credentials/funcx_sdk_tokens.json funcx-credentials/
+cp ~/.funcx/config.py funcx-config.py 
 ```  
 ## Testing your code
 ### Setting `funcX` sdk path
