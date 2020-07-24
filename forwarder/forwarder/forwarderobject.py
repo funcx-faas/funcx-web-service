@@ -14,6 +14,14 @@ from funcx.serialize import FuncXSerializer
 from parsl.channels import LocalChannel
 from parsl.providers import LocalProvider
 
+import os
+# import sys
+# print(sys.path)
+# sys.path.insert(0, "/opt/forwarder")
+# print(sys.path)
+# sys.path = sys.path[3:]
+# print(sys.path)
+
 from forwarder import set_file_logger
 from forwarder.endpoint_db import EndpointDB
 from forwarder.queues import RedisQueue

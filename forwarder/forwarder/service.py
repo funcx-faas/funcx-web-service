@@ -5,31 +5,34 @@ creates an appropriate forwarder to which the endpoint can connect up.
 """
 
 
-import bottle
-from bottle import post, run, request, app, route, get
 import argparse
 import json
-import uuid
-import sys
 import logging
 import redis
 import threading
-from forwarder.forwarder import Forwarder, spawn_forwarder
+
+from flask import Flask
+from flask import request
+
+from forwarder.forwarderobject import spawn_forwarder
 
 
-@route('/ping')
+app = Flask(__name__)
+
+
+@app.route('/ping')
 def ping():
     """ Minimal liveness response
     """
     return "pong"
 
 
-@get('/map.json')
+@app.route('/map.json', methods=['GET'])
 def get_map_json():
     """ Paint a map of utilization
     """
     results = []
-    redis_client = request.app.redis_client
+    redis_client = app.config['redis_client']
     csv_string = "org,core_hrs,lat,long\n</br>"
     for key in redis_client.keys('ep_status_*'):
         try:
@@ -57,12 +60,12 @@ def get_map_json():
     return dict(data=results)
 
 
-@get('/map.csv')
+@app.route('/map.csv', methods=['GET'])
 def get_map():
     """ Paint a map of utilization
     """
     results = {"data": []}
-    redis_client = request.app.redis_client
+    redis_client = app.config['redis_client']
     csv_string = "org,core_hrs,lat,long\n</br>"
     for key in redis_client.keys('ep_status_*'):
         try:
@@ -88,7 +91,8 @@ def get_map():
 def wait_for_forwarder(fw):
     fw.join()
 
-@post('/register')
+
+@app.route('/register', methods=['POST'])
 def register():
     """ Register an endpoint request
 
@@ -97,9 +101,9 @@ def register():
     """
 
     print("Request: ", request)
-    print("foo: ", request.app.ep_mapping)
-    print(json.load(request.body))
-    endpoint_details = json.load(request.body)
+    print("foo: ", app.config['ep_mapping'])
+    print(request.get_json())
+    endpoint_details = request.get_json()
     print(endpoint_details)
 
     # Here we want to start an executor client.
@@ -107,11 +111,11 @@ def register():
     # connected to avoid clogging up the pipe. Submits will block if the client has
     # no endpoint connected.
     endpoint_id = endpoint_details['endpoint_id']
-    fw = spawn_forwarder(request.app.address,
+    fw = spawn_forwarder(app.config['address'],
                          endpoint_details['redis_address'],
                          endpoint_id,
                          endpoint_addr=endpoint_details['endpoint_addr'],
-                         logging_level=logging.DEBUG if request.app.debug else logging.INFO)
+                         logging_level=logging.DEBUG if app.debug else logging.INFO)
 
     connection_info = fw.connection_info
 
@@ -123,13 +127,13 @@ def register():
     print("Ret_package : ", ret_package)
 
     print("Ep_id: ", endpoint_id)
-    request.app.ep_mapping[endpoint_id] = ret_package
+    app.config['ep_mapping'][endpoint_id] = ret_package
     return ret_package
 
 
-@route('/list_mappings')
+@app.route('/list_mappings')
 def list_mappings():
-    return request.app.ep_mapping
+    return app.config['ep_mapping']
 
 
 def cli():
@@ -149,17 +153,18 @@ def cli():
 
     args = parser.parse_args()
 
-    app = bottle.default_app()
-    app.address = args.address
-    app.debug = args.debug
-    app.ep_mapping = {}
+    app.config['address'] = args.address
+    app.config['ep_mapping'] = {}
 
-    app.redis_client = redis.StrictRedis(host=args.redishost,
-                                         port=int(args.redisport),
-                                         decode_responses=True)
+    app.config['redis_client'] = redis.StrictRedis(
+        host=args.redishost,
+        port=int(args.redisport),
+        decode_responses=True
+    )
 
     try:
-        run(host='0.0.0.0', app=app, port=int(args.port), debug=True)
+        print("Starting forwarder service")
+        app.run(host='0.0.0.0', port=int(args.port), debug=True)
 
     except Exception as e:
         # This doesn't do anything
@@ -168,4 +173,5 @@ def cli():
 
 
 if __name__ == '__main__':
+    print("entering forwarder service main.........")
     cli()

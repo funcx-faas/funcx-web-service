@@ -2,6 +2,11 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+def read_file_secret(name):
+    with open(f"/run/secrets/{name}") as r:
+        return r.read().strip()
+
+
 class Config(object):
     DEBUG = False
     TESTING = False
@@ -43,3 +48,23 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+
+
+class LocalDevelopmentConfig(DevelopmentConfig):
+    GLOBUS_CLIENT = read_file_secret("globus_client")
+    GLOBUS_KEY = read_file_secret("globus_key")
+
+    DB_HOST = "mockrds"
+    DB_USER = "funcx"
+    DB_NAME = "funcx"
+    DB_PASSWORD = "local-dev-password"
+
+    FORWARDER_IP = "forwarder"
+
+    REDIS_HOST = "mockredis"
+    REDIS_PORT = "6379"
+
+    SERIALIZATION_ADDR = "serializer"
+    SERIALIZATION_PORT = "8080"
+
+    HOSTNAME = "localhost:8080"

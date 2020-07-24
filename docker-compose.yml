@@ -1,0 +1,89 @@
+version: '3.8'
+services:
+  funcx-web-service:
+    build: funcx-web-service/
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - FLASK_APP=funcx-web-service
+      - FLASK_DEBUG=1
+    env_file: funcx-web-service/funcx-web-service.env
+    volumes:
+      - ./funcx-web-service:/opt/funcx-web-service
+    secrets:
+      - globus_client
+      - globus_key
+      - web_cert
+      - web_key
+    networks:
+      default:
+        aliases:
+          - funcx.org
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+  forwarder:
+    build: funcx-web-service/forwarder
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./funcx-web-service/forwarder:/opt/forwarder
+      - funcx_install:/funcx
+    depends_on:
+      - funcx-web-service
+      - mockredis
+  serializer:
+    build: funcx-web-service/serializer
+    ports:
+      - "8082:8080"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./funcx-web-service/serializer/serializer:/opt/serializer
+      - funcx_install:/funcx
+  mockrds:
+    build: funcx-web-service/dockers/rds
+    ports:
+      - "5432:5432"
+  mockredis:
+    build: funcx-web-service/dockers/redis
+    ports:
+      - "6379:6379"
+    sysctls:
+      net.core.somaxconn: 1024
+  endpoints:
+    build: funcx-web-service/dockers/endpoints
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./funcx-web-service/dockers/endpoints:/data
+      - funcx_install:/funcx
+    secrets:
+      - web_cert
+      - funcx_sdk_tokens
+      - funcx_config
+    depends_on:
+      - funcx-web-service
+      - forwarder
+secrets:
+  globus_client:
+    file: funcx-web-service/dockers/secrets/globus_client.txt
+  globus_key:
+    file: funcx-web-service/dockers/secrets/globus_key.txt
+  web_cert:
+    file: funcx-web-service/dockers/secrets/web-cert.pem
+  web_key:
+    file: funcx-web-service/dockers/secrets/web-key.pem
+  funcx_sdk_tokens:
+    file: funcx-web-service/dockers/secrets/funcx-credentials/funcx_sdk_tokens.json
+  funcx_config:
+    file: funcx-web-service/dockers/secrets/funcx-config.py
+
+volumes:
+  funcx_install:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/funcX
+      o: bind

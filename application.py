@@ -42,4 +42,7 @@ application.register_blueprint(guiapi)
 
 
 if __name__ == '__main__':
-    application.run("0.0.0.0", port=8080)
+    if os.environ['FLASK_ENV'] == 'development':
+        application.run("0.0.0.0", port=8080, ssl_context=("/run/secrets/web_cert", "/run/secrets/web_key"))
+    else:
+        application.run("0.0.0.0", port=8080)
