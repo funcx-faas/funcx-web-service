@@ -1,5 +1,5 @@
-dockers/secrets/
-dockers/certs/*
+dockers/secrets
+dockers/certs
 
 *~
 *.pyc
