@@ -6,6 +6,6 @@ zmq
 globus_nexus_client
 flask_wtf
 requests
-funcx==0.0.1a6
 flask_socketio
 eventlet
+-e git://github.com/funcx-faas/funcx.git@dev
