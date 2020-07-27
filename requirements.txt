@@ -8,4 +8,4 @@ flask_wtf
 requests
 flask_socketio
 eventlet
--e git://github.com/funcx-faas/funcx.git@dev
+-e git://github.com/funcx-faas/funcX@dev#egg=funcx
