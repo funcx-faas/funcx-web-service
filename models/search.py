@@ -144,6 +144,7 @@ def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
         acl.append('public')
 
     acl.extend(data['visible_to'])
+    del data['visible_to']
 
     # Ensure that the author of the function and the funcx search admin group have access
     # TODO: do we want access to everything? Is this the default since we control the index?
