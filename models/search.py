@@ -6,7 +6,7 @@ import authentication.auth
 FUNCTION_SEARCH_INDEX_NAME = 'funcx'
 FUNCTION_SEARCH_INDEX_ID = '673a4b58-3231-421d-9473-9df1b6fa3a9d'
 ENDPOINT_SEARCH_INDEX_NAME = 'funcx_endpoints'
-ENDPOINT_SEARCH_INDEX_ID = ''
+ENDPOINT_SEARCH_INDEX_ID = '85bcc497-3ee9-4d73-afbb-2abf292e398b'
 SEARCH_SCOPE = 'urn:globus:auth:scope:search.api.globus.org:all'
 
 # Search limit defined by the globus API
