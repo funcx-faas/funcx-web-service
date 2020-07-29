@@ -11,7 +11,7 @@ from authentication.auth import authorize_endpoint, authenticated, authorize_fun
 from errors import *
 from models.serializer import serialize_inputs, deserialize_result
 from models.tasks import Task
-from models.utils import register_container, get_redis_client
+from models.utils import register_container, get_redis_client, ingest_endpoint
 from models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
 from models.utils import resolve_function, db_invocation_logger
 from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
@@ -737,8 +737,8 @@ def get_ep_stats(user_name, endpoint_id):
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
-@authenticated
-def register_endpoint_2(user_name):
+@authenticated_w_uuid
+def register_endpoint_2(user_name, user_uuid):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
@@ -748,9 +748,6 @@ def register_endpoint_2(user_name):
     """
     app.logger.debug("register_endpoint_2 triggered")
 
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
@@ -759,6 +756,7 @@ def register_endpoint_2(user_name):
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
     app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
+    endpoint_uuid = None
     try:
         app.logger.debug(request.json['endpoint_name'])
         endpoint_uuid = register_endpoint(user_name,
@@ -783,13 +781,17 @@ def register_endpoint_2(user_name):
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
-        response = register_with_hub(
-            f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+        if endpoint_uuid:
+            response = register_with_hub(
+                f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         app.logger.error(e, exc_info=True)
         response = {'status': 'error',
                     'reason': f'Failed during broker start {e}'}
+
+    if 'meta' in request.json and endpoint_uuid:
+        ingest_endpoint(user_name, user_uuid, endpoint_uuid, request.json['meta'])
 
     return jsonify(response)
 
