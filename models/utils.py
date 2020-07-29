@@ -264,7 +264,12 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
         "group": group
     }
     user_urn = f"urn:globus:auth:identity:{user_uuid}"
-    models.search.ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+    models.search.func_ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+
+
+def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
+    owner_urn = f"urn:globus:auth:identity:{user_uuid}"
+    models.search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
 
 
 def register_container(user_name, container_name, location, description, container_type):
