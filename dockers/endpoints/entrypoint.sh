@@ -12,7 +12,7 @@ sh /data/wait-for.sh forwarder:8080
 
 #funcx-endpoint init
 funcx-endpoint configure default
-funcx-endpoint start default --endpoint_uuid 88888888-4444-4444-4444-cccccccccccc
+funcx-endpoint start default --endpoint-uuid 88888888-4444-4444-4444-cccccccccccc
 
 jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root
 #CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0"]
