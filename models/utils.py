@@ -352,6 +352,8 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                     conn.commit()
                     return result_eid
                 else:
+                    app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
+                                     f"with user {rows[0]['user_id']} not {user_id}")
                     return None
         else:
             endpoint_uuid = str(uuid.uuid4())
