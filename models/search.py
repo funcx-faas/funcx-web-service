@@ -148,7 +148,7 @@ def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
 
     # Ensure that the author of the function and the funcx search admin group have access
     # TODO: do we want access to everything? Is this the default since we control the index?
-    acl.append(owner)
+    acl.append(owner_urn)
     acl.append('urn:globus:groups:id:69e12e30-b499-11ea-91c1-0a0ee5aecb35')
 
     content = data.copy()
@@ -163,6 +163,8 @@ def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
     app.logger.debug(f"Ingesting endpoint data to {ENDPOINT_SEARCH_INDEX_NAME}: {ingest_data}")
     # TODO: security (if exists, dont allow updates if not owner)
     if not _exists(client, ENDPOINT_SEARCH_INDEX_ID, ep_uuid):
-        client.create_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
+        res = client.create_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
     else:
-        client.update_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
+        res = client.update_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
+
+    app.logger.debug(f"received response from Search API: {res.text}")
