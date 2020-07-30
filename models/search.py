@@ -152,7 +152,7 @@ def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
     acl.append('urn:globus:groups:id:69e12e30-b499-11ea-91c1-0a0ee5aecb35')
 
     content = data.copy()
-    content['owner'] = owner
+    content['owner'] = owner_urn
 
     ingest_data = {
         'subject': ep_uuid,
