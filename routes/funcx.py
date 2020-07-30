@@ -756,13 +756,14 @@ def register_endpoint_2(user_name, user_uuid):
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
     app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
-    endpoint_uuid = None
     try:
         app.logger.debug(request.json['endpoint_name'])
+        app.logger.debug(f"requesting registration for {request.json}")
         endpoint_uuid = register_endpoint(user_name,
                                           request.json['endpoint_name'],
-                                          request.json['description'],
-                                          request.json['endpoint_uuid'])
+                                          "",  # use description from meta? why store here at all
+                                          endpoint_uuid=request.json['endpoint_uuid'])
+        app.logger.debug(f"Successfully register_endpoint for {endpoint_uuid} in database")
 
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
@@ -781,9 +782,10 @@ def register_endpoint_2(user_name, user_uuid):
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
-        if endpoint_uuid:
-            response = register_with_hub(
+        response = register_with_hub(
                 f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+        app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
+
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
         app.logger.error(e, exc_info=True)
@@ -792,8 +794,11 @@ def register_endpoint_2(user_name, user_uuid):
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user_name, user_uuid, endpoint_uuid, request.json['meta'])
-
-    return jsonify(response)
+        app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+    try:
+        return jsonify(response)
+    except NameError:
+        return "oof"
 
 
 @funcx_api.route("/register_function", methods=['POST'])
