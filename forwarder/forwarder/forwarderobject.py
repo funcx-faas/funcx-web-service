@@ -61,7 +61,7 @@ class Forwarder(Process):
     """
 
     def __init__(self, task_q, task_status_q, executor, endpoint_id,
-                 heartbeat_threshold=30, endpoint_addr=None,
+                 heartbeat_period=60, endpoint_addr=None,
                  redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO,
                  max_heartbeats_missed=2):
@@ -82,8 +82,8 @@ class Forwarder(Process):
         endpoint_addr: str
         Endpoint ip address as a string
 
-        heartbeat_threshold : int
-        Heartbeat threshold in seconds
+        heartbeat_period : int
+        Heartbeat period in seconds
 
         logdir: str
         Path to logdir
@@ -113,7 +113,6 @@ class Forwarder(Process):
         self.endpoint_addr = endpoint_addr
         self.task_q = task_q
         self.task_status_q = task_status_q
-        self.heartbeat_threshold = heartbeat_threshold
         self.executor = executor
         self.endpoint_id = endpoint_id
         self.endpoint_addr = endpoint_addr
@@ -122,6 +121,8 @@ class Forwarder(Process):
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
         self.kill_event = threading.Event()
+
+        self.heartbeat_period = heartbeat_period
         self.max_heartbeats_missed = max_heartbeats_missed
 
         self._heartbeat_thread = threading.Thread(
@@ -169,21 +170,20 @@ class Forwarder(Process):
     def _endpoint_heartbeat_fail(self):
         """Return true if too many heartbeats have been missed"""
         return int(time.time() - self.executor.last_response_time) > \
-                    (self.max_heartbeats_missed * self.heartbeat_threshold)
+                    (self.max_heartbeats_missed * self.heartbeat_period)
     
     def _heartbeat_loop(self, kill_event):
         while not kill_event.is_set():
             logger.info("Activating executor.send_heartbeat()")
             self.executor.send_heartbeat()
-            time.sleep(self.heartbeat_threshold)
+            time.sleep(self.heartbeat_period)
 
     def _task_status_loop(self, kill_event):
         while not kill_event.is_set():
             logger.debug("Pulling from task_status_q")
             try:
-                task_status_delta = self.task_status_q.get(timeout=1)
+                task_status_delta = self.task_status_q.get(timeout=self.heartbeat_period)
             except queue.Empty:
-                time.sleep(self.heartbeat_threshold / 2)
                 continue
 
             logger.debug("Received task_status_q update")
@@ -217,7 +217,7 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task = self.task_q.dequeue(timeout=self.heartbeat_threshold)
+                task = self.task_q.dequeue(timeout=self.heartbeat_period)
                 logger.debug(f"[TASKS] Got task_id {task.task_id}")
 
             except queue.Empty:
