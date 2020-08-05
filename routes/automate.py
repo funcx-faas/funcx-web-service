@@ -1,17 +1,14 @@
 import uuid
 import json
-import time
 import datetime
 
+from models.tasks import Task
 from models.utils import resolve_user, get_redis_client
-from authentication.auth import authorize_endpoint, authenticated, authorize_function
-from models.utils import resolve_function, log_invocation
+from authentication.auth import authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort, g
 from routes.funcx import auth_and_launch
 
-from models.serializer import serialize_inputs, deserialize_result
-
-from .redis_q import RedisQueue
+from models.serializer import deserialize_result
 
 # Flask
 automate_api = Blueprint("automate", __name__)
@@ -97,9 +94,8 @@ def run(user_name):
         # Otherwise we need to create an action id for the batch
         action_id = str(uuid.uuid4())
         # Now store the list of ids in redis with this batch id
-        if 'redis_client' not in g:
-            g.redis_client = get_redis_client()
-        g.redis_client.hset(f'batch_{action_id}', 'batch', json.dumps(results['task_uuids']))
+        rc = get_redis_client()
+        rc.hset(f'batch_{action_id}', 'batch', json.dumps(results['task_uuids']))
 
     automate_response = {
         "status": 'ACTIVE',
@@ -141,14 +137,12 @@ def status(user_name, task_id):
         "release_after": 'P30D'
     }
 
-    # Get a redis client
-    if 'redis_client' not in g:
-        g.redis_client = get_redis_client()
+    rc = get_redis_client()
 
     task_results = None
     # check if it is a batch:
     try:
-        task_ids = g.redis_client.hget(f"batch_{task_id}", "batch")
+        task_ids = rc.hget(f"batch_{task_id}", "batch")
         app.logger.info(f"batch task_ids: {task_ids}")
 
         if task_ids:
@@ -159,7 +153,7 @@ def status(user_name, task_id):
                 # Get all of their results
                 task_results = []
                 for tid in task_ids:
-                    task = get_task(tid, delete=False)
+                    task = get_task_result(tid, delete=False)
                     task['task_id'] = tid
                     task_results.append(task)
 
@@ -169,7 +163,7 @@ def status(user_name, task_id):
                 automate_response['status'] = task['status']
         else:
             # it is not a batch, get the single task result
-            task = get_task(task_id, delete=False)
+            task = get_task_result(task_id, delete=False)
             task['task_id'] = task_id
 
             automate_response['details'] = task
@@ -196,14 +190,12 @@ def release(user_name, task_id):
         "release_after": 'P30D'
     }
 
-    # Get a redis client
-    if 'redis_client' not in g:
-        g.redis_client = get_redis_client()
+    rc = get_redis_client()
 
     task_results = None
     # check if it is a batch:
     try:
-        task_ids = g.redis_client.hget(f"batch_{task_id}", "batch")
+        task_ids = rc.hget(f"batch_{task_id}", "batch")
         app.logger.info(f"batch task_ids: {task_ids}")
 
         if task_ids:
@@ -214,7 +206,7 @@ def release(user_name, task_id):
                 # Get all of their results
                 task_results = []
                 for tid in task_ids:
-                    task = get_task(tid)
+                    task = get_task_result(tid)
                     task['task_id'] = tid
                     task_results.append(task)
 
@@ -224,7 +216,7 @@ def release(user_name, task_id):
                 automate_response['status'] = task['status']
         else:
             # it is not a batch, get the single task result
-            task = get_task(task_id)
+            task = get_task_result(task_id)
             task['task_id'] = task_id
 
             automate_response['details'] = task
@@ -237,48 +229,86 @@ def release(user_name, task_id):
     return json.dumps(automate_response)
 
 
-def get_task(task_id, delete=True):
-    """
-    Get the task from Redis and delete it if it is finished.
+# def get_task(task_id, delete=True):
+#     """
+#     Get the task from Redis and delete it if it is finished.
+#
+#     Parameters
+#     ----------
+#     task_id : str
+#         The task id to check
+#     delete : bool
+#         Whether or not to delete the result from redis
+#         # TODO: This is a hack. We should change /status to not return results
+#
+#     Returns
+#     -------
+#     Task : dict
+#     """
+#     task = {}
+#     # Get the task from redis
+#     try:
+#         result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
+#         app.logger.debug(f"Result_obj : {result_obj}")
+#         if result_obj:
+#             task = json.loads(result_obj)
+#             if 'status' not in task:
+#                 task['status'] = 'SUCCEEDED'
+#             if 'result' in task:
+#                 # deserialize the result for Automate to consume
+#                 task['result'] = deserialize_result(task['result'])
+#         else:
+#             task = {'status': 'ACTIVE'}
+#     except Exception as e:
+#         app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
+#         task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+#     else:
+#         if result_obj and delete:
+#             # Task complete, attempt flush
+#             try:
+#                 g.redis_client.delete(f"task_{task_id}")
+#             except Exception as e:
+#                 app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
+#                 pass
+#     return task
+
+
+def get_task_result(task_id, delete=True):
+    """Check the status of a task. Return result if available.
+
+    If the query param deserialize=True is passed, then we deserialize the result object.
 
     Parameters
     ----------
     task_id : str
-        The task id to check
+        The task uuid to look up
     delete : bool
-        Whether or not to delete the result from redis
-        # TODO: This is a hack. We should change /status to not return results
+        Whether or not to remove the task from the database
 
     Returns
     -------
-    Task : dict
+    json
+        The task as a dict
     """
-    task = {}
-    # Get the task from redis
-    try:
-        result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
-        app.logger.debug(f"Result_obj : {result_obj}")
-        if result_obj:
-            task = json.loads(result_obj)
-            if 'status' not in task:
-                task['status'] = 'SUCCEEDED'
-            if 'result' in task:
-                # deserialize the result for Automate to consume
-                task['result'] = deserialize_result(task['result'])
-        else:
-            task = {'status': 'ACTIVE'}
-    except Exception as e:
-        app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-        task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-    else:
-        if result_obj and delete:
-            # Task complete, attempt flush
-            try:
-                g.redis_client.delete(f"task_{task_id}")
-            except Exception as e:
-                app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                pass
-    return task
+    rc = get_redis_client()
+
+    if not Task.exists(rc, task_id):
+        abort(400, "task_id not found")
+
+    task_dict = {}
+
+    task = Task.from_id(rc, task_id)
+    task_dict['status'] = convert_automate_status(task.status)
+    task_dict['result'] = task.result
+    task_dict['exception'] = task.exception
+    task_dict['completion_t'] = task.completion_time
+    if (task_dict['result'] or task_dict['exception']) and delete:
+        task.delete()
+
+    if task_dict['result']:
+        task_dict['result'] = deserialize_result(task_dict['result'])
+
+    return task_dict
 
 
 def check_batch_status(task_ids):
@@ -295,13 +325,44 @@ def check_batch_status(task_ids):
     If all tasks are complete : bool
     """
 
+    rc = get_redis_client()
+
     try:
         for task_id in task_ids:
             app.logger.debug(f"Checking task id for: task_{task_id}")
-            result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
+            result_obj = rc.hget(f"task_{task_id}", 'result')
             app.logger.debug(f"Batch Result_obj : {result_obj}")
             if not result_obj:
                 return False
     except Exception as e:
         return False
     return True
+
+
+def convert_automate_status(task_status):
+    """Convert the status response to one that works with Automate.
+
+    The status code needs to be one of:
+      - SUCCEEDED
+      - FAILED
+      - ACTIVE
+      - INACTIVE
+
+    Parameters
+    ----------
+    task_status : str
+        The status code reported by funcX tasks
+
+    Returns
+    -------
+    str : One of the above status codes.
+    """
+    response = "FAILED"
+
+    if task_status == "success":
+        response = "SUCCEEDED"
+    elif task_status in ["received", "waiting-for-ep", "waiting-for-nodes",
+                         "waiting-for-launch", "running"]:
+        response = "ACTIVE"
+
+    return response
