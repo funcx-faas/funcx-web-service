@@ -19,6 +19,8 @@ from models.utils import (update_function, delete_function, delete_endpoint, get
 from version import VERSION
 from .redis_q import EndpointQueue
 
+from funcx.version import VERSION as FUNCX_VERSION
+
 # Flask
 funcx_api = Blueprint("routes", __name__)
 
@@ -588,7 +590,29 @@ def register_with_hub(address, endpoint_id, endpoint_address):
 
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return jsonify(VERSION)
+    s = request.args.get("service")
+    if s == "api" or s is None:
+        return jsonify(VERSION)
+    elif s == "funcx":
+        return jsonify(FUNCX_VERSION)
+
+    forwarder_ip = app.config['FORWARDER_IP']
+    r = requests.get(f"http://{forwarder_ip}:8080/version")
+    forwarder_v_info = r.json()
+    forwarder_version = forwarder_v_info['forwarder']
+    min_ep_version = forwarder_v_info['min_ep_version']
+    if s == 'forwarder':
+        return jsonify(forwarder_version)
+
+    if s == 'all':
+        return jsonify({
+            "api": VERSION,
+            "funcx": FUNCX_VERSION,
+            "forwarder": forwarder_version,
+            "min_ep_version": min_ep_version
+        })
+
+    abort(400, "unknown service type or other error.")
 
 
 @funcx_api.route("/addr", methods=['GET'])
