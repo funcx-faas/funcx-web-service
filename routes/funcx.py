@@ -588,6 +588,12 @@ def register_with_hub(address, endpoint_id, endpoint_address):
     return r.json()
 
 
+def get_forwarder_version():
+    forwarder_ip = app.config['FORWARDER_IP']
+    r = requests.get(f"http://{forwarder_ip}:8080/version")
+    return r.json()
+
+
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
     s = request.args.get("service")
@@ -596,9 +602,7 @@ def get_version():
     elif s == "funcx":
         return jsonify(FUNCX_VERSION)
 
-    forwarder_ip = app.config['FORWARDER_IP']
-    r = requests.get(f"http://{forwarder_ip}:8080/version")
-    forwarder_v_info = r.json()
+    forwarder_v_info = get_forwarder_version()
     forwarder_version = forwarder_v_info['forwarder']
     min_ep_version = forwarder_v_info['min_ep_version']
     if s == 'forwarder':
@@ -772,8 +776,13 @@ def register_endpoint_2(user_name):
     """
     app.logger.debug("register_endpoint_2 triggered")
 
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
+    v_info = get_forwarder_version()
+    min_ep_version = v_info['min_ep_version']
+    if 'version' not in request.json:
+        abort(400, "Endpoint funcx version must be passed in the 'version' field.")
+
+    if request.json['version'] < min_ep_version:
+        abort(400, f"Endpoint is out of date. Minimum supported endpoint version is {min_ep_version}")
 
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
