@@ -11,9 +11,10 @@ import logging
 import redis
 import threading
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask import request
 
+from forwarder.version import VERSION, MIN_EP_VERSION
 from forwarder.forwarderobject import spawn_forwarder
 
 
@@ -25,6 +26,14 @@ def ping():
     """ Minimal liveness response
     """
     return "pong"
+
+
+@app.route('/version')
+def version():
+    return jsonify({
+        "forwarder": VERSION,
+        "min_ep_version": MIN_EP_VERSION
+    })
 
 
 @app.route('/map.json', methods=['GET'])
