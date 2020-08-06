@@ -3,8 +3,10 @@ from globus_sdk import AccessTokenAuthorizer, SearchClient, SearchAPIError
 
 import authentication.auth
 
-SEARCH_INDEX_NAME = 'funcx'
-SEARCH_INDEX_ID = '673a4b58-3231-421d-9473-9df1b6fa3a9d'
+FUNCTION_SEARCH_INDEX_NAME = 'funcx'
+FUNCTION_SEARCH_INDEX_ID = '673a4b58-3231-421d-9473-9df1b6fa3a9d'
+ENDPOINT_SEARCH_INDEX_NAME = 'funcx_endpoints'
+ENDPOINT_SEARCH_INDEX_ID = '85bcc497-3ee9-4d73-afbb-2abf292e398b'
 SEARCH_SCOPE = 'urn:globus:auth:scope:search.api.globus.org:all'
 
 # Search limit defined by the globus API
@@ -55,7 +57,7 @@ def _trim_func_data(func_data):
     }
 
 
-def _exists(client, func_uuid):
+def _exists(client, index, func_uuid):
     """Checks if a func_uuid exists in the search index
 
     Mainly used to determine whether we need a create or an update call to the search API
@@ -71,7 +73,7 @@ def _exists(client, func_uuid):
         True if `func_uuid` is a subject in Globus Search index
     """
     try:
-        res = client.get_entry(SEARCH_INDEX_ID, func_uuid)
+        res = client.get_entry(index, func_uuid)
         return len(res.data['entries']) > 0
     except SearchAPIError as err:
         if err.http_status == 404:
@@ -79,7 +81,7 @@ def _exists(client, func_uuid):
         raise err
 
 
-def ingest_or_update(func_uuid, func_data, author="", author_urn=""):
+def func_ingest_or_update(func_uuid, func_data, author="", author_urn=""):
     """Update or create a function in search index
 
     Parameters
@@ -117,9 +119,55 @@ def ingest_or_update(func_uuid, func_data, author="", author_urn=""):
 
     # Since we associate only 1 entry with each subject (func_uuid), there is basically
     # no difference between creating and updating, other than the method...
-    app.logger.debug(f"Ingesting the following data to {SEARCH_INDEX_ID}: {ingest_data}")
+    app.logger.debug(f"Ingesting the following data to {FUNCTION_SEARCH_INDEX_ID}: {ingest_data}")
 
-    if not _exists(client, func_uuid):
-        client.create_entry(SEARCH_INDEX_ID, ingest_data)
+    if not _exists(client, FUNCTION_SEARCH_INDEX_ID, func_uuid):
+        client.create_entry(FUNCTION_SEARCH_INDEX_ID, ingest_data)
     else:
-        client.update_entry(SEARCH_INDEX_ID, ingest_data)
+        client.update_entry(FUNCTION_SEARCH_INDEX_ID, ingest_data)
+
+
+def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
+    """
+
+    Parameters
+    ----------
+    ep_uuid
+    data
+    owner
+    owner_urn
+
+    Returns
+    -------
+
+    """
+    client = get_search_client()
+    acl = []
+    if data['public']:
+        acl.append('public')
+
+    acl.extend(data['visible_to'])
+    del data['visible_to']
+
+    # Ensure that the author of the function and the funcx search admin group have access
+    # TODO: do we want access to everything? Is this the default since we control the index?
+    acl.append(owner_urn)
+    acl.append('urn:globus:groups:id:69e12e30-b499-11ea-91c1-0a0ee5aecb35')
+
+    content = data.copy()
+    content['owner'] = owner_urn
+
+    ingest_data = {
+        'subject': ep_uuid,
+        'visible_to': acl,
+        'content': content
+    }
+
+    app.logger.debug(f"Ingesting endpoint data to {ENDPOINT_SEARCH_INDEX_NAME}: {ingest_data}")
+    # TODO: security (if exists, dont allow updates if not owner)
+    if not _exists(client, ENDPOINT_SEARCH_INDEX_ID, ep_uuid):
+        res = client.create_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
+    else:
+        res = client.update_entry(ENDPOINT_SEARCH_INDEX_ID, ingest_data)
+
+    app.logger.debug(f"received response from Search API: {res.text}")
