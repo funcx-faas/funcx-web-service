@@ -97,7 +97,10 @@ def func_ingest_or_update(func_uuid, func_data, author="", author_urn=""):
     if func_data['public']:
         acl.append('public')
     elif func_data['group']:
-        acl.append(func_data['group'])
+        group: str = func_data['group']
+        if not group.startswith("urn"):
+            group = f"urn:globus:groups:id:{group}"
+        acl.append(group)
 
     # Ensure that the author of the function and the funcx search admin group have access
     # TODO: do we want access to everything? Is this the default since we control the index?

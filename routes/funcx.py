@@ -19,6 +19,8 @@ from models.utils import (update_function, delete_function, delete_endpoint, get
 from version import VERSION
 from .redis_q import EndpointQueue
 
+from funcx.version import VERSION as FUNCX_VERSION
+
 # Flask
 funcx_api = Blueprint("routes", __name__)
 
@@ -287,8 +289,13 @@ def get_tasks_from_redis(task_ids):
 
         # Note: this is for backwards compat, when we can't include a None result and have a
         # non-complete status, we must forgo the result field if task not complete.
-        if not task_result:
+        if task_result is None:
             del all_tasks[task_id]['result']
+
+        # Note: this is for backwards compat, when we can't include a None result and have a
+        # non-complete status, we must forgo the result field if task not complete.
+        if task_exception is None:
+            del all_tasks[task_id]['exception']
     return all_tasks
 
 
@@ -345,6 +352,9 @@ def status_and_result(user_name, task_id):
     # non-complete status, we must forgo the result field if task not complete.
     if task_result is None:
         del response['result']
+
+    if task_exception is None:
+        del response['exception']
 
     return jsonify(response)
 
@@ -586,9 +596,35 @@ def register_with_hub(address, endpoint_id, endpoint_address):
     return r.json()
 
 
+def get_forwarder_version():
+    forwarder_ip = app.config['FORWARDER_IP']
+    r = requests.get(f"http://{forwarder_ip}:8080/version")
+    return r.json()
+
+
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return jsonify(VERSION)
+    s = request.args.get("service")
+    if s == "api" or s is None:
+        return jsonify(VERSION)
+    elif s == "funcx":
+        return jsonify(FUNCX_VERSION)
+
+    forwarder_v_info = get_forwarder_version()
+    forwarder_version = forwarder_v_info['forwarder']
+    min_ep_version = forwarder_v_info['min_ep_version']
+    if s == 'forwarder':
+        return jsonify(forwarder_version)
+
+    if s == 'all':
+        return jsonify({
+            "api": VERSION,
+            "funcx": FUNCX_VERSION,
+            "forwarder": forwarder_version,
+            "min_ep_version": min_ep_version
+        })
+
+    abort(400, "unknown service type or other error.")
 
 
 @funcx_api.route("/addr", methods=['GET'])
@@ -747,7 +783,15 @@ def register_endpoint_2(user_name, user_uuid):
         A dict containing the endpoint details
     """
     app.logger.debug("register_endpoint_2 triggered")
+    
+    v_info = get_forwarder_version()
+    min_ep_version = v_info['min_ep_version']
+    if 'version' not in request.json:
+        abort(400, "Endpoint funcx version must be passed in the 'version' field.")
 
+    if request.json['version'] < min_ep_version:
+        abort(400, f"Endpoint is out of date. Minimum supported endpoint version is {min_ep_version}")
+        
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:

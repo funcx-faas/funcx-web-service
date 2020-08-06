@@ -4,6 +4,8 @@ from enum import Enum
 
 from redis import StrictRedis
 
+from funcx.executors.high_throughput.messages import TaskStatusCode
+
 
 # We subclass from str so that the enum can be JSON-encoded without adjustment
 class TaskState(str, Enum):
@@ -14,6 +16,16 @@ class TaskState(str, Enum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
+
+
+def status_code_convert(code):
+    return {
+        TaskStatusCode.WAITING_FOR_NODES: TaskState.WAITING_FOR_NODES,
+        TaskStatusCode.WAITING_FOR_LAUNCH: TaskState.WAITING_FOR_LAUNCH,
+        TaskStatusCode.RUNNING: TaskState.RUNNING,
+        TaskStatusCode.SUCCESS: TaskState.SUCCESS,
+        TaskStatusCode.FAILED: TaskState.FAILED
+    }[code]
 
 
 class RedisField:

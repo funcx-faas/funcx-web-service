@@ -10,9 +10,9 @@ cp /run/secrets/funcx_config /root/.funcx/config.py
 
 sh /data/wait-for.sh forwarder:8080
 
-#funcx-endpoint init
-funcx-endpoint configure default
-funcx-endpoint start default --endpoint-uuid 88888888-4444-4444-4444-cccccccccccc
+[ ! -e /root/.funcx/default ] && funcx-endpoint configure default
+funcx-endpoint stop default
+funcx-endpoint -d start default --endpoint-uuid 88888888-4444-4444-4444-cccccccccccc
 
 jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root
 #CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0"]
