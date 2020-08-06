@@ -229,50 +229,6 @@ def release(user_name, task_id):
     return json.dumps(automate_response)
 
 
-# def get_task(task_id, delete=True):
-#     """
-#     Get the task from Redis and delete it if it is finished.
-#
-#     Parameters
-#     ----------
-#     task_id : str
-#         The task id to check
-#     delete : bool
-#         Whether or not to delete the result from redis
-#         # TODO: This is a hack. We should change /status to not return results
-#
-#     Returns
-#     -------
-#     Task : dict
-#     """
-#     task = {}
-#     # Get the task from redis
-#     try:
-#         result_obj = g.redis_client.hget(f"task_{task_id}", 'result')
-#         app.logger.debug(f"Result_obj : {result_obj}")
-#         if result_obj:
-#             task = json.loads(result_obj)
-#             if 'status' not in task:
-#                 task['status'] = 'SUCCEEDED'
-#             if 'result' in task:
-#                 # deserialize the result for Automate to consume
-#                 task['result'] = deserialize_result(task['result'])
-#         else:
-#             task = {'status': 'ACTIVE'}
-#     except Exception as e:
-#         app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-#         task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-#     else:
-#         if result_obj and delete:
-#             # Task complete, attempt flush
-#             try:
-#                 g.redis_client.delete(f"task_{task_id}")
-#             except Exception as e:
-#                 app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-#                 pass
-#     return task
-
-
 def get_task_result(task_id, delete=True):
     """Check the status of a task. Return result if available.
 
