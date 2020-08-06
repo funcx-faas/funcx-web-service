@@ -289,8 +289,13 @@ def get_tasks_from_redis(task_ids):
 
         # Note: this is for backwards compat, when we can't include a None result and have a
         # non-complete status, we must forgo the result field if task not complete.
-        if not task_result:
+        if task_result is None:
             del all_tasks[task_id]['result']
+
+        # Note: this is for backwards compat, when we can't include a None result and have a
+        # non-complete status, we must forgo the result field if task not complete.
+        if task_exception is None:
+            del all_tasks[task_id]['exception']
     return all_tasks
 
 
@@ -347,6 +352,9 @@ def status_and_result(user_name, task_id):
     # non-complete status, we must forgo the result field if task not complete.
     if task_result is None:
         del response['result']
+
+    if task_exception is None:
+        del response['exception']
 
     return jsonify(response)
 
