@@ -1,6 +1,6 @@
 import argparse
 import uuid
-from forwarder.forwarder import Forwarder, spawn_forwarder
+from forwarderservice.forwarder import Forwarder, spawn_forwarder
 import time
 
 

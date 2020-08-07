@@ -1,3 +1,6 @@
+dockers/secrets
+dockers/certs
+
 *~
 *.pyc
 parsl.egg-info/*
@@ -11,6 +14,9 @@ venv/*
 web/*
 api/*
 .idea/*
+forwarder/.idea/*
+forwarder/.idea/forwarder.iml
+*.iml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -116,4 +122,3 @@ ENV/
 
 # emacs buffers
 \#*
-

@@ -8,6 +8,8 @@ import psycopg2.extras
 
 from flask import request, current_app as app
 from errors import *
+import models.search
+
 
 class db_invocation_logger(object):
 
@@ -229,6 +231,47 @@ def register_function(user_name, function_name, description, function_code, entr
     return function_uuid
 
 
+def ingest_function(user_name, user_uuid, func_uuid, function_name, description, function_code, function_source, entry_point, container_uuid, group, public):
+    """Ingest a function into Globus Search
+
+    Restructures data for ingest purposes.
+
+    Parameters
+    ----------
+    user_name : str
+    user_uuid : str
+    function_name : str
+    description : str
+    function_code : str
+    function_source : str
+    entry_point : str
+    container_uuid : str
+    group : str
+    public : bool
+
+    Returns
+    -------
+    None
+    """
+    data = {
+        "function_name": function_name,
+        "function_code": function_code,
+        "function_source": function_source,
+        "container_uuid": container_uuid,
+        "entry_point": entry_point,
+        "description": description,
+        "public": public,
+        "group": group
+    }
+    user_urn = f"urn:globus:auth:identity:{user_uuid}"
+    models.search.func_ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+
+
+def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
+    owner_urn = f"urn:globus:auth:identity:{user_uuid}"
+    models.search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
+
+
 def register_container(user_name, container_name, location, description, container_type):
     """Register the container in the database. Put an entry into containers and
     container_images
@@ -309,6 +352,8 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                     conn.commit()
                     return result_eid
                 else:
+                    app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
+                                     f"with user {rows[0]['user_id']} not {user_id}")
                     return None
         else:
             endpoint_uuid = str(uuid.uuid4())

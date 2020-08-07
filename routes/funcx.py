@@ -1,25 +1,25 @@
-import uuid
 import json
-import requests
 import time
-from requests.models import Response
+import uuid
+import requests
 
-from version import VERSION
-from errors import *
-
-from models.utils import register_endpoint, register_function, get_container, resolve_user
-from models.utils import register_container, get_redis_client
-
-from models.utils import resolve_function, log_invocation, db_invocation_logger
-from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
-                         add_ep_whitelist, delete_ep_whitelist)
-
-from models.serializer import serialize_inputs, deserialize_result
-
-from authentication.auth import authorize_endpoint, authenticated, authorize_function
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
+from forwarder.forwarder.errors import RegistrationError
 
-from .redis_q import RedisQueue
+from authentication.auth import authenticated_w_uuid
+from authentication.auth import authorize_endpoint, authenticated, authorize_function
+from errors import *
+from models.serializer import serialize_inputs, deserialize_result
+from models.tasks import Task
+from models.utils import register_container, get_redis_client, ingest_endpoint
+from models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
+from models.utils import resolve_function, db_invocation_logger
+from models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+                          add_ep_whitelist, delete_ep_whitelist)
+from version import VERSION
+from .redis_q import EndpointQueue
+
+from funcx.version import VERSION as FUNCX_VERSION
 
 # Flask
 funcx_api = Blueprint("routes", __name__)
@@ -57,7 +57,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     # Check if the user is allowed to access the function
     if not authorize_function(user_id, function_uuid, token):
         return {'status': 'Failed',
-               'reason': f'Unauthorized access to function: {function_uuid}'}
+                'reason': f'Unauthorized access to function: {function_uuid}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
@@ -71,7 +71,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             return {'status': 'Failed',
                     'reason': f'Unauthorized access to endpoint: {ep}'}
 
-    app.logger.debug("Got function container_uuid :{}".format(container_uuid))
+    app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
     # We should replace this with container_hdr = ";ctnr={container_uuid}"
     if not container_uuid:
@@ -94,9 +94,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     db_logger = get_db_logger()
     ep_queue = {}
     for ep in endpoints:
-        redis_task_queue = RedisQueue(f"task_{ep}",
-                                      hostname=app.config['REDIS_HOST'],
-                                      port=app.config['REDIS_PORT'])
+        redis_task_queue = EndpointQueue(
+            ep,
+            hostname=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT']
+        )
         redis_task_queue.connect()
         ep_queue[ep] = redis_task_queue
 
@@ -109,11 +111,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
-        task_header = f"{task_id};{container_uuid};{serializer}"
+        task = Task(rc, task_id, container_uuid, serializer, payload)
 
         for ep in endpoints:
-            ep_queue[ep].put(task_header, 'task', payload)
-            app.logger.debug(f"Task:{task_id} forwarded to Endpoint:{ep}")
+            ep_queue[ep].enqueue(task)
+            app.logger.debug(f"Task:{task_id} placed on queue for endpoint:{ep}")
 
             # TODO: creating these connections each will be slow.
             # increment the counter
@@ -150,15 +152,12 @@ def submit(user_name):
     """
     app.logger.debug(f"batch_run invoked by user:{user_name}")
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     try:
         user_id = resolve_user(user_name)
     except Exception:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+        msg = f"Failed to resolve user_name:{user_name} to user_id"
+        app.logger.error(msg)
+        abort(500, description=msg)
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -169,34 +168,26 @@ def submit(user_name):
     try:
         post_req = request.json
         if 'tasks' in post_req:
-            tasks = post_req.get('tasks', [])
+            # new client is being used
+            tasks = post_req['tasks']
         else:
-            # Check if the old client was used and create a new task
-            function_uuid = post_req.get('func', None)
-            endpoint = post_req.get('endpoint', None)
-            input_data = post_req.get('payload', None)
+            # old client was used and create a new task
+            function_uuid = post_req['func']
+            endpoint = post_req['endpoint']
+            input_data = post_req['payload']
             tasks.append([function_uuid, endpoint, input_data])
-
         serialize = post_req.get('serialize', None)
-
     except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
-    except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+        abort(422, description=f"Missing key: {e}")
 
     results = {'status': 'Success',
                'task_uuids': [],
                'task_uuid': ""}
     for task in tasks:
-        res = auth_and_launch(user_id,
-                              task[0],
-                              [task[1]],
-                              task[2],
-                              app,
-                              token,
-                              serialize=serialize)
+        res = auth_and_launch(
+            user_id, function_uuid=task[0], endpoints=[task[1]],
+            input_data=task[2], app=app, token=token, serialize=serialize
+        )
         if res.get('status', 'Failed') != 'Success':
             return res
         else:
@@ -268,47 +259,54 @@ def submit_batch(user_name):
 
 
 def get_tasks_from_redis(task_ids):
-
     all_tasks = {}
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-        for task_id in task_ids:
 
-            # Get the task from redis
-            try:
-                result_obj = rc.hget(f"task_{task_id}", 'result')
-                if result_obj:
-                    task = json.loads(result_obj)
-                    all_tasks[task_id] = task
-                    all_tasks[task_id]['task_id'] = task_id
-                else:
-                    task = {'status': 'PENDING'}
-            except Exception as e:
-                app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-                task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-            else:
-                if result_obj:
-                    # Task complete, attempt flush
-                    try:
-                        rc.delete(f"task_{task_id}")
-                    except Exception as e:
-                        app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                        pass
+    rc = get_redis_client()
+    for task_id in task_ids:
+        # Get the task from redis
+        if not Task.exists(rc, task_id):
+            all_tasks[task_id] = {
+                'status': 'failed',
+                'reason': 'unknown task id'
+            }
+            continue
 
-        return all_tasks
+        task = Task.from_id(rc, task_id)
+        task_status = task.status
+        task_result = task.result
+        task_exception = task.exception
+        task_completion_t = task.completion_time
+        if task_result or task_exception:
+            task.delete()
 
-    except Exception as e:
-        app.logger.error(e)
-        return {'status': 'Failed',
-                'reason': 'InternalError: {}'.format(e),
-                'partial': all_tasks}
+        all_tasks[task_id] = {
+            'task_id': task_id,
+            'status': task_status,
+            'result': task_result,
+            'completion_t': task_completion_t,
+            'exception': task_exception
+        }
+
+        # Note: this is for backwards compat, when we can't include a None result and have a
+        # non-complete status, we must forgo the result field if task not complete.
+        if task_result is None:
+            del all_tasks[task_id]['result']
+
+        # Note: this is for backwards compat, when we can't include a None result and have a
+        # non-complete status, we must forgo the result field if task not complete.
+        if task_exception is None:
+            del all_tasks[task_id]['exception']
+    return all_tasks
 
 
+# TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed, we should remove this route
 @funcx_api.route("/<task_id>/status", methods=['GET'])
+@funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def status(user_name, task_id):
-    """Check the status of a task.
+def status_and_result(user_name, task_id):
+    """Check the status of a task.  Return result if available.
+
+    If the query param deserialize=True is passed, then we deserialize the result object.
 
     Parameters
     ----------
@@ -322,48 +320,69 @@ def status(user_name, task_id):
     json
         The status of the task
     """
+    rc = get_redis_client()
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
+    if not Task.exists(rc, task_id):
+        abort(400, "task_id not found")
 
-    try:
-        # Get a redis client
-        rc = get_redis_client()
+    task = Task.from_id(rc, task_id)
+    task_status = task.status
+    task_result = task.result
+    task_exception = task.exception
+    task_completion_t = task.completion_time
+    if task_result or task_exception:
+        task.delete()
 
-        details = {}
+    deserialize = request.args.get("deserialize", False)
+    if deserialize and task_result:
+        task_result = deserialize_result(task_result)
 
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-        else:
-            if result_obj:
-                # Task complete, attempt flush
-                try:
-                    rc.delete(f"task_{task_id}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                    pass
+    # TODO: change client to have better naming conventions
+    # these fields like 'status' should be changed to 'task_status', because 'status' is normally
+    # used for HTTP codes.
+    response = {
+        'task_id': task_id,
+        'status': task_status,
+        'result': task_result,
+        'completion_t': task_completion_t,
+        'exception': task_exception
+    }
 
-        res = {'task_id': task_id}
+    # Note: this is for backwards compat, when we can't include a None result and have a
+    # non-complete status, we must forgo the result field if task not complete.
+    if task_result is None:
+        del response['result']
 
-        task['task_id'] = task_id
+    if task_exception is None:
+        del response['exception']
 
-        app.logger.debug("Status Response: {}".format(str(task)))
-        return jsonify(task)
+    return jsonify(response)
 
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
+
+@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
+@authenticated
+def status(user_name, task_id):
+    """Check the status of a task.
+
+    Parameters
+    ----------
+    user_name
+    task_id
+
+    Returns
+    -------
+    json
+        'status' : task status
+    """
+    rc = get_redis_client()
+
+    if not Task.exists(rc, task_id):
+        abort(400, "task_id not found")
+    task = Task.from_id(rc, task_id)
+
+    return jsonify({
+        'status': task.status
+    })
 
 
 @funcx_api.route("/batch_status", methods=['POST'])
@@ -383,11 +402,6 @@ def batch_status(user_name):
     json
         The status of the task
     """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
     app.logger.debug("request : {}".format(request.json))
     results = get_tasks_from_redis(request.json['task_ids'])
 
@@ -453,123 +467,6 @@ def result(user_name, task_id):
     except Exception as e:
         app.logger.error(e)
         return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
-
-
-@funcx_api.route("/tasks/<task_id>", methods=['GET'])
-@authenticated
-def get_task(user_name, task_id):
-    """Get a task.
-
-    If the query parameter deserialized=True is set, we deserialize the result before returning it.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    # Allow the user to request the output be deserialized.
-    deserialize = request.args.get('deserialize')
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-                if deserialize:
-                    # Deserialize the output before returning it to the user
-                    task['result'] = deserialize_result(task['result'])
-
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-        else:
-            if result_obj:
-                # Task complete, attempt flush
-                try:
-                    rc.delete(f"task_{task_id}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to delete Task:{task_id} due to {e}. Ignoring...")
-                    pass
-
-        task['task_id'] = task_id
-
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify(task)
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'FAILED',
-                        'reason': 'InternalError: {}'.format(e)})
-
-
-@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
-@authenticated
-def get_task_status(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"Result_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-                if 'status' not in task:
-                    task['status'] = 'COMPLETED'
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
-
-        app.logger.debug("Status Response: {}".format(str(task['status'])))
-        return jsonify({'status': task['status']})
-
-    except Exception as e:
-        app.logger.error(e)
-        return jsonify({'status': 'FAILED',
                         'reason': 'InternalError: {}'.format(e)})
 
 
@@ -684,9 +581,10 @@ def register_with_hub(address, endpoint_id, endpoint_address):
        Address of the forwarder service of the form http://<IP_Address>:<Port>
 
     """
+    print(address + '/register')
     r = requests.post(address + '/register',
                       json={'endpoint_id': endpoint_id,
-                            'redis_address': 'funcx-redis.wtgh6h.0001.use1.cache.amazonaws.com',
+                            'redis_address': app.config['REDIS_HOST'],
                             'endpoint_addr': endpoint_address,
                             }
                       )
@@ -698,9 +596,35 @@ def register_with_hub(address, endpoint_id, endpoint_address):
     return r.json()
 
 
+def get_forwarder_version():
+    forwarder_ip = app.config['FORWARDER_IP']
+    r = requests.get(f"http://{forwarder_ip}:8080/version")
+    return r.json()
+
+
 @funcx_api.route("/version", methods=['GET'])
 def get_version():
-    return jsonify(VERSION)
+    s = request.args.get("service")
+    if s == "api" or s is None:
+        return jsonify(VERSION)
+    elif s == "funcx":
+        return jsonify(FUNCX_VERSION)
+
+    forwarder_v_info = get_forwarder_version()
+    forwarder_version = forwarder_v_info['forwarder']
+    min_ep_version = forwarder_v_info['min_ep_version']
+    if s == 'forwarder':
+        return jsonify(forwarder_version)
+
+    if s == 'all':
+        return jsonify({
+            "api": VERSION,
+            "funcx": FUNCX_VERSION,
+            "forwarder": forwarder_version,
+            "min_ep_version": min_ep_version
+        })
+
+    abort(400, "unknown service type or other error.")
 
 
 @funcx_api.route("/addr", methods=['GET'])
@@ -799,7 +723,7 @@ def get_ep_stats(user_name, endpoint_id):
     json
         The status of the endpoint
     """
-
+    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
     last = 10
 
     if not user_name:
@@ -824,24 +748,33 @@ def get_ep_stats(user_name, endpoint_id):
     # TODO add rc to g.
     rc = get_redis_client()
 
-    stats = []
+    status = {'status': 'offline', 'logs': []}
     try:
         end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
         print("Total len :", end)
         items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
         if items:
             for i in items:
-                stats.append(json.loads(i))
-    except Exception as e:
-        stats = {'status': 'Failed',
-                 'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+                status['logs'].append(json.loads(i))
 
-    return jsonify(stats)
+            # timestamp is created using time.time(), which returns seconds since epoch UTC
+            logs = status['logs']  # should have been json loaded already
+            newest_timestamp = logs[0]['timestamp']
+            now = time.time()
+            if now - newest_timestamp < alive_threshold:
+                status['status'] = 'online'
+
+    except Exception as e:
+        app.logger.error("Unable to retrieve ")
+        status = {'status': 'Failed',
+                  'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+
+    return jsonify(status)
 
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
-@authenticated
-def register_endpoint_2(user_name):
+@authenticated_w_uuid
+def register_endpoint_2(user_name, user_uuid):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
@@ -850,10 +783,16 @@ def register_endpoint_2(user_name):
         A dict containing the endpoint details
     """
     app.logger.debug("register_endpoint_2 triggered")
+    app.logger.debug(request.json)
+    
+    v_info = get_forwarder_version()
+    min_ep_version = v_info['min_ep_version']
+    if 'version' not in request.json:
+        abort(400, "Endpoint funcx version must be passed in the 'version' field.")
 
-    if not user_name:
-        abort(400, description="Error: You must be logged in to perform this function.")
-
+    if request.json['version'] < min_ep_version:
+        abort(400, f"Endpoint is out of date. Minimum supported endpoint version is {min_ep_version}")
+        
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
@@ -864,10 +803,12 @@ def register_endpoint_2(user_name):
 
     try:
         app.logger.debug(request.json['endpoint_name'])
+        app.logger.debug(f"requesting registration for {request.json}")
         endpoint_uuid = register_endpoint(user_name,
                                           request.json['endpoint_name'],
-                                          request.json['description'],
-                                          request.json['endpoint_uuid'])
+                                          "",  # use description from meta? why store here at all
+                                          endpoint_uuid=request.json['endpoint_uuid'])
+        app.logger.debug(f"Successfully register_endpoint for {endpoint_uuid} in database")
 
     except KeyError as e:
         app.logger.debug("Missing Keys in json request : {}".format(e))
@@ -887,18 +828,27 @@ def register_endpoint_2(user_name):
     try:
         forwarder_ip = app.config['FORWARDER_IP']
         response = register_with_hub(
-            f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+                f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+        app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
+
     except Exception as e:
         app.logger.debug("Caught error during forwarder initialization")
+        app.logger.error(e, exc_info=True)
         response = {'status': 'error',
                     'reason': f'Failed during broker start {e}'}
 
-    return jsonify(response)
+    if 'meta' in request.json and endpoint_uuid:
+        ingest_endpoint(user_name, user_uuid, endpoint_uuid, request.json['meta'])
+        app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+    try:
+        return jsonify(response)
+    except NameError:
+        return "oof"
 
 
 @funcx_api.route("/register_function", methods=['POST'])
-@authenticated
-def reg_function(user_name):
+@authenticated_w_uuid
+def reg_function(user_name, user_uuid):
     """Register the function.
 
     Parameters
@@ -926,14 +876,15 @@ def reg_function(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
     try:
-
         function_name = request.json["function_name"]
         entry_point = request.json["entry_point"]
         description = request.json["description"]
         function_code = request.json["function_code"]
+        function_source = request.json.get("function_source", "")
         container_uuid = request.json.get("container_uuid", None)
         group = request.json.get("group", None)
         public = request.json.get("public", False)
+        searchable = request.json.get("searchable", True)
 
     except Exception as e:
         app.logger.error(e)
@@ -942,7 +893,7 @@ def reg_function(user_name):
 
     try:
         function_uuid = register_function(
-            user_name, function_name, description, function_code, 
+            user_name, function_name, description, function_code,
             entry_point, container_uuid, group, public)
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".format(
@@ -953,7 +904,23 @@ def reg_function(user_name):
         return jsonify({'status': 'Failed',
                         'reason': message})
 
-    return jsonify({'function_uuid': function_uuid})
+    response = jsonify({'function_uuid': function_uuid})
+    if not searchable:
+        return response
+    try:
+        ingest_function(
+            user_name, user_uuid, function_uuid, function_name, description, function_code,
+            function_source, entry_point, container_uuid, group, public)
+    except Exception as e:
+        message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
+            user_name,
+            function_name,
+            e)
+        app.logger.error(message)
+        return jsonify({'status': 'Failed',
+                        'reason': message})
+
+    return response
 
 
 @funcx_api.route("/upd_function", methods=['POST'])
@@ -982,6 +949,7 @@ def upd_function(user_name):
         function_code = request.json["code"]
         result = update_function(user_name, function_uuid, function_name,
                                  function_desc, function_entry_point, function_code)
+
         # app.logger.debug("[LOGGER] result: " + str(result))
         return jsonify({'result': result})
     except Exception as e:

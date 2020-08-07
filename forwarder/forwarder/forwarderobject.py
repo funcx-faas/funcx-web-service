@@ -1,27 +1,34 @@
 import logging
-import threading
-from functools import partial
-import uuid
 import os
 import queue
+import threading
 import time
-import zmq
-import pickle
-import requests
-
-from multiprocessing import Queue
-from parsl.providers import LocalProvider
-from parsl.channels import LocalChannel
-from parsl.app.errors import RemoteExceptionWrapper
-
-from funcx.executors import HighThroughputExecutor as HTEX
-from funcx.serialize import FuncXSerializer
-
+from functools import partial
 from multiprocessing import Process
-from forwarder.queues import RedisQueue
-from forwarder.endpoint_db import EndpointDB
+from multiprocessing import Queue
+
+import requests
+import zmq
+from funcx.executors import HighThroughputExecutor as HTEX
+from funcx.executors.high_throughput.executor import logger as executorLogger
+from funcx.executors.high_throughput.messages import Heartbeat
+from funcx.serialize import FuncXSerializer
+from parsl.channels import LocalChannel
+from parsl.providers import LocalProvider
+
+import os
+# import sys
+# print(sys.path)
+# sys.path.insert(0, "/opt/forwarder")
+# print(sys.path)
+# sys.path = sys.path[3:]
+# print(sys.path)
 
 from forwarder import set_file_logger
+from forwarder.endpoint_db import EndpointDB
+from forwarder.queues import RedisQueue
+from forwarder.queues.redis.redis_q import EndpointQueue
+from forwarder.queues.redis.tasks import Task, TaskState, status_code_convert
 
 
 def double(x):
@@ -53,19 +60,18 @@ class Forwarder(Process):
     out from some DB ?
     """
 
-    def __init__(self, task_q, result_q, executor, endpoint_id,
-                 heartbeat_threshold=60, endpoint_addr=None,
+    def __init__(self, task_q, task_status_q, executor, endpoint_id,
+                 heartbeat_period=60, endpoint_addr=None,
                  redis_address=None,
                  logdir="forwarder_logs", logging_level=logging.INFO,
                  max_heartbeats_missed=2):
         """
         Parameters
         ----------
-        task_q : A queue object
+        task_q : EndpointQueue
         Any queue object that has get primitives. This must be a thread-safe queue.
 
-        result_q : A queue object
-        Any queue object that has put primitives. This must be a thread-safe queue.
+        task_status_q : queue.Queue
 
         executor: Executor object
         Executor to which tasks are to be forwarded
@@ -76,8 +82,8 @@ class Forwarder(Process):
         endpoint_addr: str
         Endpoint ip address as a string
 
-        heartbeat_threshold : int
-        Heartbeat threshold in seconds
+        heartbeat_period : int
+        Heartbeat period in seconds
 
         logdir: str
         Path to logdir
@@ -106,8 +112,7 @@ class Forwarder(Process):
 
         self.endpoint_addr = endpoint_addr
         self.task_q = task_q
-        self.result_q = result_q
-        self.heartbeat_threshold = heartbeat_threshold
+        self.task_status_q = task_status_q
         self.executor = executor
         self.endpoint_id = endpoint_id
         self.endpoint_addr = endpoint_addr
@@ -116,34 +121,82 @@ class Forwarder(Process):
         self.client_ports = None
         self.fx_serializer = FuncXSerializer()
         self.kill_event = threading.Event()
+
+        self.heartbeat_period = heartbeat_period
         self.max_heartbeats_missed = max_heartbeats_missed
 
-    def handle_app_update(self, task_header, future):
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop,
+            args=(self.kill_event,)
+        )
+
+        self._task_status_thread = threading.Thread(
+            target=self._task_status_loop,
+            args=(self.kill_event,)
+        )
+
+    def handle_app_update(self, task_id, future):
         """ Triggered when the executor sees a task complete.
 
         This can be further optimized at the executor level, where we trigger this
         or a similar function when we see a results item inbound from the interchange.
         """
 
-        task_id = task_header.split(';')[0]
         print(f"*** TASK RETURN STARTED: {task_id} -- {time.time()} ***")
         logger.debug(f"[RESULTS] Updating result for {task_id}")
         try:
             res_dict = future.result()
             logger.info("Res_dict : {}".format(res_dict))
+            task = Task.from_id(self.task_q.redis_client, task_id)
+
+            # TODO: What does the res_dict look like?  Can we just set task.result=res_dict?
             if 'result' in res_dict:
-                self.result_q.put(task_id, 'result', {'result': res_dict['result'],
-                                                      'completion_t': time.time()})
+                task.status = TaskState.SUCCESS
+                task.result = res_dict['result']
+                task.completion_time = time.time()
             elif 'exception' in res_dict:
-                self.result_q.put(task_id, 'result', {'exception': res_dict['exception'],
-                                                      'completion_t': time.time()})
+                task.status = TaskState.FAILED
+                task.exception = res_dict['exception']
+                task.completion_time = time.time()
+
         except Exception as e:
-            logger.error("Task update {} failed due to {}".format(task_id, e))
+            logger.error(f"Task update {task_id} failed due to {e}")
             # Todo : Since we caught an exception, we should wrap it here, and send it
             # back onto the results queue.
         else:
             print(f"*** TASK RETURN SUCCEEDED: {task_id} -- {time.time()}***")
-            logger.info("Task:{} succeeded".format(task_id))
+            logger.info(f"Task:{task_id} succeeded")
+
+    def _endpoint_heartbeat_fail(self):
+        """Return true if too many heartbeats have been missed"""
+        return int(time.time() - self.executor.last_response_time) > \
+                    (self.max_heartbeats_missed * self.heartbeat_period)
+    
+    def _heartbeat_loop(self, kill_event):
+        while not kill_event.is_set():
+            logger.info("Activating executor.send_heartbeat()")
+            self.executor.send_heartbeat()
+            time.sleep(self.heartbeat_period)
+
+    def _task_status_loop(self, kill_event):
+        while not kill_event.is_set():
+            logger.debug("Pulling from task_status_q")
+            try:
+                task_status_delta = self.task_status_q.get(timeout=self.heartbeat_period)
+            except queue.Empty:
+                continue
+
+            logger.debug("Received task_status_q update")
+            for task_id, status_code in task_status_delta.items():
+                # task id will look like task_id;foo;bar
+                # TODO: when task id no longer contains container and serializer, stop splitting
+                task_id = task_id.split(";")[0]
+                status = status_code_convert(status_code)
+
+                logger.info(f"Updating Task({task_id}) to status={status}")
+                task = Task.from_id(self.task_q.redis_client, task_id)
+                task.status = status
+
 
     def task_loop(self):
         """ Task Loop
@@ -157,8 +210,7 @@ class Forwarder(Process):
         logger.info("[TASKS] Entering task loop")
         while True:
             # Check if too many heartbeats have been missed
-            if int(time.time() - self.executor.last_response_time) > \
-                    (self.max_heartbeats_missed * self.heartbeat_threshold):
+            if self._endpoint_heartbeat_fail():
                 # Too many heartbeats have been missed. Set kill event
                 logger.warning("[TASKS] Too many heartbeats missed. Setting kill event.")
                 self.kill_event.set()
@@ -166,56 +218,47 @@ class Forwarder(Process):
 
             # Get a task
             try:
-                task_id, task_info = self.task_q.get('task',
-                                                     timeout=self.heartbeat_threshold)  # Timeout in s
-                
-                logger.debug("[TASKS] Got task_id {}".format(task_id))
+                task = self.task_q.dequeue(timeout=self.heartbeat_period)
+                logger.debug(f"[TASKS] Got task_id {task.task_id}")
 
             except queue.Empty:
-                try:
-                    logger.debug("[TASKS] Requesting info")
-                    self.executor.request_status_info()
-                except zmq.error.Again:
-                    logger.exception(f"[TASKS] Endpoint busy/unavailable, status info request failed")
-                    break
-                else:
-                    continue
+                continue
 
             except Exception:
                 logger.exception("[TASKS] Task queue get error")
                 continue
 
-            logger.debug("Task_info block :{}".format(task_info))
+            task_payload = task.payload
+            logger.debug(f"Task payload block:{task_payload}")
 
             # Convert the payload to bytes
-            logger.warning("DEBUG : task_info {}".format(task_info))
-            full_payload = task_info.encode()
+            full_payload = task_payload.encode()
 
             # If the kill event has been set put the task back on the queue and break
             if self.kill_event.is_set():
-                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task_id}")
-                self.task_q.put(task_id, 'task', task_info)
+                logger.exception(f"[TASKS] Kill event set. Putting task back in queue. task:{task.task_id}")
+                self.task_q.enqueue(task)
                 logger.warning("[TASKS] Breaking task-loop")
                 break
 
             try:
                 logger.debug("Submitting task to executor")
-                fu = self.executor.submit(full_payload, task_id=task_id)
+                fu = self.executor.submit(full_payload, task_id=task.header)
                 t_fin = time.time()
-                print(f"*** FINISH {task_id} *** {t_fin}")
+                print(f"*** FINISH {task.task_id} *** {t_fin}")
 
             except zmq.error.Again:
-                logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task_id}")
-                self.task_q.put(task_id, 'task', task_info)
+                logger.exception(f"[TASKS] Endpoint busy/unavailable, could not forward task:{task.task_id}")
+                self.task_q.enqueue(task)
                 logger.warning("[TASKS] Breaking task-loop to switch to endpoint liveness loop")
                 break
             except Exception:
                 # Broad catch to avoid repeating the task reput,
-                logger.exception("[TASKS] Some unhandled error occurred")
-                self.task_q.put(task_id, 'task', task_info)
-
-            # Task is now submitted. Tack a callback on that.
-            fu.add_done_callback(partial(self.handle_app_update, task_id))
+                logger.exception(f"[TASKS] Some unhandled error occurred, re-queueing task={task.task_id}")
+                self.task_q.enqueue(task)
+            else:
+                # Task is now submitted. Tack a callback on that.
+                fu.add_done_callback(partial(self.handle_app_update, task.task_id))
 
     def update_endpoint_metadata(self):
         """ Geo locate the endpoint and push as metadata into redis
@@ -231,20 +274,18 @@ class Forwarder(Process):
         """ Process entry point.
         """
         logger.info("[MAIN] Loop starting")
-        logger.info("[MAIN] Executor: {}".format(self.executor))
+        logger.info(f"[MAIN] Executor: {self.executor}")
+        logger.info(f"[MAIN] Attempting to resolve endpoint_addr: {self.endpoint_addr}")
 
-        logger.info("[MAIN] Attempting to resolve endpoint_addr: {}".format(self.endpoint_addr))
         try:
             resp = self.update_endpoint_metadata()
-
-        except Exception as e:
-            logger.exception("Failed to geo locate {}".format(self.endpoint_addr))
+        except Exception:
+            logger.error(f"Failed to geo locate {self.endpoint_addr}")
         else:
-            logger.info("Endpoint is at {}".format(resp))
+            logger.info(f"Endpoint is at {resp}")
 
         try:
             self.task_q.connect()
-            self.result_q.connect()
         except Exception:
             logger.exception("Connecting to the queues have failed")
 
@@ -255,6 +296,9 @@ class Forwarder(Process):
 
         logger.info("[MAIN] Waiting for endpoint to connect")
         self.executor.wait_for_endpoint()
+
+        self._heartbeat_thread.start()
+        self._task_status_thread.start()
         
         # Start the task loop
         while True:
@@ -285,7 +329,6 @@ def spawn_forwarder(address,
                     endpoint_addr=None,
                     executor=None,
                     task_q=None,
-                    result_q=None,
                     logging_level=logging.INFO):
     """ Spawns a forwarder and returns the forwarder process for tracking.
 
@@ -320,25 +363,24 @@ def spawn_forwarder(address,
          A Forwarder object
     """
     if not task_q:
-        task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
-    if not result_q:
-        # result_q = RedisQueue('result_{}'.format(endpoint_id), redis_address)
-        # Change of design. We want all tasks to go to a results table and results_list queue
-        # This would allow any frontend service to access the results stream.
-        result_q = RedisQueue('results', redis_address)
+        # task_q = RedisQueue('task_{}'.format(endpoint_id), redis_address)
+        task_q = EndpointQueue(endpoint_id, redis_address)
 
     print("Logging_level: {}".format(logging_level))
     print("Task_q: {}".format(task_q))
-    print("Result_q: {}".format(result_q))
 
     if not executor:
+        task_status_q = queue.Queue()
         executor = HTEX(label='htex',
                         provider=LocalProvider(
                             channel=LocalChannel),
                         endpoint_db=EndpointDB(redis_address),
                         endpoint_id=endpoint_id,
-                        address=address)
-    fw = Forwarder(task_q, result_q, executor,
+                        address=address,
+                        task_status_queue=task_status_q
+                        )
+        executorLogger.setLevel(logging_level)
+    fw = Forwarder(task_q, task_status_q, executor,
                    endpoint_id,
                    endpoint_addr=endpoint_addr,
                    redis_address=redis_address,

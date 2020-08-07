@@ -34,6 +34,7 @@ application.config.from_object(os.environ['APP_SETTINGS'])
 
 
 # Include the API blueprint
+application.register_blueprint(funcx_api, url_prefix="/v1")
 application.register_blueprint(funcx_api, url_prefix="/api/v1")
 application.register_blueprint(automate_api, url_prefix="/automate")
 application.register_blueprint(auth_api)
@@ -41,4 +42,7 @@ application.register_blueprint(guiapi)
 
 
 if __name__ == '__main__':
-    application.run("0.0.0.0", port=8080)
+    if os.environ['FLASK_ENV'] == 'development':
+        application.run("0.0.0.0", port=8080, ssl_context=("/run/secrets/web_cert", "/run/secrets/web_key"))
+    else:
+        application.run("0.0.0.0", port=8080)
