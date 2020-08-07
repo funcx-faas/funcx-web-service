@@ -783,6 +783,7 @@ def register_endpoint_2(user_name, user_uuid):
         A dict containing the endpoint details
     """
     app.logger.debug("register_endpoint_2 triggered")
+    app.logger.debug(request.json)
     
     v_info = get_forwarder_version()
     min_ep_version = v_info['min_ep_version']
