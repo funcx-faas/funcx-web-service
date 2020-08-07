@@ -1,6 +1,6 @@
 flask
-requests==2.20.0
-jsonschema==2.6.0
+requests>=2.20.0
+jsonschema>=2.6.0
 sphinx_rtd_theme
 nbsphinx
 parsl==0.9.0
@@ -8,4 +8,4 @@ configobj
 texttable
 redis
 bottle
-funcx==0.0.1a6
+funcx>=0.0.1a6
