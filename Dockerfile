@@ -1,14 +1,19 @@
-FROM funcx-web-base
+FROM python:3.7-alpine
+RUN apk update && \
+    apk add --no-cache gcc musl-dev linux-headers && \
+    apk add postgresql-dev libffi-dev g++ make libressl-dev
+
 WORKDIR /opt/funcx-web-service
+
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY web-entrypoint.sh .
+
+COPY ./funcx_web_service/ ./funcx_web_service/
+
 ENV FLASK_APP ./application.py
 ENV FLASK_DEBUG 1
 ENV FLASK_RUN_HOST 0.0.0.0
 
-COPY ./requirements.txt ./requirements.txt
-RUN pip install -r requirements.txt
-
-# use iptables to have flask receive via 80 and 8080
-# this allows us to easily receive traffic intended for funcx.org
-RUN apk add iptables
-EXPOSE 80/tcp
 CMD sh web-entrypoint.sh
