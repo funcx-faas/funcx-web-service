@@ -8,9 +8,10 @@ from flask import current_app as app, Blueprint, jsonify, request, abort, send_f
 from funcx.errors import RegistrationError
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
-from funcx_web_service.errors import *
+
 from funcx_web_service.models.tasks import Task
-from funcx_web_service.models.utils import register_container, get_redis_client
+from funcx_web_service.models.utils import register_container, get_redis_client, \
+    ingest_endpoint
 from funcx_web_service.models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
@@ -21,6 +22,7 @@ from .redis_q import EndpointQueue
 from funcx.version import VERSION as FUNCX_VERSION
 
 # Flask
+from ..errors import UserNotFound
 from ..models.serializer import serialize_inputs, deserialize_result
 
 funcx_api = Blueprint("routes", __name__)
@@ -520,7 +522,7 @@ def reg_container(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
-    app.logger.debug(f"Creating container.")
+    app.logger.debug("Creating container.")
     post_req = request.json
 
     container_id = register_container(user_name, post_req['name'], post_req['location'],
@@ -785,7 +787,7 @@ def register_endpoint_2(user_name, user_uuid):
     """
     app.logger.debug("register_endpoint_2 triggered")
     app.logger.debug(request.json)
-    
+
     v_info = get_forwarder_version()
     min_ep_version = v_info['min_ep_version']
     if 'version' not in request.json:
@@ -793,7 +795,7 @@ def register_endpoint_2(user_name, user_uuid):
 
     if request.json['version'] < min_ep_version:
         abort(400, f"Endpoint is out of date. Minimum supported endpoint version is {min_ep_version}")
-        
+
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
@@ -1015,7 +1017,7 @@ def del_endpoint(user_name):
 def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
     """ Get stats from the forwarder
     """
-    app.logger.debug(f"Getting stats from forwarder")
+    app.logger.debug("Getting stats from forwarder")
     try:
         r = requests.get(forwarder_address + '/map.json')
         if r.status_code != 200:
@@ -1049,6 +1051,6 @@ def get_map():
     json
     Dict containing the result as an integer
     """
-    app.logger.debug(f"Received map request")
+    app.logger.debug("Received map request")
     # return jsonify("hello")
     return send_from_directory('routes', 'mapper.html')

@@ -1,15 +1,13 @@
-import json
 import time
 import uuid
-import redis
+
 import psycopg2
 import psycopg2.extras
-
+import redis
 from flask import current_app as app
 
-import funcx_web_service
 from funcx_web_service import models
-from funcx_web_service.errors import *
+from funcx_web_service.errors import UserNotFound, MissingFunction
 
 
 class db_invocation_logger(object):
@@ -26,7 +24,7 @@ class db_invocation_logger(object):
             if deferred is False:
                 self.conn.commit()
 
-        except Exception as e:
+        except Exception:
             app.logger.exception("Caught error while writing log update to db")
 
     def commit(self):
@@ -271,6 +269,7 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
 def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
     owner_urn = f"urn:globus:auth:identity:{user_uuid}"
     models.search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
+
 
 def register_container(user_name, container_name, location, description, container_type):
     """Register the container in the database. Put an entry into containers and
@@ -569,8 +568,8 @@ def update_function(user_name, function_uuid, function_name, function_desc, func
             "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
             (function_uuid,))
         func = cur.fetchone()
-        if func != None:
-            if func['deleted'] == False:
+        if func is not None:
+            if not func['deleted']:
                 if func['username'] == user_name:
                     cur.execute(
                         "UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s",
@@ -613,8 +612,8 @@ def delete_function(user_name, function_uuid):
             "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
             (function_uuid,))
         func = cur.fetchone()
-        if func != None:
-            if func['deleted'] == False:
+        if func is not None:
+            if not func['deleted']:
                 if func['username'] == user_name:
                     cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
                     conn.commit()
@@ -655,8 +654,8 @@ def delete_endpoint(user_name, endpoint_uuid):
             "SELECT username, sites.deleted FROM sites, users WHERE endpoint_uuid = %s AND sites.user_id = users.id",
             (endpoint_uuid,))
         site = cur.fetchone()
-        if site != None:
-            if site['deleted'] == False:
+        if site is not None:
+            if not site['deleted']:
                 if site['username'] == user_name:
                     cur.execute("UPDATE sites SET deleted = True WHERE endpoint_uuid = %s", (endpoint_uuid,))
                     conn.commit()

@@ -100,7 +100,7 @@ def store_data(data, conn, cur):
             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     cur.execute(query, (data['functions'], data['endpoints'], data['users'], float(data['core_hours']),
                         int(data['invocations']), data['functions_day'], data['functions_week'], data['functions_month'],
-                        data['endpoints_day'],  data['endpoints_week'],  data['endpoints_month'],
+                        data['endpoints_day'], data['endpoints_week'], data['endpoints_month'],
                         data['users_day'], data['users_week'], data['users_month']))
     conn.commit()
 
