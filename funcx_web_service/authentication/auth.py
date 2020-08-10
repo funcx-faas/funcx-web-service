@@ -161,7 +161,6 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
     return authorized
 
 
-
 @functools.lru_cache()
 def authorize_function(user_id, function_uuid, token):
     """Determine whether or not the user is allowed to access this function.

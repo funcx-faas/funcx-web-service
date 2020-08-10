@@ -10,20 +10,20 @@ from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
 dictConfig({
-        'version': 1,
-        'formatters': {'default': {
-                    'format': '%(module)s:%(lineno)d [%(levelname)s]: %(message)s',
-                }},
-        'handlers': {'wsgi': {
-                    'class': 'logging.StreamHandler',
-                    'stream': 'ext://flask.logging.wsgi_errors_stream',
-                    'formatter': 'default'
-                }},
-        'root': {
-                    'level': 'DEBUG',
-                    'handlers': ['wsgi']
-                }
-    })
+    'version': 1,
+    'formatters': {'default': {
+        'format': '%(module)s:%(lineno)d [%(levelname)s]: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
 
 
 application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")

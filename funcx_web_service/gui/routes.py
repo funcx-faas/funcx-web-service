@@ -1,10 +1,11 @@
+from math import ceil
+
 from flask import (Blueprint, current_app as app, flash, redirect, render_template,
                    session, url_for, g)
 import time
 import requests
 import uuid
 import redis
-from math import *
 from datetime import timedelta
 
 # Flask
@@ -38,7 +39,7 @@ def num_delimiter(num, type):
             if i == ".":
                 decimal = num.index(i)
                 break
-        if decimal == None:
+        if decimal is None:
             num = num + ".00"
             decimal = num.index(".")
         while num[-3] != ".":
@@ -86,8 +87,8 @@ def home():
             for task in tasks:
                 times.append(task['modified_at'] - task['created_at'])
             count = timedelta(hours=0)
-            for time in times:
-                count += time
+            for t in times:
+                count += t
             stats[2] = num_delimiter(round((count.total_seconds() / 3600.0), 2), "decimal")
     except:
         flash('There was an issue handling your request.', 'danger')
@@ -143,7 +144,7 @@ def function_edit(uuid):
         conn, cur = get_db_connection()
         cur.execute("SELECT function_name, description, entry_point, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
         func = cur.fetchone()
-        if func == None:
+        if func is None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
         if func['username'] != session.get('username'):
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
@@ -184,9 +185,14 @@ def function_view(uuid):
         return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT function_name, description, entry_point, users.id, username, timestamp, modified_at, function_uuid, status, function_code FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id AND functions.deleted = False", (uuid,))
+        cur.execute("SELECT function_name, description, entry_point, users.id, username, "
+                    "timestamp, modified_at, function_uuid, status, function_code "
+                    "FROM functions, users "
+                    "WHERE function_uuid = %s "
+                    "AND functions.user_id = users.id "
+                    "AND functions.deleted = False", (uuid,))
         func = cur.fetchone()
-        if func == None:
+        if func is None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
         if func['username'] != session.get('username'):
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
@@ -249,7 +255,14 @@ def endpoints():
         return redirect(url_for('auth_api.login'))
     try:
         conn, cur = get_db_connection()
-        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, status, sites.created_at, public FROM sites, users WHERE ((sites.user_id = users.id AND users.username = %s AND sites.public = 'f') OR (sites.public = 't')) AND sites.deleted = 'f' AND endpoint_uuid is not null order by created_at desc;", (session.get("username"),))
+        cur.execute("SELECT DISTINCT sites.user_id, endpoint_name, endpoint_uuid, "
+                    "status, sites.created_at, public "
+                    "FROM sites, users "
+                    "WHERE ((sites.user_id = users.id "
+                    "AND users.username = %s AND sites.public = 'f') "
+                    "OR (sites.public = 't')) AND sites.deleted = 'f' "
+                    "AND endpoint_uuid is not null "
+                    "order by created_at desc;", (session.get("username"),))
         endpoints = cur.fetchall()
         endpoints_total = len(endpoints)
         private_endpoints = list()
@@ -295,7 +308,7 @@ def endpoint_view(endpoint_uuid):
             "AND endpoint_name IS NOT NULL AND sites.deleted = 'f';",
             (endpoint_uuid,))
         endpoint = cur.fetchone()
-        if endpoint == None:
+        if endpoint is None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
         if endpoint['username'] != session.get('username') and endpoint['public'] is False:
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
@@ -325,7 +338,6 @@ def endpoint_view(endpoint_uuid):
             # return redirect(url_for('guiapi.endpoints'))
 
     return render_template('endpoint_view.html', user=session.get('name'), title=f'View "{name}"', endpoint=endpoint, delete_form=delete_form)
-
 
 
 @guiapi.route('/tasks')
@@ -363,11 +375,10 @@ def task_view(task_id):
             "AND function_id IS NOT NULL;",
             (task_id,))
         task = cur.fetchone()
-        if task == None:
+        if task is None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
         if task['username'] != session.get('username'):
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')
-        name = task['task_id']
     except:
         flash('There was an issue handling your request.', 'danger')
         return redirect(url_for('guiapi.tasks'))
@@ -382,7 +393,7 @@ def function_tasks(uuid):
         conn, cur = get_db_connection()
         cur.execute("SELECT function_uuid, function_name, username FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id", (uuid,))
         func = cur.fetchone()
-        if func == None:
+        if func is None:
             return render_template('error.html', user=session.get('name'), title='404 Not Found')
         if func['username'] != session.get('username'):
             return render_template('error.html', user=session.get('name'), title='403 Forbidden')

@@ -24,7 +24,7 @@ def get_search_client():
     search_token = tokens.by_scopes[SEARCH_SCOPE]
     app.logger.debug(f"Search token: {search_token}")
     access_token = search_token['access_token']
-    app.logger.debug(f"Access token")
+    app.logger.debug("Access token")
     authorizer = AccessTokenAuthorizer(access_token)
     app.logger.debug("Acquired AccessTokenAuthorizer for search")
     search_client = SearchClient(authorizer)

@@ -6,7 +6,7 @@ from funcx_web_service.models.serializer import deserialize_result
 from funcx_web_service.models.tasks import Task
 from funcx_web_service.models.utils import resolve_user, get_redis_client
 from funcx_web_service.authentication.auth import authenticated
-from flask import current_app as app, Blueprint, jsonify, request, abort, g
+from flask import current_app as app, Blueprint, jsonify, request, abort
 from funcx_web_service.routes.funcx import auth_and_launch
 
 # Flask
@@ -289,7 +289,7 @@ def check_batch_status(task_ids):
             app.logger.debug(f"Batch Result_obj : {result_obj}")
             if not result_obj:
                 return False
-    except Exception as e:
+    except Exception:
         return False
     return True
 

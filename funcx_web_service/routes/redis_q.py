@@ -173,7 +173,7 @@ class RedisQueue(object):
 
 class EndpointQueue(RedisQueue):
     """Encapsulates functionality required for placing tasks on Queue for an Endpoint in Redis"""
-    def __init__(self, endpoint: str, hostname: str, port: int=6379):
+    def __init__(self, endpoint: str, hostname: str, port: int = 6379):
         super(EndpointQueue, self).__init__(f"task_{endpoint}", hostname, port=port)
         self.queue_name = f'{self.prefix}_list'
         self.endpoint = endpoint
@@ -196,7 +196,6 @@ class EndpointQueue(RedisQueue):
         # we only query 1 list, so we can ignore the list name
         _, task_id = res
         return Task.from_id(self.redis_client, task_id)
-
 
 
 def test():

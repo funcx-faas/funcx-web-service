@@ -1,6 +1,6 @@
 import requests
 
-from flask import request, current_app as app
+from flask import current_app as app
 
 
 def serialize_inputs(input_data):
