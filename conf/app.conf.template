@@ -1,0 +1,2 @@
+REDIS_PORT = 1234
+REDIS_HOST = "localhost"
