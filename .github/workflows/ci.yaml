@@ -34,6 +34,10 @@ jobs:
     - name: Lint with Flake8
       run: |
         flake8
+    - name: Test with pytest
+      run: |
+        python -m pytest -r sx
+
 
   publish:
     needs: test
