@@ -26,17 +26,19 @@ dictConfig({
 })
 
 
-application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
-application.config.from_object(os.environ['APP_SETTINGS'])
+def create_app(app_config_object):
+    application = Flask(__name__, template_folder="gui/templates", static_folder="gui/static")
+    application.config.from_object(app_config_object)
 
-
-# Include the API blueprint
-application.register_blueprint(funcx_api, url_prefix="/v1")
-application.register_blueprint(funcx_api, url_prefix="/api/v1")
-application.register_blueprint(automate_api, url_prefix="/automate")
-application.register_blueprint(auth_api)
-application.register_blueprint(guiapi)
+    # Include the API blueprint
+    application.register_blueprint(funcx_api, url_prefix="/v1")
+    application.register_blueprint(funcx_api, url_prefix="/api/v1")
+    application.register_blueprint(automate_api, url_prefix="/automate")
+    application.register_blueprint(auth_api)
+    application.register_blueprint(guiapi)
+    return application
 
 
 if __name__ == '__main__':
-    application.run("0.0.0.0", port=8080)
+    app = create_app(os.environ['APP_SETTINGS'])
+    app.run("0.0.0.0", port=8080)
