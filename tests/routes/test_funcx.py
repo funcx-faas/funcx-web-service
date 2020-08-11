@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 import pytest
-from funcx_web_service.application import create_app
+from funcx_web_service import create_app
 
 
 @pytest.fixture
@@ -35,7 +35,9 @@ class TestFuncX:
         mock_exists = mocker.patch.object(Task, "exists", return_value=True)
         mock_from_id = mocker.patch.object(Task, "from_id", return_value=mock_task)
 
-        client = create_app({}).test_client()
+        client = create_app(app_config_object={
+            "REDIS_HOST": "localhost"
+        }).test_client()
 
         result = client.get("/api/v1/tasks/42/status", headers={"Authorization": "my_token"})
 

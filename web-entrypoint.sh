@@ -1,3 +1,3 @@
-APP_SETTINGS=funcx_web_service.config.Config \
-  PYTHONPATH=/opt/funcx-web-service \
-  python funcx_web_service/application.py
+#!/bin/sh
+mkdir instance
+exec gunicorn -b :5000 --workers=5 --threads=1 --timeout 120 --access-logfile - --error-logfile - "funcx_web_service:create_app()"
