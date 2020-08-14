@@ -6,7 +6,7 @@ import psycopg2.extras
 import redis
 from flask import current_app as app
 
-from funcx_web_service import models
+from funcx_web_service.models import search
 from funcx_web_service.errors import UserNotFound, MissingFunction
 
 
@@ -263,12 +263,12 @@ def ingest_function(user_name, user_uuid, func_uuid, function_name, description,
         "group": group
     }
     user_urn = f"urn:globus:auth:identity:{user_uuid}"
-    models.search.func_ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+    search.func_ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
 
 
 def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
     owner_urn = f"urn:globus:auth:identity:{user_uuid}"
-    models.search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
+    search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
 
 
 def register_container(user_name, container_name, location, description, container_type):
