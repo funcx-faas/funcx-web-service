@@ -1,0 +1,21 @@
+{
+	"info": {
+		"_postman_id": "ab5e0e17-f1c6-454b-a6b1-42129437a9b4",
+		"name": "funcX",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "batch_status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
