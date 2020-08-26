@@ -26,6 +26,9 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install -r requirements.txt
         python -m pip install -r requirements_test.txt
+        python -m pip uninstall -y funcx
+        python -m pip install "git+https://github.com/funcx-faas/funcX.git@dev#egg=funcx&subdirectory=funcx_sdk"
+
         pip list
     - name: Check for vulnerabilities in libraries
       run: |
