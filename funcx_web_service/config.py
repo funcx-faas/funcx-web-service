@@ -25,8 +25,14 @@ class Config(object):
     DB_PASSWORD = os.environ.get('db_password')
     FORWARDER_IP = os.environ.get('forwarder_ip')
 
+    # Host and port for the web service to reach REDIS
     REDIS_PORT = os.environ.get('redis_port')
     REDIS_HOST = os.environ.get('redis_host')
+
+    # Host and port for the forwarder to reach REDIS (possibly outside of the kubernetes
+    # cluster)
+    ADVERTISED_REDIS_PORT = os.environ.get('advertised_redis_port')
+    ADVERTISED_REDIS_HOST = os.environ.get('advertised_redis_host')
 
     SERIALIZATION_ADDR = os.environ.get('serialization_addr')
     SERIALIZATION_PORT = os.environ.get('serialization_port')
