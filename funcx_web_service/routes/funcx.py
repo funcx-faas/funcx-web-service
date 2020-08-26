@@ -5,7 +5,7 @@ import requests
 
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
-from funcx.errors import RegistrationError
+from funcx.utils.errors import RegistrationError
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
@@ -19,7 +19,7 @@ from funcx_web_service.models.utils import (update_function, delete_function, de
 from funcx_web_service.version import VERSION
 from .redis_q import EndpointQueue
 
-from funcx.version import VERSION as FUNCX_VERSION
+from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
 from ..errors import UserNotFound
@@ -587,7 +587,7 @@ def register_with_hub(address, endpoint_id, endpoint_address):
     print(address + '/register')
     r = requests.post(address + '/register',
                       json={'endpoint_id': endpoint_id,
-                            'redis_address': app.config['REDIS_HOST'],
+                            'redis_address': app.config['ADVERTISED_REDIS_HOST'],
                             'endpoint_addr': endpoint_address,
                             }
                       )
