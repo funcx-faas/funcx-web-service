@@ -8,6 +8,7 @@ from flask import current_app as app
 
 from funcx_web_service.models import search
 from funcx_web_service.errors import UserNotFound, MissingFunction
+from funcx_web_service.models.function import Function
 
 
 class db_invocation_logger(object):
@@ -179,136 +180,39 @@ def log_invocation(user_id, task_id, function_id, endpoint_id):
         app.logger.error(e)
 
 
-def register_function(user_name, function_name, description, function_code, entry_point, container_uuid, group, public):
-    """Register the site in the database.
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    function_name : str
-        The name of the function
-    description : str
-        A description of the function
-    function_code : str
-        The function's code
-    entry_point : str
-        The entry point to the function (function name)
-    container_uuid : str
-        The uuid of the container to map this to
-    group : str
-        A globus group id to share the function with
-    public : bool
-        Whether or not the function is publicly available
-
-    Returns
-    -------
-    str
-        The uuid of the function
-    """
-    user_id = resolve_user(user_name)
-
-    conn, cur = get_db_connection()
-    function_uuid = str(uuid.uuid4())
-    query = "INSERT INTO functions (user_id, name, description, status, function_name, function_uuid, " \
-            "function_code, entry_point, public) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    cur.execute(query, (user_id, '', description, 'REGISTERED', function_name,
-                        function_uuid, function_code, entry_point, public))
-
-    if container_uuid is not None:
-        app.logger.debug(f'Inserting container mapping: {container_uuid}')
-        query = "INSERT INTO function_containers (container_id, function_id) values (" \
-                "(SELECT id from containers where container_uuid = %s), " \
-                "(SELECT id from functions where function_uuid = %s))"
-        cur.execute(query, (container_uuid, function_uuid))
-
-    if group is not None:
-        app.logger.debug(f'Inserting group mapping: {group} : {function_uuid}')
-        query = "INSERT into function_auth_groups (group_id, function_id) values (%s, %s)"
-        cur.execute(query, (group, function_uuid))
-    conn.commit()
-    return function_uuid
-
-
-def ingest_function(user_name, user_uuid, func_uuid, function_name, description, function_code, function_source, entry_point, container_uuid, group, public):
+def ingest_function(function: Function, function_source, user_uuid):
     """Ingest a function into Globus Search
 
     Restructures data for ingest purposes.
 
     Parameters
     ----------
-    user_name : str
-    user_uuid : str
-    function_name : str
-    description : str
-    function_code : str
-    function_source : str
-    entry_point : str
-    container_uuid : str
-    group : str
-    public : bool
+    function : Function
 
     Returns
     -------
     None
     """
+    selected_group = None if not function.auth_groups else function.auth_groups[0].group.group_id
     data = {
-        "function_name": function_name,
-        "function_code": function_code,
+        "function_name": function.function_name,
+        "function_code": function.function_source_code,
         "function_source": function_source,
-        "container_uuid": container_uuid,
-        "entry_point": entry_point,
-        "description": description,
-        "public": public,
-        "group": group
+        "container_uuid": function.container.container.container_uuid,
+        "entry_point": function.entry_point,
+        "description": function.description,
+        "public": function.public,
+        "group": selected_group
     }
     user_urn = f"urn:globus:auth:identity:{user_uuid}"
-    search.func_ingest_or_update(func_uuid, data, author=user_name, author_urn=user_urn)
+    search.func_ingest_or_update(function.function_uuid, data,
+                                 author=function.user.username,
+                                 author_urn=user_urn)
 
 
 def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
     owner_urn = f"urn:globus:auth:identity:{user_uuid}"
     search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
-
-
-def register_container(user_name, container_name, location, description, container_type):
-    """Register the container in the database. Put an entry into containers and
-    container_images
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    container_name : str
-        A name for the container
-    location : str
-        The path to the container
-    description : str
-        A description of the function
-    container_type : str
-        The container type
-
-    Returns
-    -------
-    str
-        The uuid of the container
-    """
-    user_id = resolve_user(user_name)
-    container_uuid = str(uuid.uuid4())
-    try:
-        conn, cur = get_db_connection()
-
-        query = "INSERT INTO containers (author, name, container_uuid, description) values (%s, %s, %s, %s)"
-        cur.execute(query, (user_id, container_name, container_uuid, description))
-
-        query = "INSERT INTO container_images (container_id, type, location) values (" \
-                "(SELECT id from containers where container_uuid = %s), %s, %s)"
-        cur.execute(query, (container_uuid, container_type, location))
-        conn.commit()
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
-    return container_uuid
 
 
 def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None):

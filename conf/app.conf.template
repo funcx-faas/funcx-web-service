@@ -1,2 +1,5 @@
 REDIS_PORT = 6379
 REDIS_HOST = "localhost"
+
+GLOBUS_CLIENT = <<Globus Client ID>>
+GLOBUS_KEY = <<Globus Secret Key>>

@@ -10,9 +10,9 @@ from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
 from funcx_web_service.models.tasks import Task
-from funcx_web_service.models.utils import register_container, get_redis_client, \
+from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
-from funcx_web_service.models.utils import register_endpoint, register_function, get_container, resolve_user, ingest_function
+from funcx_web_service.models.utils import register_endpoint, get_container, resolve_user, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
@@ -23,7 +23,11 @@ from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
 from ..errors import UserNotFound
+from ..models.auth_groups import AuthGroup
+from ..models.container import Container, ContainerImage
+from ..models.function import Function, FunctionContainer, FunctionAuthGroup
 from ..models.serializer import serialize_inputs, deserialize_result
+from ..models.user import User
 
 funcx_api = Blueprint("routes", __name__)
 
@@ -512,6 +516,13 @@ def reg_container(user_name):
     user_name : str
         The primary identity of the user
 
+    JSON Body
+    ---------
+        name: Str
+        description: Str
+        type: The type of containers that will be used (Singularity, Shifter, Docker)
+        location:  The location of the container (e.g., its docker url).
+
     Returns
     -------
     dict
@@ -525,10 +536,29 @@ def reg_container(user_name):
     app.logger.debug("Creating container.")
     post_req = request.json
 
-    container_id = register_container(user_name, post_req['name'], post_req['location'],
-                                      post_req['description'], post_req['type'])
-    app.logger.debug(f"Created container: {container_id}")
-    return jsonify({'container_id': container_id})
+    try:
+        container_rec = Container(
+            author=user_name,
+            name=post_req['name'],
+            description=None if not post_req['description'] else post_req['description'],
+            container_uuid=str(uuid.uuid4())
+        )
+        container_rec.images = [
+            ContainerImage(
+                type=post_req['type'],
+                location=post_req['location']
+            )
+        ]
+
+        container_rec.save_to_db()
+
+        app.logger.debug(f"Created container: {container_rec.container_uuid}")
+        return jsonify({'container_id': container_rec.container_uuid})
+    except KeyError as e:
+        abort(400, f"Missing property in request: {e}")
+
+    except Exception as e:
+        abort(500, f'Internal server error adding container {e}')
 
 
 @funcx_api.route("/register_endpoint", methods=['POST'])
@@ -863,11 +893,13 @@ def reg_function(user_name, user_uuid):
     ------------
     { "function_name" : <FN_NAME>,
       "entry_point" : <ENTRY_POINT>,
-      "function_code" : <ENCODED_FUNTION_BODY>,
+      "function_code" : <ENCODED_FUNCTION_BODY>,
+      "function_source": <UNENCODED FUNCTION BODY"?
       "container_uuid" : <CONTAINER_UUID>,
       "description" : <DESCRIPTION>,
       "group": <GLOBUS GROUP ID>
       "public" : <BOOL>
+      "searchable" : <BOOL>
     }
 
     Returns
@@ -878,50 +910,84 @@ def reg_function(user_name, user_uuid):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
+
+    user_rec = User.find_by_username(user_name)
+
+    if not user_rec:
+        app.logger.error(f'Attempted function registration with unknown users {user_name}')
+        abort(400, description="Invalid username. Not registered with funcX")
+
+    function_rec = None
+    function_source = None
     try:
-        function_name = request.json["function_name"]
-        entry_point = request.json["entry_point"]
-        description = request.json["description"]
-        function_code = request.json["function_code"]
-        function_source = request.json.get("function_source", "")
+        function_source = request.json["function_source"]
+        function_rec = Function(
+            function_uuid=str(uuid.uuid4()),
+            function_name=request.json["function_name"],
+            entry_point=request.json["entry_point"],
+            description=request.json["description"],
+            function_source_code=request.json["function_code"],
+            public=request.json.get("public", False),
+            user_id=user_rec.id
+        )
+
         container_uuid = request.json.get("container_uuid", None)
-        group = request.json.get("group", None)
-        public = request.json.get("public", False)
+        container = None
+        if container_uuid:
+            container = Container.find_by_uuid(container_uuid)
+            if not container:
+                abort(400, f'Container with id {container_uuid} not found')
+
+        group_uuid = request.json.get("group", None)
+        group = None
+        if group_uuid:
+            group = AuthGroup.find_by_uuid(group_uuid)
+            if not group:
+                abort(400, f"AuthGroup with ID {group_uuid} not found")
+
         searchable = request.json.get("searchable", True)
 
-    except Exception as e:
-        app.logger.error(e)
+        app.logger.debug(f"Registering function {function_rec.function_name} "
+                         f"with container {container_uuid}")
 
-    app.logger.debug(f"Registering function {function_name} with container {container_uuid}")
+        if container:
+            function_rec.container = FunctionContainer(
+                function=function_rec,
+                container=container
+            )
+
+        if group:
+            function_rec.auth_groups = [
+                FunctionAuthGroup(
+                    group=group,
+                    function=function_rec
+                )
+            ]
+
+        function_rec.save_to_db()
+
+        response = jsonify({'function_uuid': function_rec.function_uuid})
+
+        if not searchable:
+            return response
+
+    except KeyError as key_error:
+        app.logger.error(key_error)
+        abort(400, "Malformed request " + str(key_error))
+
+    except Exception as e:
+        message = "Function registration failed for user:{} function_name:{} due to {}".\
+            format(user_name, function_rec.function_name, e)
+        app.logger.error(message)
+        abort(500, message)
 
     try:
-        function_uuid = register_function(
-            user_name, function_name, description, function_code,
-            entry_point, container_uuid, group, public)
+        ingest_function(function_rec, user_uuid, function_source)
     except Exception as e:
-        message = "Function registration failed for user:{} function_name:{} due to {}".format(
-            user_name,
-            function_name,
-            e)
+        message = "Function ingest to search failed for user:{} function_name:{} due to {}".\
+            format(user_name, function_rec.function_name, e)
         app.logger.error(message)
-        return jsonify({'status': 'Failed',
-                        'reason': message})
-
-    response = jsonify({'function_uuid': function_uuid})
-    if not searchable:
-        return response
-    try:
-        ingest_function(
-            user_name, user_uuid, function_uuid, function_name, description, function_code,
-            function_source, entry_point, container_uuid, group, public)
-    except Exception as e:
-        message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
-            user_name,
-            function_name,
-            e)
-        app.logger.error(message)
-        return jsonify({'status': 'Failed',
-                        'reason': message})
+        abort(500, message)
 
     return response
 
