@@ -1,5 +1,5 @@
 from funcx_web_service.authentication.auth import get_auth_client
-from funcx_web_service.models.utils import resolve_user
+from funcx_web_service.models.user import User
 from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
@@ -43,7 +43,7 @@ def callback():
         id_token = tokens.decode_id_token(client)
 
         # Make sure the user exists in the database
-        user_id = resolve_user(id_token.get('preferred_username'))
+        user_id = User.resolve_user(id_token.get('preferred_username'))
 
         session.update(
             tokens=tokens.by_resource_server,

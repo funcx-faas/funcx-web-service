@@ -28,3 +28,14 @@ class User(db.Model):
             return cls.query.filter_by(username=username).first()
         except NoResultFound:
             return None
+
+    @classmethod
+    def resolve_user(cls, username):
+        existing_user = cls.find_by_username(username)
+
+        if existing_user:
+            return existing_user.id
+        else:
+            new_user = User(username=username)
+            new_user.save_to_db()
+            return new_user.id
