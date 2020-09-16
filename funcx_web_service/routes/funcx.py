@@ -12,7 +12,7 @@ from funcx_web_service.authentication.auth import authorize_endpoint, authentica
 from funcx_web_service.models.tasks import Task
 from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
-from funcx_web_service.models.utils import register_endpoint, get_container, resolve_user, ingest_function
+from funcx_web_service.models.utils import register_endpoint, get_container, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
@@ -157,14 +157,16 @@ def submit(user_name):
     json
         The task document
     """
+
     app.logger.debug(f"batch_run invoked by user:{user_name}")
 
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
+    saved_user = User.resolve_user(user_name)
+    if not saved_user:
         msg = f"Failed to resolve user_name:{user_name} to user_id"
         app.logger.error(msg)
         abort(500, description=msg)
+
+    user_id = saved_user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -231,12 +233,14 @@ def submit_batch(user_name):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    saved_user = User.resolve_user(user_name)
+    if not saved_user:
+        msg = f"Failed to resolve user_name:{user_name} to user_id"
+        app.logger.error(msg)
+        abort(500, description=msg)
+
+    user_id = saved_user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -763,12 +767,13 @@ def get_ep_stats(user_name, endpoint_id):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
+    saved_user = User.resolve_user(user_name)
+    if not saved_user:
         app.logger.error("Failed to resolve user_name to user_id")
         return jsonify({'status': 'Failed',
                         'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    user_id = saved_user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')

@@ -4,7 +4,8 @@ import datetime
 
 from funcx_web_service.models.serializer import deserialize_result
 from funcx_web_service.models.tasks import Task
-from funcx_web_service.models.utils import resolve_user, get_redis_client
+from funcx_web_service.models.user import User
+from funcx_web_service.models.utils import get_redis_client
 from funcx_web_service.authentication.auth import authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from funcx_web_service.routes.funcx import auth_and_launch
@@ -37,12 +38,14 @@ def run(user_name):
     if not user_name:
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
-    try:
-        user_id = resolve_user(user_name)
-    except Exception:
+
+    saved_user = User.resolve_user(user_name)
+    if not saved_user:
         app.logger.error("Failed to resolve user_name to user_id")
         return jsonify({'status': 'Failed',
                         'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
+    user_id = saved_user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')

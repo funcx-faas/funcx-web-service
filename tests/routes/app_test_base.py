@@ -1,5 +1,6 @@
 from funcx_web_service import create_app
 
+
 class AppTestBase:
     def test_client(self):
         app = create_app(test_config={

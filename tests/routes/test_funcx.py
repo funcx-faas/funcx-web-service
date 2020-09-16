@@ -1,9 +1,8 @@
 from types import SimpleNamespace
 import pytest
-from funcx_web_service import create_app
 from funcx_web_service.models.container import Container
 from funcx_web_service.models.function import Function
-from routes.app_test_base import AppTestBase
+from tests.routes.app_test_base import AppTestBase
 
 
 @pytest.fixture

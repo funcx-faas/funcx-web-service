@@ -7,8 +7,9 @@ import redis
 from flask import current_app as app
 
 from funcx_web_service.models import search
-from funcx_web_service.errors import UserNotFound, MissingFunction
+from funcx_web_service.errors import MissingFunction
 from funcx_web_service.models.function import Function
+from funcx_web_service.models.user import User
 
 
 class db_invocation_logger(object):
@@ -51,7 +52,13 @@ def add_ep_whitelist(user_name, endpoint_id, functions):
     json
         The result of adding the functions to the whitelist
     """
-    user_id = resolve_user(user_name)
+    saved_user = User.resolve_user(user_name)
+
+    if not saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} is not found in database'}
+
+    user_id = saved_user.id
 
     conn, cur = get_db_connection()
 
@@ -91,8 +98,13 @@ def get_ep_whitelist(user_name, endpoint_id):
     json
         The functions in the whitelist
     """
-    user_id = resolve_user(user_name)
+    saved_user = User.resolve_user(user_name)
 
+    if not saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} not found in database'}
+
+    user_id = saved_user.id
     conn, cur = get_db_connection()
 
     # Make sure the user owns the endpoint
@@ -135,7 +147,13 @@ def delete_ep_whitelist(user_name, endpoint_id, function_id):
     json
         A dict describing the success or failure of removing the function
     """
-    user_id = resolve_user(user_name)
+    saved_user = User.resolve_user(user_name)
+
+    if not saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} not found in database'}
+
+    user_id = saved_user.id
 
     conn, cur = get_db_connection()
 
@@ -234,7 +252,13 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     str
         The uuid of the endpoint
     """
-    user_id = resolve_user(user_name)
+    saved_user = User.resolve_user(user_name)
+
+    if not saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} not found in database'}
+
+    user_id = saved_user.id
 
     try:
         conn, cur = get_db_connection()
@@ -270,58 +294,6 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
         app.logger.error(e)
         raise e
     return endpoint_uuid
-
-
-def resolve_user(user_name):
-    """Get the user id given their primary globus identity.
-
-    Parameters
-    ----------
-    user_name : str
-        The user's primary identity
-
-    Returns
-    -------
-    int
-        The user's id in the database
-    """
-    try:
-        conn, cur = get_db_connection()
-        query = "select * from users where username = %s limit 1"
-        cur.execute(query, (user_name,))
-        row = cur.fetchone()
-        if row and 'id' in row:
-            return row['id']
-        else:
-            # It failed to find the user so create a new record
-            return create_user(user_name)
-    except Exception as e:
-        app.logger.error(f"Failed to find user identity {user_name}. {e}")
-        raise UserNotFound("User ID could not be resolved for user_name: {}".format(user_name))
-
-
-def create_user(user_name):
-    """Insert the user into the database and return the resulting id.
-
-    Parameters
-    ----------
-    user_name : str
-        The user's primary globus identity
-
-    Returns
-    -------
-    int the user's id in the database
-    """
-    try:
-        conn, cur = get_db_connection()
-        query = "insert into users (username) values (%s) returning id"
-        cur.execute(query, (user_name, ))
-        conn.commit()
-        row = cur.fetchone()
-        return row['id']
-    except Exception as e:
-        app.logger.error(f"Failed to create user identity {user_name}. {e}")
-        raise
 
 
 def resolve_function(user_id, function_uuid):
