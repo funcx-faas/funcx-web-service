@@ -7,7 +7,8 @@ class AppTestBase:
             "REDIS_HOST": "localhost",
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "HOSTNAME": "http://testhost"
+            "HOSTNAME": "http://testhost",
+            "FORWARDER_IP": "192.162.3.5"
         })
         app.secret_key = "Shhhhh"
         return app.test_client()

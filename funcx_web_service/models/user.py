@@ -17,6 +17,7 @@ class User(db.Model):
     deleted = Column(Boolean, default=False)
 
     functions = relationship("Function")
+    endpoints = relationship("Endpoint")
 
     def save_to_db(self):
         db.session.add(self)
