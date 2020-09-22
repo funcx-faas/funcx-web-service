@@ -219,3 +219,64 @@ class TestFuncX(AppTestBase):
                              },
                              headers={"Authorization": "my_token"})
         assert result.status_code == 400
+
+    def test_register_endpoint(self, mocker, mock_auth_client):
+        client = self.test_client()
+
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.0.0"})
+
+        mock_register_endpoint = \
+            mocker.patch("funcx_web_service.routes.funcx.register_endpoint",
+                         return_value="123-45-6789-1011")
+
+        mock_register_with_hub = \
+            mocker.patch("funcx_web_service.routes.funcx.register_with_hub",
+                         return_value="Ok")
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                                 "version": "1.0.0",
+                                 "endpoint_name": "my-endpoint",
+                                 "endpoint_uuid": None
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+        mock_register_endpoint.assert_called_with(
+            "bob", 'my-endpoint', '', endpoint_uuid=None)
+
+        mock_register_with_hub.assert_called_with('http://192.162.3.5:8080',
+                                                  '123-45-6789-1011',
+                                                  '127.0.0.1')
+
+        assert result.status_code == 200
+
+    def test_register_endpoint_version_mismatch(self, mocker, mock_auth_client):
+        client = self.test_client()
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.42.0"})
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                                 "version": "1.0.0"
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+        assert result.status_code == 400
+        assert "Endpoint is out of date." in result.data.decode("utf-8")
+
+    def test_register_endpoint_no_version(self, mocker, mock_auth_client):
+        client = self.test_client()
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.42.0"})
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+        assert result.status_code == 400
+        assert "version must be passed in" in result.data.decode("utf-8")

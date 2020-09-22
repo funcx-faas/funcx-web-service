@@ -8,6 +8,7 @@ from flask import current_app as app
 
 from funcx_web_service.models import search
 from funcx_web_service.errors import MissingFunction
+from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.user import User
 
@@ -260,40 +261,40 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
 
     user_id = saved_user.id
 
-    try:
-        conn, cur = get_db_connection()
-        if endpoint_uuid:
-            # Check it is a valid uuid
-            uuid.UUID(endpoint_uuid)
+    if endpoint_uuid:
+        # Check it is a valid uuid
+        uuid.UUID(endpoint_uuid)
 
-            # Check if the endpoint id already exists
-            query = "SELECT * from sites where endpoint_uuid = %s"
-            cur.execute(query, (endpoint_uuid, ))
-            rows = cur.fetchall()
-            if len(rows) > 0:
-                # If it does, make sure the user owns it
-                if rows[0]['user_id'] == user_id:
-                    result_eid = endpoint_uuid
-                    query = "UPDATE sites set endpoint_name = %s where endpoint_uuid = %s and user_id = %s"
-                    cur.execute(query, (endpoint_name, endpoint_uuid, user_id))
-                    conn.commit()
-                    return result_eid
-                else:
-                    app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
-                                     f"with user {rows[0]['user_id']} not {user_id}")
-                    return None
+        existing_endpoint = Endpoint.find_by_uuid(endpoint_uuid)
+
+        if existing_endpoint:
+            # Make sure user owns this endpoint
+            if existing_endpoint.user_id == user_id:
+                existing_endpoint.name = endpoint_name
+                existing_endpoint.description = description
+                existing_endpoint.save_to_db()
+                return endpoint_uuid
+            else:
+                app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
+                                 f"with user {existing_endpoint.user_id} not {user_id}")
+                return None
         else:
+            app.logger.error(f"Requested to update endpoint {endpoint_uuid}, but does not exist")
+            return None
+    else:
+        try:
             endpoint_uuid = str(uuid.uuid4())
-
-        query = "INSERT INTO sites (user_id, name, description, status, endpoint_name, endpoint_uuid) " \
-                "values (%s, %s, %s, %s, %s, %s)"
-        cur.execute(query, (user_id, '', description, 'OFFLINE', endpoint_name, endpoint_uuid))
-        conn.commit()
-
-    except Exception as e:
-        app.logger.error(e)
-        raise e
-    return endpoint_uuid
+            new_endpoint = Endpoint(user=saved_user,
+                                    endpoint_name=endpoint_name,
+                                    description=description,
+                                    status="OFFLINE",
+                                    endpoint_uuid=endpoint_uuid
+                                    )
+            new_endpoint.save_to_db()
+        except Exception as e:
+            app.logger.error(e)
+            raise e
+        return endpoint_uuid
 
 
 def resolve_function(user_id, function_uuid):
