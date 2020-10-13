@@ -34,7 +34,7 @@ class db_invocation_logger(object):
         self.conn.commit()
 
 
-def add_ep_whitelist(user_name, endpoint_id, functions):
+def add_ep_whitelist(user_name, endpoint_uuid, functions):
     """Add a list of function to the endpoint's whitelist.
 
     This function is only allowed by the owner of the endpoint.
@@ -43,7 +43,7 @@ def add_ep_whitelist(user_name, endpoint_id, functions):
     ----------
     user_name : str
         The name of the user making the request
-    endpoint_id : str
+    endpoint_uuid : str
         The uuid of the endpoint to add the whitelist entries for
     functions : list
         A list of the function ids to add to the whitelist.
@@ -61,25 +61,28 @@ def add_ep_whitelist(user_name, endpoint_id, functions):
 
     user_id = saved_user.id
 
-    conn, cur = get_db_connection()
+    endpoint = Endpoint.find_by_uuid(endpoint_uuid)
 
-    # Make sure the user owns the endpoint
-    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
-    cur.execute(query, (endpoint_id, user_id))
-    rows = cur.fetchall()
+    if not endpoint:
+        return {'status': 'Failed',
+                'reason': f'Endpoint {endpoint_uuid} is not found in database'}
+
+    if endpoint.user_id != user_id:
+        return {'status': 'Failed',
+                'reason': f'Endpoint does not belong to User {user_name}'}
+
     try:
-        if len(rows) > 0:
-            for function_id in functions:
-                query = "INSERT INTO restricted_endpoint_functions (endpoint_id, function_id) values (%s, %s)"
-                cur.execute(query, (endpoint_id, function_id))
-            conn.commit()
-        else:
-            return {'status': 'Failed',
-                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+        endpoint.restricted_functions = [
+            Function.find_by_uuid(f) for f in functions
+        ]
+        endpoint.save_to_db()
     except Exception as e:
-        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} to endpoint {endpoint_id}, {e}'}
+        print(e)
+        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} '
+                                              f'to endpoint {endpoint_uuid}, {e}'}
 
-    return {'status': 'Success', 'reason': f'Added functions {functions} to endpoint {endpoint_id} whitelist.'}
+    return {'status': 'Success', 'reason': f'Added functions {functions} '
+                                           f'to endpoint {endpoint_uuid} whitelist.'}
 
 
 def get_ep_whitelist(user_name, endpoint_id):
@@ -213,11 +216,12 @@ def ingest_function(function: Function, function_source, user_uuid):
     None
     """
     selected_group = None if not function.auth_groups else function.auth_groups[0].group.group_id
+    container_uuid = None if not function.container else function.container.container.container_uuid
     data = {
         "function_name": function.function_name,
         "function_code": function.function_source_code,
         "function_source": function_source,
-        "container_uuid": function.container.container.container_uuid,
+        "container_uuid": container_uuid,
         "entry_point": function.entry_point,
         "description": function.description,
         "public": function.public,
@@ -278,23 +282,19 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                 app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
                                  f"with user {existing_endpoint.user_id} not {user_id}")
                 return None
-        else:
-            app.logger.error(f"Requested to update endpoint {endpoint_uuid}, but does not exist")
-            return None
-    else:
-        try:
-            endpoint_uuid = str(uuid.uuid4())
-            new_endpoint = Endpoint(user=saved_user,
-                                    endpoint_name=endpoint_name,
-                                    description=description,
-                                    status="OFFLINE",
-                                    endpoint_uuid=endpoint_uuid
-                                    )
-            new_endpoint.save_to_db()
-        except Exception as e:
-            app.logger.error(e)
-            raise e
-        return endpoint_uuid
+    try:
+        endpoint_uuid = str(uuid.uuid4())
+        new_endpoint = Endpoint(user=saved_user,
+                                endpoint_name=endpoint_name,
+                                description=description,
+                                status="OFFLINE",
+                                endpoint_uuid=endpoint_uuid
+                                )
+        new_endpoint.save_to_db()
+    except Exception as e:
+        app.logger.error(e)
+        raise e
+    return endpoint_uuid
 
 
 def resolve_function(user_id, function_uuid):
@@ -493,48 +493,6 @@ def delete_function(user_name, function_uuid):
             if not func['deleted']:
                 if func['username'] == user_name:
                     cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
-                    conn.commit()
-                    return 302
-                else:
-                    return 403
-            else:
-                return 404
-        else:
-            return 404
-    except Exception as e:
-        print(e)
-        return 500
-
-
-def delete_endpoint(user_name, endpoint_uuid):
-    """Delete a function
-
-    Parameters
-    ----------
-    user_name : str
-        The primary identity of the user
-    endpoint_uuid : str
-        The uuid of the endpoint
-
-    Returns
-    -------
-    str
-        The result as a status code integer
-            "302" for success and redirect
-            "403" for unauthorized
-            "404" for a non-existent or previously-deleted endpoint
-            "500" for try statement error
-    """
-    try:
-        conn, cur = get_db_connection()
-        cur.execute(
-            "SELECT username, sites.deleted FROM sites, users WHERE endpoint_uuid = %s AND sites.user_id = users.id",
-            (endpoint_uuid,))
-        site = cur.fetchone()
-        if site is not None:
-            if not site['deleted']:
-                if site['username'] == user_name:
-                    cur.execute("UPDATE sites SET deleted = True WHERE endpoint_uuid = %s", (endpoint_uuid,))
                     conn.commit()
                     return 302
                 else:

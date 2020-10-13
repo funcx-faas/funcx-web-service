@@ -4,27 +4,35 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
 from funcx_web_service.models import db
-from sqlalchemy import Column, ForeignKey, DateTime, Integer, String, Text
+from sqlalchemy import ForeignKey, DateTime, Integer, String, Text
+
+from funcx_web_service.models.endpoint import restricted_endpoint_table
 
 
 class Function(db.Model):
     __tablename__ = 'functions'
-    id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    name = Column(String(1024))
-    description = Column(Text)
-    status = Column(String(1024))
-    function_name = Column(String(1024))
-    function_uuid = Column(String(38))
-    function_source_code = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    entry_point = Column(String(38))
-    modified_at = Column(DateTime, default=datetime.utcnow)
-    deleted = Column(db.Boolean, default=False)
-    public = Column(db.Boolean, default=False)
+    id = db.Column(Integer, nullable=False, primary_key=True, autoincrement=True)
+    user_id = db.Column(Integer, ForeignKey("users.id"))
+    name = db.Column(String(1024))
+    description = db.Column(Text)
+    status = db.Column(String(1024))
+    function_name = db.Column(String(1024))
+    function_uuid = db.Column(String(38))
+    function_source_code = db.Column(Text)
+    timestamp = db.Column(DateTime, default=datetime.utcnow)
+    entry_point = db.Column(String(38))
+    modified_at = db.Column(DateTime, default=datetime.utcnow)
+    deleted = db.Column(db.Boolean, default=False)
+    public = db.Column(db.Boolean, default=False)
 
     container = relationship("FunctionContainer", uselist=False, back_populates="function")
     auth_groups = relationship("FunctionAuthGroup")
+
+    restricted_endpoints = relationship(
+        "Endpoint",
+        secondary=restricted_endpoint_table,
+        back_populates="restricted_functions")
+
     user = relationship("User", back_populates="functions")
 
     def save_to_db(self):
@@ -41,11 +49,11 @@ class Function(db.Model):
 
 class FunctionContainer(db.Model):
     __tablename__ = 'function_containers'
-    id = Column(Integer, primary_key=True)
-    container_id = Column(Integer, ForeignKey('containers.id'))
-    function_id = Column(Integer, ForeignKey('functions.id'))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    modified_at = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(Integer, primary_key=True)
+    container_id = db.Column(Integer, ForeignKey('containers.id'))
+    function_id = db.Column(Integer, ForeignKey('functions.id'))
+    created_at = db.Column(DateTime, default=datetime.utcnow)
+    modified_at = db.Column(DateTime, default=datetime.utcnow)
 
     function = relationship("Function", back_populates='container')
     container = relationship("Container", back_populates='functions')
@@ -53,9 +61,9 @@ class FunctionContainer(db.Model):
 
 class FunctionAuthGroup(db.Model):
     __tablename__ = "function_auth_groups"
-    id = Column(Integer, primary_key=True)
-    group_id = Column(Integer, ForeignKey("auth_groups.id"))
-    function_id = Column(Integer, ForeignKey('functions.id'))
+    id = db.Column(Integer, primary_key=True)
+    group_id = db.Column(Integer, ForeignKey("auth_groups.id"))
+    function_id = db.Column(Integer, ForeignKey('functions.id'))
 
     function = relationship("Function", back_populates='auth_groups')
     group = relationship("AuthGroup", back_populates='functions')

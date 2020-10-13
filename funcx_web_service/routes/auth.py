@@ -48,7 +48,7 @@ def callback():
         session.update(
             tokens=tokens.by_resource_server,
             username=id_token.get('preferred_username'),
-            user_id=user_id,
+            user_id=user_id.id,
             name=id_token.get('name'),
             email=id_token.get('email'),
             is_authenticated=True
