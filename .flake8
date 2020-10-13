@@ -12,5 +12,5 @@
 # E722  do not use bare 'except'
 ignore = D203, E124, E126, F405, E402, E129, W504, E722
 max-line-length = 260
-exclude =
+exclude = migrations
 per-file-ignores =

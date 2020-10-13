@@ -17,6 +17,7 @@ RUN pip install --disable-pip-version-check uwsgi
 
 COPY uwsgi.ini .
 COPY ./funcx_web_service/ ./funcx_web_service/
+COPY ./migrations/ ./migrations/
 COPY web-entrypoint.sh .
 
 USER uwsgi

@@ -22,6 +22,7 @@ fair-research-login==0.1.5
 Flask==1.1.2
 Flask-SocketIO==4.3.0
 flask-sqlalchemy
+Flask-Migrate==2.5.3
 Flask-WTF==0.14.3
 funcx==0.0.1a5
 globus-nexus-client==0.2.9

@@ -3,6 +3,10 @@ from datetime import timedelta
 from enum import Enum
 
 from redis import StrictRedis
+# from funcx_web_service.models import db
+#
+# from sqlalchemy import Column, Integer, String, DateTime
+# from sqlalchemy.orm import relationship
 
 
 # We subclass from str so that the enum can be JSON-encoded without adjustment
@@ -55,6 +59,20 @@ def auto_name_fields(klass):
         if isinstance(attr, RedisField):
             attr.key = name
     return klass
+
+
+# class DBTask(db.Model):
+#     __tablename__ = 'tasks'
+#     id = Column(Integer, primary_key=True)
+#     task_uuid = Column(String(38))
+#     user = relationship("User", back_populates="functions")
+#     status = Column(String(10), default="UNKNOWN")
+#
+#     function = relationship("Function", back_populates='function_id')
+#     endpoint = relationship("Endpoint", back_populates='endpoint_id')
+#
+#     created_at = db.Column(DateTime, default=datetime.utcnow)
+#     modified_at = Column(DateTime, default=datetime.utcnow)
 
 
 @auto_name_fields

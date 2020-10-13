@@ -35,8 +35,8 @@ class User(db.Model):
         existing_user = cls.find_by_username(username)
 
         if existing_user:
-            return existing_user.id
+            return existing_user
         else:
             new_user = User(username=username)
             new_user.save_to_db()
-            return new_user.id
+            return new_user

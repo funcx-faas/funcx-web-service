@@ -14,7 +14,7 @@ from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
 from funcx_web_service.models.utils import register_endpoint, get_container, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
-from funcx_web_service.models.utils import (update_function, delete_function, delete_endpoint, get_ep_whitelist,
+from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
 from funcx_web_service.version import VERSION
 from .redis_q import EndpointQueue
@@ -25,6 +25,7 @@ from funcx.sdk.version import VERSION as FUNCX_VERSION
 from ..errors import UserNotFound
 from ..models.auth_groups import AuthGroup
 from ..models.container import Container, ContainerImage
+from ..models.endpoint import Endpoint
 from ..models.function import Function, FunctionContainer, FunctionAuthGroup
 from ..models.serializer import serialize_inputs, deserialize_result
 from ..models.user import User
@@ -987,7 +988,7 @@ def reg_function(user_name, user_uuid):
         abort(500, message)
 
     try:
-        ingest_function(function_rec, user_uuid, function_source)
+        ingest_function(function_rec, function_source, user_uuid)
     except Exception as e:
         message = "Function ingest to search failed for user:{} function_name:{} due to {}".\
             format(user_name, function_rec.function_name, e)
@@ -1078,7 +1079,7 @@ def del_endpoint(user_name):
                                "logged in to perform this function.")
     try:
         endpoint_uuid = request.json["endpoint"]
-        result = delete_endpoint(user_name, endpoint_uuid)
+        result = Endpoint.delete_endpoint(user_name, endpoint_uuid)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)

@@ -83,8 +83,8 @@ class TestFuncX(AppTestBase):
             assert saved_function.public
 
             assert mock_ingest.call_args[0][0].function_uuid == result.json['function_uuid']
-            assert mock_ingest.call_args[0][1] == '123-456'
-            assert mock_ingest.call_args[0][2] == 'def fun(x): return x+1'
+            assert mock_ingest.call_args[0][1] == 'def fun(x): return x+1'
+            assert mock_ingest.call_args[0][2] == '123-456'
 
     def test_register_function_no_search(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
