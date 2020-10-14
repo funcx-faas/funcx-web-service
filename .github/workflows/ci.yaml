@@ -39,7 +39,7 @@ jobs:
         flake8
     - name: Test with pytest
       run: |
-        python -m coverage run -m pytest -r sx
+        python -m coverage run -m pytest -r sx tests/
     - name: Report coverage with Codecov
       run: |
         codecov --token=${{ secrets.CODECOV_TOKEN }}
