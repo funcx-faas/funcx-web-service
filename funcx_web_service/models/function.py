@@ -67,3 +67,7 @@ class FunctionAuthGroup(db.Model):
 
     function = relationship("Function", back_populates='auth_groups')
     group = relationship("AuthGroup", back_populates='functions')
+
+    @classmethod
+    def find_by_function_uuid(cls, function_id):
+        return cls.query.filter_by(function_id=function_id).all()

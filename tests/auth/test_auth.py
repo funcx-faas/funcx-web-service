@@ -1,7 +1,7 @@
 import pytest
 
-from funcx_web_service.authentication.auth import authorize_endpoint
-from funcx_web_service.models.function import Function
+from funcx_web_service.authentication.auth import authorize_endpoint, authorize_function
+from funcx_web_service.models.function import Function, FunctionAuthGroup
 
 
 @pytest.fixture
@@ -156,3 +156,67 @@ class TestAuth:
         mock_endpoint_find.assert_called_with("123-45-566")
         mock_auth_group_find.assert_called_with("123-45-566")
         mock_check_group_membership.assert_not_called()
+
+    def test_authorize_function_user_owns(self, mocker, mock_app_logger):
+        from funcx_web_service.models.function import Function
+        authorize_function.cache_clear()
+
+        mock_function_find = mocker.patch.object(Function,
+                                                 "find_by_uuid",
+                                                 return_value=Function(
+                                                     public=False,
+                                                     user_id=44
+                                                 ))
+        result = authorize_function(user_id=44,
+                                    function_uuid="123",
+                                    token="ttttt")
+        assert result
+        mock_function_find.assert_called_with("123")
+
+    def test_authorize_function_public(self, mocker, mock_app_logger):
+        from funcx_web_service.models.function import Function
+        authorize_function.cache_clear()
+
+        mock_function_find = mocker.patch.object(Function,
+                                                 "find_by_uuid",
+                                                 return_value=Function(
+                                                     public=True,
+                                                     user_id=1
+                                                 ))
+        result = authorize_function(user_id=44,
+                                    function_uuid="123",
+                                    token="ttttt")
+        assert result
+        mock_function_find.assert_called_with("123")
+
+    def test_authorize_function_auth_group(self, mocker, mock_app_logger):
+        from funcx_web_service.models.function import Function
+        authorize_function.cache_clear()
+
+        mock_function_find = mocker.patch.object(Function,
+                                                 "find_by_uuid",
+                                                 return_value=Function(
+                                                     public=False,
+                                                     user_id=1
+                                                 ))
+
+        import funcx_web_service.authentication
+        mock_check_group_membership = mocker.patch.object(
+            funcx_web_service.authentication.auth,
+            "check_group_membership",
+            return_value=True)
+
+        mock_auth_group_find = mocker.patch.object(FunctionAuthGroup,
+                                                   "find_by_function_uuid",
+                                                   return_value=[
+                                                       FunctionAuthGroup(
+                                                            group_id="my-group",
+                                                            function_id="123-45-566")
+                                                   ])
+
+        result = authorize_function(user_id=44,
+                                    function_uuid="123",
+                                    token="ttttt")
+        assert result
+        mock_function_find.assert_called_with("123")
+        mock_check_group_membership.assert_called_with("ttttt", ['my-group'])
