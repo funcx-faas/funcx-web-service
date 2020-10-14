@@ -12,7 +12,7 @@ from funcx_web_service.authentication.auth import authorize_endpoint, authentica
 from funcx_web_service.models.tasks import Task
 from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
-from funcx_web_service.models.utils import register_endpoint, get_container, ingest_function
+from funcx_web_service.models.utils import register_endpoint, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
@@ -506,9 +506,9 @@ def get_cont(user_name, container_id, container_type):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
-    container = get_container(container_id, container_type)
+    container = Container.find_by_uuid_and_type(container_id, container_type)
     app.logger.debug(f"Got container: {container}")
-    return jsonify({'container': container})
+    return jsonify({'container': container.to_json()})
 
 
 @funcx_api.route("/containers", methods=['POST'])
@@ -538,12 +538,18 @@ def reg_container(user_name):
         abort(400, description="Could not find user. You must be "
                                "logged in to perform this function.")
 
+    saved_user = User.resolve_user(user_name)
+    if not saved_user:
+        app.logger.error("Failed to resolve user_name to user_id")
+        return jsonify({'status': 'Failed',
+                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
+
     app.logger.debug("Creating container.")
     post_req = request.json
 
     try:
         container_rec = Container(
-            author=user_name,
+            author=saved_user.id,
             name=post_req['name'],
             description=None if not post_req['description'] else post_req['description'],
             container_uuid=str(uuid.uuid4())

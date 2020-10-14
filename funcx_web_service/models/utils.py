@@ -108,27 +108,16 @@ def get_ep_whitelist(user_name, endpoint_id):
         return {'status': 'Failed',
                 'reason': f'User {user_name} not found in database'}
 
-    user_id = saved_user.id
-    conn, cur = get_db_connection()
+    endpoint = Endpoint.find_by_uuid(endpoint_id)
+    if not endpoint:
+        return {'status': 'Failed',
+                'reason': f'Could not find endpoint  {endpoint_id}'}
 
-    # Make sure the user owns the endpoint
-    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
-    cur.execute(query, (endpoint_id, user_id))
-    rows = cur.fetchall()
-    functions = []
-    try:
-        if len(rows) > 0:
-            query = "SELECT * from restricted_endpoint_functions where endpoint_id = %s"
-            cur.execute(query, (endpoint_id,))
-            funcs = cur.fetchall()
-            for f in funcs:
-                functions.append(f['function_id'])
-        else:
-            return {'status': 'Failed',
-                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
-    except Exception as e:
-        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+    if endpoint.user != saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
 
+    functions = [f.function_uuid for f in endpoint.restricted_functions]
     return {'status': 'Success', 'result': functions}
 
 
