@@ -1,5 +1,6 @@
 from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
+from funcx_web_service.models.function import Function, FunctionAuthGroup
 from funcx_web_service.models.utils import get_db_connection
 from flask import request, current_app as app
 import functools
@@ -168,35 +169,25 @@ def authorize_function(user_id, function_uuid, token):
     """
 
     authorized = False
-    try:
-        conn, cur = get_db_connection()
+    function = Function.find_by_uuid(function_uuid)
 
-        # Check if the user owns the endpoint
-        query = "select * from functions where function_uuid = %s"
-        cur.execute(query, (function_uuid, ))
-        row = cur.fetchone()
-        app.logger.debug(f"Endpoint auth row: {row}")
-        if len(row) > 0:
-            # Check if the user owns it
-            if row['user_id'] == user_id:
-                authorized = True
-            elif row['public']:
-                authorized = True
+    if not function:
+        raise Exception(
+            f"Function {function_uuid} not found")
 
-        if not authorized:
-            # Check if there are any groups associated with this function
-            query = "select * from function_auth_groups where function_id = %s"
-            cur.execute(query, (function_uuid,))
-            rows = cur.fetchall()
-            endpoint_groups = []
-            for row in rows:
-                endpoint_groups.append(row['group_id'])
-            if len(endpoint_groups) > 0:
-                authorized = check_group_membership(token, endpoint_groups)
+    if function.user_id == user_id:
+        authorized = True
+    elif function.public:
+        authorized = True
 
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
+    if not authorized:
+        # Check if there are any groups associated with this function
+        groups = FunctionAuthGroup.find_by_function_uuid(function_uuid)
+        function_groups = [g.group_id for g in groups]
+
+        if len(function_groups) > 0:
+            authorized = check_group_membership(token, function_groups)
+
     return authorized
 
 
