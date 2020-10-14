@@ -18,6 +18,7 @@ class User(db.Model):
 
     functions = relationship("Function")
     endpoints = relationship("Endpoint")
+    containers = relationship("Container")
 
     def save_to_db(self):
         db.session.add(self)
