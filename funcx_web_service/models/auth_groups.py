@@ -23,3 +23,7 @@ class AuthGroup(db.Model):
             return cls.query.filter_by(group_id=uuid).first()
         except NoResultFound:
             return None
+
+    @classmethod
+    def find_by_endpoint_uuid(cls, endpoint_uuid):
+        return cls.query.filter_by(endpoint_id=endpoint_uuid).all()
