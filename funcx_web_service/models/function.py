@@ -11,6 +11,10 @@ from funcx_web_service.models.endpoint import restricted_endpoint_table
 
 class Function(db.Model):
     __tablename__ = 'functions'
+    __table_args__ = (
+        db.UniqueConstraint('function_uuid', name='unique_function_uuid'),
+    )
+
     id = db.Column(Integer, nullable=False, primary_key=True, autoincrement=True)
     user_id = db.Column(Integer, ForeignKey("users.id"))
     name = db.Column(String(1024))
@@ -27,6 +31,8 @@ class Function(db.Model):
 
     container = relationship("FunctionContainer", uselist=False, back_populates="function")
     auth_groups = relationship("FunctionAuthGroup")
+
+    tasks = relationship("DBTask")
 
     restricted_endpoints = relationship(
         "Endpoint",

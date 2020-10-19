@@ -1,7 +1,6 @@
 from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function, FunctionAuthGroup
-from funcx_web_service.models.utils import get_db_connection
 from flask import request, current_app as app
 import functools
 

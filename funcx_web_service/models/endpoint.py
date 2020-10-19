@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Integer, String, Boolean, DateTime, Float, ForeignKey
+from sqlalchemy import Integer, String, Boolean, DateTime, Float, ForeignKey, and_
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -17,13 +17,17 @@ restricted_endpoint_table = db.Table('restricted_endpoint_functions',
 
 class Endpoint(db.Model):
     __tablename__ = 'sites'
+    __table_args__ = (
+        db.UniqueConstraint('endpoint_uuid', name='unique_endpoint_uuid'),
+    )
+
     id = db.Column(Integer, primary_key=True)
     name = db.Column(String(256))
     description = db.Column(String(256))
     user_id = db.Column(Integer, ForeignKey("users.id"))
     status = db.Column(String(10))
     endpoint_name = db.Column(String(256))
-    endpoint_uuid = db.Column(String(38))
+    endpoint_uuid = db.Column(String(38), )
     public = db.Column(Boolean, default=False)
     deleted = db.Column(Boolean, default=False)
     ip_addr = db.Column(String(15))
@@ -40,6 +44,7 @@ class Endpoint(db.Model):
     created_at = db.Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="endpoints")
+    tasks = relationship("DBTask")
 
     restricted_functions = db.relationship(
         "Function",
@@ -49,6 +54,15 @@ class Endpoint(db.Model):
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
+
+    def delete_whitelist_for_function(self, function):
+        conn = db.engine.connect()
+
+        s = restricted_endpoint_table.delete(). \
+            where(and_(restricted_endpoint_table.c.endpoint_id == self.id,
+                       restricted_endpoint_table.c.function_id == function.id))
+
+        conn.execute(s)
 
     @classmethod
     def find_by_uuid(cls, uuid):

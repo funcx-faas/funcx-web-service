@@ -206,13 +206,13 @@ class TestAuth:
             "check_group_membership",
             return_value=True)
 
-        mock_auth_group_find = mocker.patch.object(FunctionAuthGroup,
-                                                   "find_by_function_uuid",
-                                                   return_value=[
-                                                       FunctionAuthGroup(
-                                                            group_id="my-group",
-                                                            function_id="123-45-566")
-                                                   ])
+        mocker.patch.object(FunctionAuthGroup,
+                            "find_by_function_uuid",
+                            return_value=[
+                                FunctionAuthGroup(
+                                    group_id="my-group",
+                                    function_id="123-45-566")
+                            ])
 
         result = authorize_function(user_id=44,
                                     function_uuid="123",
