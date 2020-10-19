@@ -1,8 +1,6 @@
 import time
 import uuid
 
-import psycopg2
-import psycopg2.extras
 import redis
 from flask import current_app as app
 
@@ -10,28 +8,27 @@ from funcx_web_service.models import search
 from funcx_web_service.errors import MissingFunction
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
+from funcx_web_service.models.tasks import DBTask
 from funcx_web_service.models.user import User
 
 
 class db_invocation_logger(object):
 
-    def __init__(self):
-        self.conn, self.cur = get_db_connection()
-
     def log(self, user_id, task_id, function_id, endpoint_id, deferred=False):
         try:
             status = 'CREATED'
-            query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
-                    "status) values (%s, %s, %s, %s, %s);"
-            self.cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
-            if deferred is False:
-                self.conn.commit()
-
+            task_record = DBTask(
+                user_id=user_id,
+                function_id=function_id,
+                endpoint_id=endpoint_id,
+                status=status
+            )
+            task_record.save_to_db()
         except Exception:
             app.logger.exception("Caught error while writing log update to db")
 
     def commit(self):
-        self.conn.commit()
+        pass
 
 
 def add_ep_whitelist(user_name, endpoint_uuid, functions):
@@ -146,49 +143,23 @@ def delete_ep_whitelist(user_name, endpoint_id, function_id):
         return {'status': 'Failed',
                 'reason': f'User {user_name} not found in database'}
 
-    user_id = saved_user.id
+    saved_endpoint = Endpoint.find_by_uuid(endpoint_id)
+    if not saved_endpoint:
+        return {'status': 'Failed',
+                'reason': f'Endpoint {endpoint_id} not found in database'}
 
-    conn, cur = get_db_connection()
+    if saved_endpoint.user != saved_user:
+        return {'status': 'Failed',
+                'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
 
-    # Make sure the user owns the endpoint
-    query = "SELECT * from sites where endpoint_uuid = %s and user_id = %s"
-    cur.execute(query, (endpoint_id, user_id))
-    rows = cur.fetchall()
-    try:
-        if len(rows) > 0:
-            query = "delete from restricted_endpoint_functions where endpoint_id = %s and function_id = %s"
-            cur.execute(query, (endpoint_id, function_id))
-            conn.commit()
-        else:
-            return {'status': 'Failed',
-                    'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
-    except Exception as e:
-        return {'status': 'Failed', 'reason': f'Unable to get endpoint {endpoint_id} whitelist, {e}'}
+    saved_function = Function.find_by_uuid(function_id)
 
+    if not saved_function:
+        return {'status': 'Failed',
+                'reason': f'Function {function_id} not found in database'}
+
+    saved_endpoint.delete_whitelist_for_function(saved_function)
     return {'status': 'Success', 'result': function_id}
-
-
-def log_invocation(user_id, task_id, function_id, endpoint_id):
-    """Insert an invocation into the database.
-
-    Parameters
-    ----------
-    task : dict
-        The dictionary of the task
-    """
-    try:
-
-        status = 'CREATED'
-        conn, cur = get_db_connection()
-        query = "INSERT INTO tasks (user_id, task_id, function_id, endpoint_id, " \
-                "status) values (%s, %s, %s, %s, %s);"
-        cur.execute(query, (user_id, task_id, function_id, endpoint_id, status))
-
-        conn.commit()
-
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
 
 
 def ingest_function(function: Function, function_source, user_uuid):
@@ -307,82 +278,23 @@ def resolve_function(user_id, function_uuid):
     """
 
     start = time.time()
-    function_code = None
-    function_entry = None
-    container_uuid = None
 
-    try:
-        conn, cur = get_db_connection()
-        query = "select * from functions where function_uuid = %s order by id DESC limit 1"
-        cur.execute(query, (function_uuid,))
-        r = cur.fetchone()
-        if not r:
-            raise MissingFunction(function_uuid)
+    saved_function = Function.find_by_uuid(function_uuid)
 
-        function_code = r['function_code']
-        function_entry = r['entry_point']
-        function_id = r['id']
-        query = "select * from function_containers, containers, container_images where " \
-                "function_containers.function_id = %s and containers.id = function_containers.container_id " \
-                "and function_containers.container_id = container_images.container_id " \
-                "order by function_containers.id desc limit 1"
-        cur.execute(query, (function_id,))
-        r = cur.fetchone()
+    if not saved_function:
+        raise MissingFunction(function_uuid)
 
-        if r and 'container_uuid' in r:
-            container_uuid = r['container_uuid']
+    function_code = saved_function.function_source_code
+    function_entry = saved_function.entry_point
 
-    except Exception as e:
-        app.logger.exception(e)
-        raise
+    if saved_function.container:
+        container_uuid = saved_function.container.container_uuid
+    else:
+        container_uuid = None
+
     delta = time.time() - start
     app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
     return function_code, function_entry, container_uuid
-
-
-def get_container(container_uuid, container_type):
-    """Retrieve the container information.
-
-    Parameters
-    ----------
-    container_uuid : str
-        The container id to look up
-    container_type : str
-        The container type requested (Docker, Singualrity, Shifter)
-
-    Returns
-    -------
-    list
-        A dictionary describing the container details
-    """
-
-    container = {}
-    try:
-        conn, cur = get_db_connection()
-        query = "select * from containers, container_images where containers.id = " \
-                "container_images.container_id and container_uuid = %s and type = %s"
-        cur.execute(query, (container_uuid, container_type.lower()))
-        r = cur.fetchone()
-        container['container_uuid'] = r['container_uuid']
-        container['name'] = r['name']
-        container['type'] = r['type']
-        container['location'] = r['location']
-    except Exception as e:
-        print(e)
-        app.logger.error(e)
-    return container
-
-
-def get_db_connection():
-    """
-    Establish a database connection
-    """
-    con_str = f"dbname={app.config['DB_NAME']} user={app.config['DB_USER']} password={app.config['DB_PASSWORD']} host={app.config['DB_HOST']}"
-
-    conn = psycopg2.connect(con_str)
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    return conn, cur
 
 
 def get_redis_client():
@@ -428,29 +340,22 @@ def update_function(user_name, function_uuid, function_name, function_desc, func
             "404" for a non-existent or previously-deleted function
             "500" for try statement error
     """
-    try:
-        conn, cur = get_db_connection()
-        cur.execute(
-            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
-            (function_uuid,))
-        func = cur.fetchone()
-        if func is not None:
-            if not func['deleted']:
-                if func['username'] == user_name:
-                    cur.execute(
-                        "UPDATE functions SET function_name = %s, description = %s, entry_point = %s, modified_at = 'NOW()', function_code = %s WHERE function_uuid = %s",
-                        (function_name, function_desc, function_entry_point, function_code, function_uuid))
-                    conn.commit()
-                    return 302
-                else:
-                    return 403
-            else:
-                return 404
-        else:
-            return 404
-    except Exception as e:
-        print(e)
-        return 500
+
+    saved_function = Function.find_by_uuid(function_uuid)
+    if not saved_function or saved_function.deleted:
+        return 404
+
+    saved_user = User.resolve_user(user_name)
+
+    if not saved_user or saved_function.user != saved_user:
+        return 403
+
+    saved_function.function_name = function_name
+    saved_function.function_desc = function_desc
+    saved_function.function_entry_point = function_entry_point
+    saved_function.function_source_code = function_code
+    saved_function.save_to_db()
+    return 302
 
 
 def delete_function(user_name, function_uuid):
@@ -472,24 +377,15 @@ def delete_function(user_name, function_uuid):
             "404" for a non-existent or previously-deleted function
             "500" for try statement error
     """
-    try:
-        conn, cur = get_db_connection()
-        cur.execute(
-            "SELECT username, functions.deleted FROM functions, users WHERE function_uuid = %s AND functions.user_id = users.id",
-            (function_uuid,))
-        func = cur.fetchone()
-        if func is not None:
-            if not func['deleted']:
-                if func['username'] == user_name:
-                    cur.execute("UPDATE functions SET deleted = True WHERE function_uuid = %s", (function_uuid,))
-                    conn.commit()
-                    return 302
-                else:
-                    return 403
-            else:
-                return 404
-        else:
-            return 404
-    except Exception as e:
-        print(e)
-        return 500
+    saved_function = Function.find_by_uuid(function_uuid)
+    if not saved_function or saved_function.deleted:
+        return 404
+
+    saved_user = User.resolve_user(user_name)
+
+    if not saved_user or saved_function.user != saved_user:
+        return 403
+
+    saved_function.deleted = True
+    saved_function.save_to_db()
+    return 302

@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime
 from enum import Enum
 
 from redis import StrictRedis
@@ -10,6 +10,12 @@ from redis import StrictRedis
 
 
 # We subclass from str so that the enum can be JSON-encoded without adjustment
+from sqlalchemy import Integer, DateTime, String, ForeignKey
+from sqlalchemy.orm import relationship
+
+from funcx_web_service.models import db
+
+
 class TaskState(str, Enum):
     RECEIVED = "received"  # on receiving a task web-side
     WAITING_FOR_EP = "waiting-for-ep"  # while waiting for ep to accept/be online
@@ -61,18 +67,25 @@ def auto_name_fields(klass):
     return klass
 
 
-# class DBTask(db.Model):
-#     __tablename__ = 'tasks'
-#     id = Column(Integer, primary_key=True)
-#     task_uuid = Column(String(38))
-#     user = relationship("User", back_populates="functions")
-#     status = Column(String(10), default="UNKNOWN")
-#
-#     function = relationship("Function", back_populates='function_id')
-#     endpoint = relationship("Endpoint", back_populates='endpoint_id')
-#
-#     created_at = db.Column(DateTime, default=datetime.utcnow)
-#     modified_at = Column(DateTime, default=datetime.utcnow)
+class DBTask(db.Model):
+    __tablename__ = 'tasks'
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id"))
+    task_uuid = db.Column(String(38))
+    status = db.Column(String(10), default="UNKNOWN")
+    created_at = db.Column(DateTime, default=datetime.utcnow)
+    modified_at = db.Column(DateTime, default=datetime.utcnow)
+    endpoint_id = db.Column(String(38), ForeignKey("sites.endpoint_uuid"))
+    function_id = db.Column(String(38), ForeignKey("functions.function_uuid"))
+
+    function = relationship("Function", back_populates="tasks")
+    endpoint = relationship("Endpoint", back_populates="tasks")
+
+    user = relationship("User", back_populates="tasks")
+
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
 
 
 @auto_name_fields
