@@ -1,5 +1,6 @@
 from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
+from funcx_web_service.models.user import User
 from funcx_web_service.models.function import Function, FunctionAuthGroup
 from flask import request, current_app as app
 import functools
@@ -26,6 +27,7 @@ def authenticated(f):
             auth_detail = client.oauth2_token_introspect(token)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
+            user_id = User.resolve_user(user_name)
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
@@ -50,6 +52,7 @@ def authenticated_w_uuid(f):
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
+            user_id = User.resolve_user(user_name)
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
