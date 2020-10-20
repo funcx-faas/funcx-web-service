@@ -27,7 +27,7 @@ def authenticated(f):
             auth_detail = client.oauth2_token_introspect(token)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
-            user_id = User.resolve_user(user_name)
+            User.resolve_user(user_name)
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
@@ -52,7 +52,7 @@ def authenticated_w_uuid(f):
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
-            user_id = User.resolve_user(user_name)
+            User.resolve_user(user_name)
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
