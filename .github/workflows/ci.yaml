@@ -61,13 +61,3 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         tag: "${GITHUB_REF##*/}"
-    - name: Build funcX-web-service-db Image
-      uses: elgohr/Publish-Docker-Github-Action@master
-      with:
-        workdir: dbsetup
-        name: funcx/web-service-db:${{ steps.extract_tag_name.outputs.imagetag }}
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        tag: "${GITHUB_REF##*/}"
-
-
