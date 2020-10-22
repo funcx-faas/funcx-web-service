@@ -141,11 +141,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
 
 @funcx_api.route('/submit', methods=['POST'])
 @authenticated
-def submit(user_name):
+def submit(user: User):
     """Puts the task request(s) into Redis and returns a list of task UUID(s)
     Parameters
     ----------
-    user_name : str
+    user : User
     The primary identity of the user
 
     POST payload
@@ -159,15 +159,9 @@ def submit(user_name):
         The task document
     """
 
-    app.logger.debug(f"batch_run invoked by user:{user_name}")
+    app.logger.debug(f"batch_run invoked by user:{user.username}")
 
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        msg = f"Failed to resolve user_name:{user_name} to user_id"
-        app.logger.error(msg)
-        abort(500, description=msg)
-
-    user_id = saved_user.id
+    user_id = user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -399,12 +393,12 @@ def status(user_name, task_id):
 
 @funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
-def batch_status(user_name):
+def batch_status(user: User):
     """Check the status of a task.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     task_id : str
         The task uuid to look up
@@ -423,12 +417,12 @@ def batch_status(user_name):
 
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
-def result(user_name, task_id):
+def result(user: User, task_id):
     """Check the status of a task.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     task_id : str
         The task uuid to look up
@@ -438,10 +432,6 @@ def result(user_name, task_id):
     json
         The status of the task
     """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
 
     try:
         # Get a redis client
@@ -484,12 +474,12 @@ def result(user_name, task_id):
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
 @authenticated
-def get_cont(user_name, container_id, container_type):
+def get_cont(user: User, container_id, container_type):
     """Get the details of a container.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     container_id : str
         The id of the container
@@ -502,9 +492,6 @@ def get_cont(user_name, container_id, container_type):
         A dictionary of container details
     """
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     app.logger.debug(f"Getting container details: {container_id}")
     container = Container.find_by_uuid_and_type(container_id, container_type)
     app.logger.debug(f"Got container: {container}")
@@ -513,12 +500,12 @@ def get_cont(user_name, container_id, container_type):
 
 @funcx_api.route("/containers", methods=['POST'])
 @authenticated
-def reg_container(user_name):
+def reg_container(user: User):
     """Register a new container.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
 
     JSON Body
@@ -534,22 +521,12 @@ def reg_container(user_name):
         A dictionary of container details including its uuid
     """
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
-
     app.logger.debug("Creating container.")
     post_req = request.json
 
     try:
         container_rec = Container(
-            author=saved_user.id,
+            author=user.id,
             name=post_req['name'],
             description=None if not post_req['description'] else post_req['description'],
             container_uuid=str(uuid.uuid4())
@@ -574,12 +551,12 @@ def reg_container(user_name):
 
 @funcx_api.route("/register_endpoint", methods=['POST'])
 @authenticated
-def reg_endpoint(user_name):
+def reg_endpoint(user: User):
     """Register the endpoint. Add this site to the database and associate it with this user.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
 
     Returns
@@ -587,9 +564,6 @@ def reg_endpoint(user_name):
     json
         A dict containing the endpoint details
     """
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     endpoint_name = None
     description = None
     endpoint_uuid = None
@@ -605,7 +579,7 @@ def reg_endpoint(user_name):
     app.logger.debug(endpoint_name)
     try:
         endpoint_uuid = register_endpoint(
-            user_name, endpoint_name, description, endpoint_uuid)
+            user, endpoint_name, description, endpoint_uuid)
     except UserNotFound as e:
         return jsonify({'status': 'Failed',
                         'reason': str(e)})
@@ -681,14 +655,14 @@ def get_request_addr():
 
 @funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
 @authenticated
-def endpoint_whitelist(user_name, endpoint_id):
+def endpoint_whitelist(user: User, endpoint_id):
     """Get or insert into the endpoint's whitelist.
     If POST, insert the list of function ids into the whitelist.
     if GET, return the list of function ids in the whitelist
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     endpoint_id : str
         The id of the endpoint
@@ -699,14 +673,10 @@ def endpoint_whitelist(user_name, endpoint_id):
         A dict including a list of whitelisted functions for this endpoint
     """
 
-    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user_name}")
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
+    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
 
     if request.method == "GET":
-        return get_ep_whitelist(user_name, endpoint_id)
+        return get_ep_whitelist(user, endpoint_id)
     else:
         # Otherwise we need the list of functions passed in
         try:
@@ -718,17 +688,17 @@ def endpoint_whitelist(user_name, endpoint_id):
         except Exception as e:
             return jsonify({'status': 'Failed',
                             'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
-        return add_ep_whitelist(user_name, endpoint_id, functions)
+        return add_ep_whitelist(user, endpoint_id, functions)
 
 
 @funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
 @authenticated
-def del_endpoint_whitelist(user_name, endpoint_id, function_id):
+def del_endpoint_whitelist(user: User, endpoint_id, function_id):
     """Delete from an endpoint's whitelist. Return the success/failure of the delete.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     endpoint_id : str
         The id of the endpoint
@@ -741,23 +711,19 @@ def del_endpoint_whitelist(user_name, endpoint_id, function_id):
         A dict describing the result of deleting from the endpoint's whitelist
     """
 
-    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user_name}")
+    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    return delete_ep_whitelist(user_name, endpoint_id, function_id)
+    return delete_ep_whitelist(user, endpoint_id, function_id)
 
 
 @funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
 @authenticated
-def get_ep_stats(user_name, endpoint_id):
+def get_ep_stats(user: User, endpoint_id):
     """Retrieve the status updates from an endpoint.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     endpoint_id : str
         The endpoint uuid to look up
@@ -770,17 +736,7 @@ def get_ep_stats(user_name, endpoint_id):
     alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
     last = 10
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
-
-    user_id = saved_user.id
+    user_id = user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -819,7 +775,7 @@ def get_ep_stats(user_name, endpoint_id):
 
 @funcx_api.route("/register_endpoint_2", methods=['POST'])
 @authenticated_w_uuid
-def register_endpoint_2(user_name, user_uuid):
+def register_endpoint_2(user: User, user_uuid: str):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
@@ -849,7 +805,7 @@ def register_endpoint_2(user_name, user_uuid):
     try:
         app.logger.debug(request.json['endpoint_name'])
         app.logger.debug(f"requesting registration for {request.json}")
-        endpoint_uuid = register_endpoint(user_name,
+        endpoint_uuid = register_endpoint(user,
                                           request.json['endpoint_name'],
                                           "",  # use description from meta? why store here at all
                                           endpoint_uuid=request.json['endpoint_uuid'])
@@ -883,7 +839,7 @@ def register_endpoint_2(user_name, user_uuid):
                     'reason': f'Failed during broker start {e}'}
 
     if 'meta' in request.json and endpoint_uuid:
-        ingest_endpoint(user_name, user_uuid, endpoint_uuid, request.json['meta'])
+        ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
         app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
     try:
         return jsonify(response)
@@ -893,12 +849,12 @@ def register_endpoint_2(user_name, user_uuid):
 
 @funcx_api.route("/register_function", methods=['POST'])
 @authenticated_w_uuid
-def reg_function(user_name, user_uuid):
+def reg_function(user: User, user_uuid):
     """Register the function.
 
     Parameters
     ----------
-    user_name : str
+    user : str
         The primary identity of the user
 
     POST Payload
@@ -919,15 +875,6 @@ def reg_function(user_name, user_uuid):
     json
         Dict containing the function details
     """
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    user_rec = User.find_by_username(user_name)
-
-    if not user_rec:
-        app.logger.error(f'Attempted function registration with unknown users {user_name}')
-        abort(400, description="Invalid username. Not registered with funcX")
 
     function_rec = None
     function_source = None
@@ -940,7 +887,7 @@ def reg_function(user_name, user_uuid):
             description=request.json["description"],
             function_source_code=request.json["function_code"],
             public=request.json.get("public", False),
-            user_id=user_rec.id
+            user_id=user.id
         )
 
         container_uuid = request.json.get("container_uuid", None)
@@ -989,7 +936,7 @@ def reg_function(user_name, user_uuid):
 
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".\
-            format(user_name, function_rec.function_name, e)
+            format(user.username, function_rec.function_name, e)
         app.logger.error(message)
         abort(500, message)
 
@@ -997,7 +944,7 @@ def reg_function(user_name, user_uuid):
         ingest_function(function_rec, function_source, user_uuid)
     except Exception as e:
         message = "Function ingest to search failed for user:{} function_name:{} due to {}".\
-            format(user_name, function_rec.function_name, e)
+            format(user.username, function_rec.function_name, e)
         app.logger.error(message)
         abort(500, message)
 
@@ -1006,12 +953,12 @@ def reg_function(user_name, user_uuid):
 
 @funcx_api.route("/upd_function", methods=['POST'])
 @authenticated
-def upd_function(user_name):
+def upd_function(user: User):
     """Update the function.
 
         Parameters
         ----------
-        user_name : str
+        user : User
             The primary identity of the user
 
         Returns
@@ -1019,16 +966,13 @@ def upd_function(user_name):
         json
             Dict containing the result as an integer
         """
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     try:
         function_uuid = request.json["func"]
         function_name = request.json["name"]
         function_desc = request.json["desc"]
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
-        result = update_function(user_name, function_uuid, function_name,
+        result = update_function(user.username, function_uuid, function_name,
                                  function_desc, function_entry_point, function_code)
 
         # app.logger.debug("[LOGGER] result: " + str(result))
@@ -1041,12 +985,12 @@ def upd_function(user_name):
 
 @funcx_api.route("/delete_function", methods=['POST'])
 @authenticated
-def del_function(user_name):
+def del_function(user: User):
     """Delete the function.
 
         Parameters
         ----------
-        user_name : str
+        user : User
             The primary identity of the user
 
         Returns
@@ -1054,12 +998,9 @@ def del_function(user_name):
         json
             Dict containing the result as an integer
         """
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     try:
         function_uuid = request.json["func"]
-        result = delete_function(user_name, function_uuid)
+        result = delete_function(user, function_uuid)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
@@ -1067,12 +1008,12 @@ def del_function(user_name):
 
 @funcx_api.route("/delete_endpoint", methods=['POST'])
 @authenticated
-def del_endpoint(user_name):
+def del_endpoint(user: User):
     """Delete the endpoint.
 
         Parameters
         ----------
-        user_name : str
+        user : User
             The primary identity of the user
 
         Returns
@@ -1080,12 +1021,9 @@ def del_endpoint(user_name):
         json
             Dict containing the result as an integer
         """
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
     try:
         endpoint_uuid = request.json["endpoint"]
-        result = Endpoint.delete_endpoint(user_name, endpoint_uuid)
+        result = Endpoint.delete_endpoint(user, endpoint_uuid)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)

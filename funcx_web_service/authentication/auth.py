@@ -27,11 +27,15 @@ def authenticated(f):
             auth_detail = client.oauth2_token_introspect(token)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
-            User.resolve_user(user_name)
+            user_rec = User.resolve_user(user_name)
+
+            if not user_rec:
+                abort(400, description=f"User {user_name} not found in database.")
+
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
-        return f(user_name, *args, **kwargs)
+        return f(user_rec, *args, **kwargs)
     return decorated_function
 
 
@@ -52,11 +56,15 @@ def authenticated_w_uuid(f):
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
-            User.resolve_user(user_name)
+            user_rec = User.resolve_user(user_name)
+
+            if not user_rec:
+                abort(400, description=f"User {user_name} not found in database.")
+
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
-        return f(user_name, user_uuid, *args, **kwargs)
+        return f(user_rec, user_uuid, *args, **kwargs)
     return decorated_function
 
 

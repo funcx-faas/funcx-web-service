@@ -72,12 +72,12 @@ class Endpoint(db.Model):
             return None
 
     @classmethod
-    def delete_endpoint(cls, user_name, endpoint_uuid):
+    def delete_endpoint(cls, user: User, endpoint_uuid):
         """Delete a function
 
         Parameters
         ----------
-        user_name : str
+        user : User
             The primary identity of the user
         endpoint_uuid : str
             The uuid of the endpoint
@@ -92,13 +92,7 @@ class Endpoint(db.Model):
                 "500" for try statement error
         """
 
-        saved_user = User.resolve_user(user_name)
-
-        if not saved_user:
-            return {'status': 'Failed',
-                    'reason': f'User {user_name} not found in database'}
-
-        user_id = saved_user.id
+        user_id = user.id
 
         try:
             existing_endpoint = Endpoint.find_by_uuid(endpoint_uuid)
