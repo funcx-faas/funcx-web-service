@@ -20,12 +20,12 @@ caching = True
 
 @automate_api.route('/run', methods=['POST'])
 @authenticated
-def run(user_name):
+def run(user: User):
     """Puts a job in Redis and returns an id
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     Returns
     -------
@@ -33,19 +33,9 @@ def run(user_name):
         The task document
     """
 
-    app.logger.debug(f"Automate submit invoked by user:{user_name}")
+    app.logger.debug(f"Automate submit invoked by user:{user.username}")
 
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
-
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        app.logger.error("Failed to resolve user_name to user_id")
-        return jsonify({'status': 'Failed',
-                        'reason': 'Failed to resolve user_name:{}'.format(user_name)})
-
-    user_id = saved_user.id
+    user_id = user.id
 
     # Extract the token for endpoint verification
     token_str = request.headers.get('Authorization')
@@ -112,12 +102,12 @@ def run(user_name):
 
 @automate_api.route("/<task_id>/status", methods=['GET'])
 @authenticated
-def status(user_name, task_id):
+def status(user: User, task_id):
     """Check the status of a task.
 
         Parameters
         ----------
-        user_name : str
+        user : User
             The primary identity of the user
         task_id : str
             The task uuid to look up
@@ -127,10 +117,6 @@ def status(user_name, task_id):
         json
             The status of the task
         """
-
-    if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
 
     automate_response = {
         "details": None,
@@ -180,7 +166,7 @@ def status(user_name, task_id):
 
 @automate_api.route("/<task_id>/release", methods=['POST'])
 @authenticated
-def release(user_name, task_id):
+def release(user: User, task_id):
     """
     Release the task. This does nothing as we already released the task.
     """

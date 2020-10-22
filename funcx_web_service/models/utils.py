@@ -31,15 +31,15 @@ class db_invocation_logger(object):
         pass
 
 
-def add_ep_whitelist(user_name, endpoint_uuid, functions):
+def add_ep_whitelist(user: User, endpoint_uuid, functions):
     """Add a list of function to the endpoint's whitelist.
 
     This function is only allowed by the owner of the endpoint.
 
     Parameters
     ----------
-    user_name : str
-        The name of the user making the request
+    user : User
+        The user making the request
     endpoint_uuid : str
         The uuid of the endpoint to add the whitelist entries for
     functions : list
@@ -50,13 +50,8 @@ def add_ep_whitelist(user_name, endpoint_uuid, functions):
     json
         The result of adding the functions to the whitelist
     """
-    saved_user = User.resolve_user(user_name)
 
-    if not saved_user:
-        return {'status': 'Failed',
-                'reason': f'User {user_name} is not found in database'}
-
-    user_id = saved_user.id
+    user_id = user.id
 
     endpoint = Endpoint.find_by_uuid(endpoint_uuid)
 
@@ -66,7 +61,7 @@ def add_ep_whitelist(user_name, endpoint_uuid, functions):
 
     if endpoint.user_id != user_id:
         return {'status': 'Failed',
-                'reason': f'Endpoint does not belong to User {user_name}'}
+                'reason': f'Endpoint does not belong to User {user.username}'}
 
     try:
         endpoint.restricted_functions = [
@@ -82,14 +77,14 @@ def add_ep_whitelist(user_name, endpoint_uuid, functions):
                                            f'to endpoint {endpoint_uuid} whitelist.'}
 
 
-def get_ep_whitelist(user_name, endpoint_id):
+def get_ep_whitelist(user: User, endpoint_id):
     """Get the list of functions in an endpoint's whitelist.
 
     This function is only allowed by the owner of the endpoint.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The name of the user making the request
     endpoint_id : str
         The uuid of the endpoint to add the whitelist entries for
@@ -99,34 +94,29 @@ def get_ep_whitelist(user_name, endpoint_id):
     json
         The functions in the whitelist
     """
-    saved_user = User.resolve_user(user_name)
-
-    if not saved_user:
-        return {'status': 'Failed',
-                'reason': f'User {user_name} not found in database'}
 
     endpoint = Endpoint.find_by_uuid(endpoint_id)
     if not endpoint:
         return {'status': 'Failed',
                 'reason': f'Could not find endpoint  {endpoint_id}'}
 
-    if endpoint.user != saved_user:
+    if endpoint.user != user:
         return {'status': 'Failed',
-                'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+                'reason': f'User {user.username} is not authorized to perform this action on endpoint {endpoint_id}'}
 
     functions = [f.function_uuid for f in endpoint.restricted_functions]
     return {'status': 'Success', 'result': functions}
 
 
-def delete_ep_whitelist(user_name, endpoint_id, function_id):
+def delete_ep_whitelist(user: User, endpoint_id, function_id):
     """Delete the functions from an endpoint's whitelist.
 
     This function is only allowed by the owner of the endpoint.
 
     Parameters
     ----------
-    user_name : str
-        The name of the user making the request
+    user : User
+        The the user making the request
     endpoint_id : str
         The uuid of the endpoint to add the whitelist entries for
     function_id : str
@@ -137,20 +127,15 @@ def delete_ep_whitelist(user_name, endpoint_id, function_id):
     json
         A dict describing the success or failure of removing the function
     """
-    saved_user = User.resolve_user(user_name)
-
-    if not saved_user:
-        return {'status': 'Failed',
-                'reason': f'User {user_name} not found in database'}
 
     saved_endpoint = Endpoint.find_by_uuid(endpoint_id)
     if not saved_endpoint:
         return {'status': 'Failed',
                 'reason': f'Endpoint {endpoint_id} not found in database'}
 
-    if saved_endpoint.user != saved_user:
+    if saved_endpoint.user != user:
         return {'status': 'Failed',
-                'reason': f'User {user_name} is not authorized to perform this action on endpoint {endpoint_id}'}
+                'reason': f'User {user.username} is not authorized to perform this action on endpoint {endpoint_id}'}
 
     saved_function = Function.find_by_uuid(function_id)
 
@@ -198,12 +183,12 @@ def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
     search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
 
 
-def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None):
+def register_endpoint(user: User, endpoint_name, description, endpoint_uuid=None):
     """Register the endpoint in the database.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     endpoint_name : str
         The name of the endpoint
@@ -217,13 +202,7 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     str
         The uuid of the endpoint
     """
-    saved_user = User.resolve_user(user_name)
-
-    if not saved_user:
-        return {'status': 'Failed',
-                'reason': f'User {user_name} not found in database'}
-
-    user_id = saved_user.id
+    user_id = user.id
 
     if endpoint_uuid:
         # Check it is a valid uuid
@@ -244,7 +223,7 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
                 return None
     try:
         endpoint_uuid = str(uuid.uuid4())
-        new_endpoint = Endpoint(user=saved_user,
+        new_endpoint = Endpoint(user=user,
                                 endpoint_name=endpoint_name,
                                 description=description,
                                 status="OFFLINE",
@@ -358,12 +337,12 @@ def update_function(user_name, function_uuid, function_name, function_desc, func
     return 302
 
 
-def delete_function(user_name, function_uuid):
+def delete_function(user: User, function_uuid):
     """Delete a function
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     function_uuid : str
         The uuid of the function
@@ -381,9 +360,7 @@ def delete_function(user_name, function_uuid):
     if not saved_function or saved_function.deleted:
         return 404
 
-    saved_user = User.resolve_user(user_name)
-
-    if not saved_user or saved_function.user != saved_user:
+    if saved_function.user != user:
         return 403
 
     saved_function.deleted = True

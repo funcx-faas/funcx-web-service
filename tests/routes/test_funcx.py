@@ -2,11 +2,20 @@ from types import SimpleNamespace
 import pytest
 from funcx_web_service.models.container import Container
 from funcx_web_service.models.function import Function
+from funcx_web_service.models.user import User
 from tests.routes.app_test_base import AppTestBase
 
 
 @pytest.fixture
-def mock_auth_client(mocker):
+def mock_user(mocker):
+    return User(
+        username='bob',
+        globus_identity='123-456'
+    )
+
+
+@pytest.fixture
+def mock_auth_client(mocker, mock_user):
     import funcx_web_service.authentication
     mock_auth_client = mocker.Mock()
     mock_auth_client.oauth2_token_introspect = mocker.Mock(
@@ -17,6 +26,8 @@ def mock_auth_client(mocker):
 
     mocker.patch.object(funcx_web_service.authentication.auth, "get_auth_client",
                         return_value=mock_auth_client)
+
+    mocker.patch('funcx_web_service.authentication.auth.User.resolve_user', return_value=mock_user)
 
     return mock_auth_client
 
@@ -52,12 +63,6 @@ class TestFuncX(AppTestBase):
     def test_register_function(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.test_client()
-        from funcx_web_service.models.user import User
-        mock_user = User(
-            id=42,
-            username="bob"
-        )
-        mock_find_user = mocker.patch.object(User, "find_by_username", return_value=mock_user)
         result = client.post("api/v1/register_function",
                              json={
                                  "function_source": "def fun(x): return x+1",
@@ -70,8 +75,6 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         assert result.status_code == 200
         assert "function_uuid" in result.json
-
-        mock_find_user.assert_called_with("bob")
 
         with client.application.app_context():
             saved_function = Function.find_by_uuid(result.json['function_uuid'])
@@ -220,7 +223,7 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         assert result.status_code == 400
 
-    def test_register_endpoint(self, mocker, mock_auth_client):
+    def test_register_endpoint(self, mocker, mock_auth_client, mock_user):
         client = self.test_client()
 
         get_forwarder_version = mocker.patch(
@@ -244,7 +247,7 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         get_forwarder_version.assert_called()
         mock_register_endpoint.assert_called_with(
-            "bob", 'my-endpoint', '', endpoint_uuid=None)
+            mock_user, 'my-endpoint', '', endpoint_uuid=None)
 
         mock_register_with_hub.assert_called_with('http://192.162.3.5:8080',
                                                   '123-45-6789-1011',
