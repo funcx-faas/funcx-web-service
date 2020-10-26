@@ -62,7 +62,7 @@ task_count = 5
 batch = fxc.create_batch()
 for func_id in func_ids:
     for i in range(task_count):
-        batch.add(i, i+1, c=i+2, d=i+3, endpoint_id=endpoint, function_id=func_id)
+        batch.add(i, i + 1, c=i + 2, d=i + 3, endpoint_id=endpoint, function_id=func_id)
 
 task_ids = fxc.batch_run(batch)
 
@@ -72,7 +72,7 @@ print("Got {} tasks_ids ".format(len(task_ids)))
 
 for i in range(10):
     x = fxc.get_batch_status(task_ids)
-    complete_count = sum([ 1 for t in task_ids if t in x and not x[t].get('pending', True) ])
+    complete_count = sum([1 for t in task_ids if t in x and not x[t].get('pending', True)])
     print("Batch status : {}/{} complete".format(complete_count, len(task_ids)))
     if complete_count == len(task_ids):
         print(x)
@@ -93,6 +93,7 @@ try:
     fxc.get_result(res)
 except Exception as e:
     print(e)
+
 
 # Check task status updates
 def funcx_sleep(val):
@@ -140,5 +141,3 @@ except Exception as e:
 print('check done')
 time.sleep(32)
 print(fxc.get_result(res))
-
-
