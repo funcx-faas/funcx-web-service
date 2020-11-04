@@ -39,7 +39,15 @@ def get_db_logger():
     return g.db_logger
 
 
-def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
+def auth_and_launch(user_id,
+                    function_uuid,
+                    endpoints,
+                    input_data,
+                    data_url,
+                    recursive,
+                    app,
+                    token,
+                    serialize=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
 
     Parameters
@@ -53,6 +61,10 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
        endpoint_uuid as list
     input_data: [string_buffers]
        input_data as a list in case many function launches are to be made
+    data_url: str
+       data url of remote data
+    recursive: boolean
+       whether the data url is a directory or not
     app : app object
     token : globus token
     serialize : bool
@@ -119,7 +131,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
         task_id = str(uuid.uuid4())
-        task = Task(rc, task_id, container_uuid, serializer, payload)
+        task = Task(rc, task_id,
+                    container_uuid, serializer,
+                    data_url=data_url,
+                    recursive=recursive,
+                    payload=payload)
 
         for ep in endpoints:
             ep_queue[ep].enqueue(task)
@@ -190,7 +206,8 @@ def submit(user: User):
     for task in tasks:
         res = auth_and_launch(
             user_id, function_uuid=task[0], endpoints=[task[1]],
-            input_data=task[2], app=app, token=token, serialize=serialize
+            input_data=task[2], data_url=task[3], recursive=task[4],
+            app=app, token=token, serialize=serialize
         )
         if res.get('status', 'Failed') != 'Success':
             return res
