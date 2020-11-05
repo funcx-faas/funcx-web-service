@@ -134,7 +134,7 @@ def auth_and_launch(user_id,
         task = Task(rc, task_id,
                     container_uuid, serializer,
                     data_url=data_url,
-                    recursive=recursive,
+                    recursive=str(recursive),
                     payload=payload)
 
         for ep in endpoints:
@@ -190,6 +190,7 @@ def submit(user: User):
         if 'tasks' in post_req:
             # new client is being used
             tasks = post_req['tasks']
+            print("Received task: ", tasks, type(tasks[0][4]))
         else:
             # old client was used and create a new task
             function_uuid = post_req['func']
