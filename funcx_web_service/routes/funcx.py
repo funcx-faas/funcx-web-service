@@ -17,6 +17,8 @@ from funcx_web_service.models.utils import resolve_function, db_invocation_logge
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
 from funcx_web_service.version import VERSION
+
+from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
 from funcx.sdk.version import VERSION as FUNCX_VERSION
@@ -38,6 +40,18 @@ def get_db_logger():
         g.db_logger = db_invocation_logger()
     return g.db_logger
 
+def g_redis_client():
+    if 'redis_client' not in g:
+        g.redis_client = get_redis_client()
+    return g.redis_client
+
+def g_redis_pubsub(*args, **kwargs):
+    if 'redis_pubsub' not in g:
+        g.redis_pubsub = RedisPubSub(*args, **kwargs)
+        g.redis_pubsub.connect()
+        rc = g.redis_pubsub.redis_client
+        rc.ping()
+    return g.redis_pubsub
 
 def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
@@ -89,8 +103,9 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     # TODO: this is deprecated.
     serializer = "ANY"
 
-    # TODO: Store redis connections in g
-    rc = get_redis_client()
+    rc = g_redis_client()
+    task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
+                                  port=app.config['REDIS_PORT'])
 
     if isinstance(input_data, list):
         input_data_items = input_data
@@ -122,10 +137,9 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         task = Task(rc, task_id, container_uuid, serializer, payload)
 
         for ep in endpoints:
-            ep_queue[ep].enqueue(task)
+            task_channel.put(ep, task)
             app.logger.debug(f"Task:{task_id} placed on queue for endpoint:{ep}")
 
-            # TODO: creating these connections each will be slow.
             # increment the counter
             rc.incr('funcx_invocation_counter')
             # add an invocation to the database
