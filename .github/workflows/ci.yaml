@@ -24,10 +24,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
+        # Keep this here since there will be no PyPI release for funcx-forwarder
+        python -m pip install "git+https://github.com/funcx-faas/funcx-forwarder.git@forwarder_redesign#egg=funcx-forwarder"
         python -m pip install -r requirements.txt
         python -m pip install -r requirements_test.txt
-        python -m pip uninstall -y funcx
-        python -m pip install "git+https://github.com/funcx-faas/funcX.git@dev#egg=funcx&subdirectory=funcx_sdk"
+        python -m pip uninstall -y funcx funcx-forwarder
+        python -m pip install "git+https://github.com/funcx-faas/funcX.git@forwarder_rearch_1#egg=funcx&subdirectory=funcx_sdk"
+        python -m pip install "git+https://github.com/funcx-faas/funcX.git@forwarder_rearch_1#egg=funcx_endpoint&subdirectory=funcx_endpoint"
 
         pip list
     - name: Check for vulnerabilities in libraries
