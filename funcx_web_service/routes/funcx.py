@@ -40,10 +40,12 @@ def get_db_logger():
         g.db_logger = db_invocation_logger()
     return g.db_logger
 
+
 def g_redis_client():
     if 'redis_client' not in g:
         g.redis_client = get_redis_client()
     return g.redis_client
+
 
 def g_redis_pubsub(*args, **kwargs):
     if 'redis_pubsub' not in g:
@@ -52,6 +54,7 @@ def g_redis_pubsub(*args, **kwargs):
         rc = g.redis_pubsub.redis_client
         rc.ping()
     return g.redis_pubsub
+
 
 def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
     """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions
