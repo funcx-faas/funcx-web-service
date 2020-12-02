@@ -25,7 +25,6 @@ flask-sqlalchemy
 Flask-Migrate==2.5.3
 Flask-WTF==0.14.3
 funcx>=0.0.2a0
-funcx-forwarder>=0.0.2
 globus-nexus-client==0.2.9
 globus-sdk==1.9.0
 greenlet==0.4.16
