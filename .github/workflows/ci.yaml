@@ -28,7 +28,7 @@ jobs:
         python -m pip install "git+https://github.com/funcx-faas/funcx-forwarder.git@forwarder_redesign#egg=funcx-forwarder"
         python -m pip install -r requirements.txt
         python -m pip install -r requirements_test.txt
-        python -m pip uninstall -y funcx funcx-forwarder
+        python -m pip uninstall -y funcx funcx_endpoint
         python -m pip install "git+https://github.com/funcx-faas/funcX.git@forwarder_rearch_1#egg=funcx&subdirectory=funcx_sdk"
         python -m pip install "git+https://github.com/funcx-faas/funcX.git@forwarder_rearch_1#egg=funcx_endpoint&subdirectory=funcx_endpoint"
 
