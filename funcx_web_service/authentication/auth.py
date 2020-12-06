@@ -26,6 +26,7 @@ def authenticated(f):
         try:
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
+            verify_auth_detail(auth_detail)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_rec = User.resolve_user(user_name)
@@ -54,6 +55,7 @@ def authenticated_w_uuid(f):
         try:
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
+            verify_auth_detail(auth_detail)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
@@ -67,6 +69,21 @@ def authenticated_w_uuid(f):
             abort(400, "Failed to authenticate user.")
         return f(user_rec, user_uuid, *args, **kwargs)
     return decorated_function
+
+def verify_auth_detail(auth_detail):
+    """Validate auth introspect response and ensure token is active and has
+    proper scopes.
+
+    Parameters
+    ----------
+    auth_detail : dict
+        Response object from a token introspect call.
+    """
+    if not auth_detail.get('active', False):
+        abort(401, 'Credentials are inactive.')
+
+    if not app.config['FUNCX_SCOPE'] in auth_detail['scope']:
+        abort(403, 'Missing Scopes')
 
 
 def check_group_membership(token, endpoint_groups):
