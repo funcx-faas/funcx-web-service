@@ -111,9 +111,11 @@ def check_group_membership(token, endpoint_groups):
     dep_tokens = client.oauth2_get_dependent_tokens(token)
 
     if "groups.api.globus.org" in dep_tokens.by_resource_server:
+        app.logger.debug("Using groups v2 api.")
         token = dep_tokens.by_resource_server["groups.api.globus.org"]["access_token"]
         user_group_ids = _get_group_ids_groups_api(token)
     else:
+        app.logger.debug("Using legacy nexus api.")
         token = dep_tokens.by_resource_server["nexus.api.globus.org"]["access_token"]
         user_group_ids = _get_group_ids_nexus_api(token)
 
