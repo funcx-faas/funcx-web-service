@@ -3,7 +3,7 @@ from funcx_web_service.models.user import User
 from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
 auth_api = Blueprint("auth_api", __name__)
-FUNCX_SCOPE = 'https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all'
+
 
 @auth_api.route('/login', methods=['GET'])
 def login():
