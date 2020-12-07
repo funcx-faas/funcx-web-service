@@ -8,6 +8,7 @@ import functools
 
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, ConfidentialAppAuthClient
+from globus_sdk.base import BaseClient
 
 from functools import wraps
 from flask import abort
@@ -105,19 +106,41 @@ def check_group_membership(token, endpoint_groups):
     client = get_auth_client()
     dep_tokens = client.oauth2_get_dependent_tokens(token)
 
-    nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
-
-    # Create a nexus client to retrieve the user's groups
-    nexus_client = NexusClient()
-    nexus_client.authorizer = AccessTokenAuthorizer(nexus_token)
-    user_groups = nexus_client.list_groups(my_statuses="active", fields="id", for_all_identities=True)
+    if "groups.api.globus.org" in dep_tokens.by_resource_server:
+        token = dep_tokens.by_resource_server["groups.api.globus.org"]["access_token"]
+        user_group_ids = _get_group_ids_groups_api(token)
+    else:
+        token = dep_tokens.by_resource_server["nexus.api.globus.org"]["access_token"]
+        user_group_ids = _get_group_ids_nexus_api(token)
 
     # Check if any of the user's groups match
-    for user_group in user_groups:
-        for endpoint_group in endpoint_groups:
-            if user_group['id'] == endpoint_group:
-                return True
+    if user_group_ids & set(endpoint_groups):
+        return True
     return False
+
+
+def _get_group_ids_groups_api(token):
+    # Create a nexus client to retrieve the user's groups
+    groups_client = BaseClient(
+        "groups",
+        base_url="https://groups.api.globus.org",
+        base_path="/v2/groups/",
+        authorizer=AccessTokenAuthorizer(token),
+    )
+    user_groups = groups_client.get("my_groups").data
+    user_group_ids = set(_["id"] for _ in user_groups)
+    return user_group_ids
+
+
+def _get_group_ids_nexus_api(token):
+    # Create a nexus client to retrieve the user's groups
+    nexus_client = NexusClient()
+    nexus_client.authorizer = AccessTokenAuthorizer(token)
+    user_groups = nexus_client.list_groups(
+        my_statuses="active", fields="id", for_all_identities=True
+    )
+    user_group_ids = set(_["id"] for _ in user_groups)
+    return user_group_ids
 
 
 @functools.lru_cache()
