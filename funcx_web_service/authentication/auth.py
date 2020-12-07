@@ -13,6 +13,9 @@ from globus_sdk.base import BaseClient
 from functools import wraps
 from flask import abort
 
+# Default scope if not provided in config
+FUNCX_SCOPE = 'https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all'
+
 
 def authenticated(f):
     """Decorator for globus auth."""
@@ -71,6 +74,7 @@ def authenticated_w_uuid(f):
         return f(user_rec, user_uuid, *args, **kwargs)
     return decorated_function
 
+
 def verify_auth_detail(auth_detail):
     """Validate auth introspect response and ensure token is active and has
     proper scopes.
@@ -83,7 +87,7 @@ def verify_auth_detail(auth_detail):
     if not auth_detail.get('active', False):
         abort(401, 'Credentials are inactive.')
 
-    if not app.config['FUNCX_SCOPE'] in auth_detail['scope']:
+    if not app.config.get('FUNCX_SCOPE', FUNCX_SCOPE) in auth_detail['scope']:
         abort(403, 'Missing Scopes')
 
 
