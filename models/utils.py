@@ -3,6 +3,7 @@ import time
 import uuid
 import redis
 import datetime
+import functools
 import psycopg2
 import psycopg2.extras
 
@@ -369,6 +370,7 @@ def register_endpoint(user_name, endpoint_name, description, endpoint_uuid=None)
     return endpoint_uuid
 
 
+@functools.lru_cache()
 def resolve_user(user_name):
     """Get the user id given their primary globus identity.
 
@@ -421,6 +423,7 @@ def create_user(user_name):
         raise
 
 
+@functools.lru_cache()
 def resolve_function(user_id, function_uuid):
     """Get the function uuid from database
 
@@ -475,6 +478,7 @@ def resolve_function(user_id, function_uuid):
     return function_code, function_entry, container_uuid
 
 
+@functools.lru_cache()
 def get_container(container_uuid, container_type):
     """Retrieve the container information.
 
