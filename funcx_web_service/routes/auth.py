@@ -1,4 +1,4 @@
-from funcx_web_service.authentication.auth import get_auth_client
+from funcx_web_service.authentication.auth import get_auth_client, FUNCX_SCOPE
 from funcx_web_service.models.user import User
 from flask import request, flash, redirect, session, url_for, Blueprint, current_app as app
 
@@ -24,7 +24,7 @@ def callback():
     # Set up our Globus Auth/OAuth2 state
     redirect_uri = f"{app.config['HOSTNAME']}/callback"
     client = get_auth_client()
-    requested_scopes = ['https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all', 'profile',
+    requested_scopes = [app.config.get('FUNCX_SCOPE', FUNCX_SCOPE), 'profile',
                         'urn:globus:auth:scope:transfer.api.globus.org:all',
                         'urn:globus:auth:scope:auth.globus.org:view_identities', 'openid']
     client.oauth2_start_flow(redirect_uri, requested_scopes=requested_scopes, refresh_tokens=False)

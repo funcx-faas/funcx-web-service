@@ -21,7 +21,9 @@ def mock_auth_client(mocker, mock_user):
     mock_auth_client.oauth2_token_introspect = mocker.Mock(
         return_value={
             "username": "bob",
-            "sub": "123-456"
+            "sub": "123-456",
+            "active": True,
+            "scope": "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all",
         })
 
     mocker.patch.object(funcx_web_service.authentication.auth, "get_auth_client",
