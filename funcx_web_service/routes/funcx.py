@@ -819,6 +819,8 @@ def register_endpoint_2(user: User, user_uuid: str):
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
     app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
+    response = None
+
     try:
         app.logger.debug(request.json['endpoint_name'])
         app.logger.debug(f"requesting registration for {request.json}")
@@ -841,23 +843,27 @@ def register_endpoint_2(user: User, user_uuid: str):
     except Exception as e:
         app.logger.debug("Caught random error : {}".format(e))
         response = {'status': 'error',
-                    'reason': f'Caught error while registering endpoint {e}'}
+                    'reason': f'Caught error while registering endpoint - {e}'}
 
-    try:
-        forwarder_ip = app.config['FORWARDER_IP']
-        response = register_with_hub(
-                f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
-        app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
+    # A response will have been set by now if there was already an error,
+    # so we should only proceed to try registering with the hub if there
+    # have been no errors so far
+    if response is None:
+        try:
+            forwarder_ip = app.config['FORWARDER_IP']
+            response = register_with_hub(
+                    f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+            app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
 
-    except Exception as e:
-        app.logger.debug("Caught error during forwarder initialization")
-        app.logger.error(e, exc_info=True)
-        response = {'status': 'error',
-                    'reason': f'Failed during broker start {e}'}
+        except Exception as e:
+            app.logger.debug("Caught error during forwarder initialization")
+            app.logger.error(e, exc_info=True)
+            response = {'status': 'error',
+                        'reason': f'Failed during broker start - {e}'}
 
-    if 'meta' in request.json and endpoint_uuid:
-        ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
-        app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+        if 'meta' in request.json and endpoint_uuid:
+            ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
+            app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
     try:
         return jsonify(response)
     except NameError:
