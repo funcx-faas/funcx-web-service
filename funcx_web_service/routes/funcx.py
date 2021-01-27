@@ -819,8 +819,8 @@ def register_endpoint_2(user: User, user_uuid: str):
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
     app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
-    response = None
-
+    # always return the jsonified error response as soon as it is available below
+    # to prevent further registration steps being taken after an error
     try:
         app.logger.debug(request.json['endpoint_name'])
         app.logger.debug(f"requesting registration for {request.json}")
@@ -828,42 +828,42 @@ def register_endpoint_2(user: User, user_uuid: str):
                                           request.json['endpoint_name'],
                                           "",  # use description from meta? why store here at all
                                           endpoint_uuid=request.json['endpoint_uuid'])
-        app.logger.debug(f"Successfully register_endpoint for {endpoint_uuid} in database")
+        app.logger.debug(f"Successfully registered {endpoint_uuid} in database")
 
     except KeyError as e:
-        app.logger.debug("Missing Keys in json request : {}".format(e))
+        app.logger.exception("Missing keys in json request")
         response = {'status': 'error',
-                    'reason': f'Missing Keys in json request {e}'}
+                    'reason': f'Missing keys in json request - {e}'}
+        return jsonify(response)
 
     except UserNotFound as e:
-        app.logger.debug(f"UserNotFound {e}")
+        app.logger.exception("User not found")
         response = {'status': 'error',
-                    'reason': f'UserNotFound {e}'}
+                    'reason': f'UserNotFound - {e}'}
+        return jsonify(response)
 
     except Exception as e:
-        app.logger.debug("Caught random error : {}".format(e))
+        app.logger.exception("Caught error while registering endpoint")
         response = {'status': 'error',
                     'reason': f'Caught error while registering endpoint - {e}'}
+        return jsonify(response)
 
-    # A response will have been set by now if there was already an error,
-    # so we should only proceed to try registering with the hub if there
-    # have been no errors so far
-    if response is None:
-        try:
-            forwarder_ip = app.config['FORWARDER_IP']
-            response = register_with_hub(
-                    f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
-            app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
+    try:
+        forwarder_ip = app.config['FORWARDER_IP']
+        response = register_with_hub(
+                f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
+        app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
 
-        except Exception as e:
-            app.logger.debug("Caught error during forwarder initialization")
-            app.logger.error(e, exc_info=True)
-            response = {'status': 'error',
-                        'reason': f'Failed during broker start - {e}'}
+    except Exception as e:
+        app.logger.exception("Caught error during forwarder initialization")
+        response = {'status': 'error',
+                    'reason': f'Failed during broker start - {e}'}
+        return jsonify(response)
 
-        if 'meta' in request.json and endpoint_uuid:
-            ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
-            app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+    if 'meta' in request.json and endpoint_uuid:
+        ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
+        app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+
     try:
         return jsonify(response)
     except NameError:
