@@ -220,7 +220,7 @@ def register_endpoint(user: User, endpoint_name, description, endpoint_uuid=None
             else:
                 app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
                                  f"with user {existing_endpoint.user_id} not {user_id}")
-                return None
+                raise Exception(f"Endpoint {endpoint_uuid} was already registered by a different user")
     else:
         endpoint_uuid = str(uuid.uuid4())
     try:
