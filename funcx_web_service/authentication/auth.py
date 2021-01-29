@@ -109,6 +109,9 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
     check if there are any groups associated with the endpoint and determine if the user
     is a member of any of them.
 
+    Raises an Exception if the endpoint does not exist, or if the endpoint is
+    restricted and the provided function is not whitelisted.
+
     Parameters
     ----------
     user_id : str
@@ -162,6 +165,8 @@ def authorize_function(user_id, function_uuid, token):
     This is done in two steps: first, check if the user owns the function. If not,
     check if there are any groups associated with the function and determine if the user
     is a member of any of them.
+
+    Raises an Exception if the function does not exist.
 
     Parameters
     ----------
