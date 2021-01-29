@@ -80,9 +80,13 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
        json object
     """
     # Check if the user is allowed to access the function
-    if not authorize_function(user_id, function_uuid, token):
+    try:
+        if not authorize_function(user_id, function_uuid, token):
+            return {'status': 'Failed',
+                    'reason': f'Unauthorized access to function: {function_uuid}'}
+    except Exception as e:
         return {'status': 'Failed',
-                'reason': f'Unauthorized access to function: {function_uuid}'}
+                'reason': f'Function authorization failed - {e}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
@@ -91,10 +95,14 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
                 'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'}
 
     # Make sure the user is allowed to use the function on this endpoint
-    for ep in endpoints:
-        if not authorize_endpoint(user_id, ep, function_uuid, token):
-            return {'status': 'Failed',
-                    'reason': f'Unauthorized access to endpoint: {ep}'}
+    try:
+        for ep in endpoints:
+            if not authorize_endpoint(user_id, ep, function_uuid, token):
+                return {'status': 'Failed',
+                        'reason': f'Unauthorized access to endpoint: {ep}'}
+    except Exception as e:
+        return {'status': 'Failed',
+                'reason': f'Endpoint authorization failed - {e}'}
 
     app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
@@ -759,9 +767,13 @@ def get_ep_stats(user: User, endpoint_id):
     token_str = request.headers.get('Authorization')
     token = str.replace(str(token_str), 'Bearer ', '')
 
-    if not authorize_endpoint(user_id, endpoint_id, None, token):
+    try:
+        if not authorize_endpoint(user_id, endpoint_id, None, token):
+            return jsonify({'status': 'Failed',
+                            'reason': f'Unauthorized access to endpoint: {endpoint_id}'})
+    except Exception as e:
         return jsonify({'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {endpoint_id}'})
+                        'reason': f'Endpoint authorization failed - {e}'})
 
     # TODO add rc to g.
     rc = get_redis_client()
