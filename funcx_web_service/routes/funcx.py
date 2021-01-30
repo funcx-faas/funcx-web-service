@@ -84,7 +84,6 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             return {'status': 'Failed',
                     'reason': f'Unauthorized access to function: {function_uuid}'}
     except Exception as e:
-        print(e)
         return {'status': 'Failed',
                 'reason': f'Function authorization failed. {str(e)}'}
 
