@@ -2,6 +2,7 @@ from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.user import User
 from funcx_web_service.models.function import Function, FunctionAuthGroup
+from funcx_web_service.errors import FunctionNotFound, EndpointNotFound, FunctionNotPermitted
 from flask import request, current_app as app
 import functools
 
@@ -134,15 +135,14 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
     authorized = False
 
     if not endpoint:
-        raise Exception(
-            f"Endpoint {endpoint_uuid} not found")
+        raise EndpointNotFound(endpoint_uuid)
 
     if endpoint.restricted:
         app.logger.debug("Restricted endpoint, checking function is allowed.")
         whitelisted_functions = [f.function_uuid for f in endpoint.restricted_functions]
 
         if function_uuid not in whitelisted_functions:
-            raise Exception(f"Function {function_uuid} not permitted on endpoint {endpoint_uuid}")
+            raise FunctionNotPermitted(function_uuid, endpoint_uuid)
 
     if endpoint.public:
         authorized = True
@@ -187,8 +187,7 @@ def authorize_function(user_id, function_uuid, token):
     function = Function.find_by_uuid(function_uuid)
 
     if not function:
-        raise Exception(
-            f"Function {function_uuid} not found")
+        raise FunctionNotFound(function_uuid)
 
     if function.user_id == user_id:
         authorized = True
