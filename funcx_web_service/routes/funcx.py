@@ -5,7 +5,6 @@ import requests
 
 from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
 
-from funcx.utils.errors import RegistrationError
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
@@ -16,6 +15,7 @@ from funcx_web_service.models.utils import register_endpoint, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
+from funcx_web_service.errors import UserNotFound, ForwarderRegistrationError
 from funcx_web_service.version import VERSION
 
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
@@ -24,7 +24,6 @@ from .redis_q import EndpointQueue
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
-from ..errors import UserNotFound
 from ..models.auth_groups import AuthGroup
 from ..models.container import Container, ContainerImage
 from ..models.endpoint import Endpoint
@@ -85,24 +84,25 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
             return {'status': 'Failed',
                     'reason': f'Unauthorized access to function: {function_uuid}'}
     except Exception as e:
+        print(e)
         return {'status': 'Failed',
-                'reason': f'Function authorization failed - {e}'}
+                'reason': f'Function authorization failed. {str(e)}'}
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
     except Exception as e:
         return {'status': 'Failed',
-                'reason': f'Function UUID:{function_uuid} could not be resolved. {e}'}
+                'reason': f'Function {function_uuid} could not be resolved. {e}'}
 
     # Make sure the user is allowed to use the function on this endpoint
-    try:
-        for ep in endpoints:
+    for ep in endpoints:
+        try:
             if not authorize_endpoint(user_id, ep, function_uuid, token):
                 return {'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {ep}'}
-    except Exception as e:
-        return {'status': 'Failed',
-                'reason': f'Endpoint authorization failed - {e}'}
+                        'reason': f'Unauthorized access to endpoint: {ep}'}    
+        except Exception as e:
+            return {'status': 'Failed',
+                    'reason': f'Endpoint authorization failed for endpoint {ep}. {e}'}
 
     app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
@@ -634,7 +634,7 @@ def register_with_hub(address, endpoint_id, endpoint_address):
     if r.status_code != 200:
         print(dir(r))
         print(r)
-        raise RegistrationError(r.reason)
+        raise ForwarderRegistrationError(r.reason)
 
     return r.json()
 
@@ -773,7 +773,7 @@ def get_ep_stats(user: User, endpoint_id):
                             'reason': f'Unauthorized access to endpoint: {endpoint_id}'})
     except Exception as e:
         return jsonify({'status': 'Failed',
-                        'reason': f'Endpoint authorization failed - {e}'})
+                        'reason': f'Endpoint authorization failed. {e}'})
 
     # TODO add rc to g.
     rc = get_redis_client()

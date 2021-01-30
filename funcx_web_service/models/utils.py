@@ -5,7 +5,7 @@ import redis
 from flask import current_app as app
 
 from funcx_web_service.models import search
-from funcx_web_service.errors import MissingFunction
+from funcx_web_service.errors import FunctionNotFound
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.tasks import DBTask
@@ -262,7 +262,7 @@ def resolve_function(user_id, function_uuid):
     saved_function = Function.find_by_uuid(function_uuid)
 
     if not saved_function:
-        raise MissingFunction(function_uuid)
+        raise FunctionNotFound(function_uuid)
 
     function_code = saved_function.function_source_code
     function_entry = saved_function.entry_point
