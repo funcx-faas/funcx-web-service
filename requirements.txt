@@ -86,7 +86,6 @@ sphinxcontrib-serializinghtml==1.1.4
 tblib==1.6.0
 testpath==0.4.4
 texttable==1.6.2
-tornado==6.0.4
 traitlets==4.3.3
 typeguard==2.9.1
 urllib3>=1.25.9
