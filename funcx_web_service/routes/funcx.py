@@ -98,7 +98,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         try:
             if not authorize_endpoint(user_id, ep, function_uuid, token):
                 return {'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {ep}'}    
+                        'reason': f'Unauthorized access to endpoint: {ep}'}
         except Exception as e:
             return {'status': 'Failed',
                     'reason': f'Endpoint authorization failed for endpoint {ep}. {e}'}

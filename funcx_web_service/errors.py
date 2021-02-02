@@ -15,7 +15,7 @@ class UserNotFound(FuncxError):
 
     def __init__(self, reason):
         self.reason = reason
-    
+
     def __repr__(self):
         return self.reason
 
@@ -26,7 +26,7 @@ class FunctionNotFound(FuncxError):
     def __init__(self, uuid):
         self.reason = "Function {} could not be resolved".format(uuid)
         self.uuid = uuid
-    
+
     def __repr__(self):
         return self.reason
 
@@ -52,6 +52,7 @@ class FunctionNotPermitted(FuncxError):
 
     def __repr__(self):
         return self.reason
+
 
 class ForwarderRegistrationError(FuncxError):
     """ Registering the endpoint with the forwarder has failed
