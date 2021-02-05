@@ -5,7 +5,7 @@ import redis
 from flask import current_app as app
 
 from funcx_web_service.models import search
-from funcx_web_service.errors import FunctionNotFound
+from funcx.utils.response_errors import FunctionNotFound
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.tasks import DBTask

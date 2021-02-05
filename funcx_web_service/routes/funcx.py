@@ -15,12 +15,13 @@ from funcx_web_service.models.utils import register_endpoint, ingest_function
 from funcx_web_service.models.utils import resolve_function, db_invocation_logger
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
-from funcx_web_service.errors import UserNotFound, ForwarderRegistrationError
+from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.version import VERSION
 
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
+from funcx.utils.response_errors import UserNotFound, ForwarderRegistrationError, RequestKeyError
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -296,8 +297,8 @@ def get_tasks_from_redis(task_ids):
         # Get the task from redis
         if not Task.exists(rc, task_id):
             all_tasks[task_id] = {
-                'status': 'failed',
-                'reason': 'unknown task id'
+                'status': 'Failed',
+                'reason': 'Unknown task id'
             }
             continue
 
@@ -473,7 +474,7 @@ def result(user: User, task_id):
                 task = {'status': 'PENDING'}
         except Exception as e:
             app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'FAILED', 'reason': 'Unknown task id'}
+            task = {'status': 'Failed', 'reason': 'Unknown task id'}
 
         res = {'task_id': task_id}
         if 'status' in task:
@@ -843,21 +844,15 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
-        response = {'status': 'error',
-                    'reason': f'Missing keys in json request - {e}'}
-        return jsonify(response)
+        return create_error_response(RequestKeyError(str(e)), True)
 
     except UserNotFound as e:
         app.logger.exception("User not found")
-        response = {'status': 'error',
-                    'reason': f'UserNotFound - {e}'}
-        return jsonify(response)
+        return create_error_response(e, True)
 
     except Exception as e:
         app.logger.exception("Caught error while registering endpoint")
-        response = {'status': 'error',
-                    'reason': f'Caught error while registering endpoint - {e}'}
-        return jsonify(response)
+        return create_error_response(e, True)
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
@@ -867,9 +862,7 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except Exception as e:
         app.logger.exception("Caught error during forwarder initialization")
-        response = {'status': 'error',
-                    'reason': f'Failed during broker start - {e}'}
-        return jsonify(response)
+        return create_error_response(e, True)
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
