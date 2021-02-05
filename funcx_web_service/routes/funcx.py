@@ -844,15 +844,15 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
-        return create_error_response(RequestKeyError(str(e)), True)
+        return jsonify(create_error_response(RequestKeyError(str(e))))
 
     except UserNotFound as e:
         app.logger.exception("User not found")
-        return create_error_response(e, True)
+        return jsonify(create_error_response(e))
 
     except Exception as e:
         app.logger.exception("Caught error while registering endpoint")
-        return create_error_response(e, True)
+        return jsonify(create_error_response(e))
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
@@ -862,7 +862,7 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except Exception as e:
         app.logger.exception("Caught error during forwarder initialization")
-        return create_error_response(e, True)
+        return jsonify(create_error_response(e))
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
