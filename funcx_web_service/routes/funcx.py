@@ -21,7 +21,8 @@ from funcx_web_service.version import VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import UserNotFound, ForwarderRegistrationError, RequestKeyError
+from funcx.utils.response_errors import (UserNotFound, UnauthorizedFunctionAccess, UnauthorizedEndpointAccess,
+                                         ForwarderRegistrationError, RequestKeyError, RequestMalformed)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -82,27 +83,25 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     # Check if the user is allowed to access the function
     try:
         if not authorize_function(user_id, function_uuid, token):
-            return {'status': 'Failed',
-                    'reason': f'Unauthorized access to function: {function_uuid}'}
+            return create_error_response(UnauthorizedFunctionAccess(function_uuid))
     except Exception as e:
-        return {'status': 'Failed',
-                'reason': f'Function authorization failed. {str(e)}'}
+        # could be FunctionNotFound
+        return create_error_response(e)
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
     except Exception as e:
-        return {'status': 'Failed',
-                'reason': f'Function {function_uuid} could not be resolved. {e}'}
+        # could be FunctionNotFound
+        return create_error_response(e)
 
     # Make sure the user is allowed to use the function on this endpoint
     for ep in endpoints:
         try:
             if not authorize_endpoint(user_id, ep, function_uuid, token):
-                return {'status': 'Failed',
-                        'reason': f'Unauthorized access to endpoint: {ep}'}
+                return create_error_response(UnauthorizedEndpointAccess(ep))
         except Exception as e:
-            return {'status': 'Failed',
-                    'reason': f'Endpoint authorization failed for endpoint {ep}. {e}'}
+            # could be an EndpointNotFound or a FunctionNotPermitted
+            return create_error_response(e)
 
     app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
@@ -274,11 +273,9 @@ def submit_batch(user_name):
         input_data = post_req['payload']
         serialize = post_req.get('serialize', None)
     except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
+        return jsonify(create_error_response(RequestKeyError(str(e))))
     except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+        return jsonify(create_error_response(RequestMalformed(str(e))))
 
     return jsonify(auth_and_launch(user_id,
                                    function_uuid,
@@ -708,8 +705,7 @@ def endpoint_whitelist(user: User, endpoint_id):
             post_req = request.json
             functions = post_req['func']
         except KeyError as e:
-            return jsonify({'status': 'Failed',
-                            'reason': "Missing Key {}".format(str(e))})
+            return jsonify(create_error_response(RequestKeyError(str(e))))
         except Exception as e:
             return jsonify({'status': 'Failed',
                             'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
