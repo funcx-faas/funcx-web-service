@@ -765,11 +765,10 @@ def get_ep_stats(user: User, endpoint_id):
 
     try:
         if not authorize_endpoint(user_id, endpoint_id, None, token):
-            return jsonify({'status': 'Failed',
-                            'reason': f'Unauthorized access to endpoint: {endpoint_id}'})
+            return jsonify(create_error_response(UnauthorizedEndpointAccess(endpoint_id)))
     except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': f'Endpoint authorization failed. {e}'})
+        # could be EndpointNotFound
+        return jsonify(create_error_response(e))
 
     # TODO add rc to g.
     rc = get_redis_client()
