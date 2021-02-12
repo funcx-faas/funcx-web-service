@@ -3,7 +3,9 @@ import pytest
 from funcx_web_service.models.container import Container
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.user import User
+from funcx.utils.response_errors import ResponseErrorCode
 from tests.routes.app_test_base import AppTestBase
+
 
 
 @pytest.fixture
@@ -282,3 +284,32 @@ class TestFuncX(AppTestBase):
         get_forwarder_version.assert_called()
         assert result.status_code == 400
         assert "version must be passed in" in result.data.decode("utf-8")
+
+    def test_register_endpoint_missing_keys(self, mocker, mock_auth_client):
+        client = self.client
+
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.0.0"})
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                                 "version": "1.0.0",
+                                 "endpoint_uuid": None
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+
+        assert result.status_code == 200
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
+
+    @pytest.mark.skip()
+    def test_register_endpoint_user_not_found(self):
+        return
+
+    @pytest.mark.skip()
+    def test_register_endpoint_unknown_error(self):
+        # mock the register_endpoint function called within this route to
+        # raise an unknown exception
+        return
