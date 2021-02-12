@@ -22,7 +22,8 @@ from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
 from funcx.utils.response_errors import (UserNotFound, UnauthorizedFunctionAccess, UnauthorizedEndpointAccess,
-                                         ForwarderRegistrationError, RequestKeyError, RequestMalformed)
+                                         ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
+                                         LivenessStatsError, RequestKeyError, RequestMalformed)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -603,8 +604,7 @@ def reg_endpoint(user: User):
         endpoint_uuid = register_endpoint(
             user, endpoint_name, description, endpoint_uuid)
     except UserNotFound as e:
-        return jsonify({'status': 'Failed',
-                        'reason': str(e)})
+        return jsonify(create_error_response(e))
 
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
@@ -707,8 +707,7 @@ def endpoint_whitelist(user: User, endpoint_id):
         except KeyError as e:
             return jsonify(create_error_response(RequestKeyError(str(e))))
         except Exception as e:
-            return jsonify({'status': 'Failed',
-                            'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+            return jsonify(create_error_response(RequestMalformed(str(e))))
         return add_ep_whitelist(user, endpoint_id, functions)
 
 
@@ -791,8 +790,7 @@ def get_ep_stats(user: User, endpoint_id):
 
     except Exception as e:
         app.logger.error("Unable to retrieve ")
-        status = {'status': 'Failed',
-                  'reason': f'Unable to retrieve endpoint stats: {endpoint_id}. {e}'}
+        status = create_error_response(EndpointStatsError(endpoint_id, str(e)))
 
     return jsonify(status)
 
@@ -1059,18 +1057,14 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
     try:
         r = requests.get(forwarder_address + '/map.json')
         if r.status_code != 200:
-            response = {'status': 'Failed',
-                        'code': r.status_code,
-                        'reason': 'Forwarder did not respond with liveness stats'}
+            response = create_error_response(LivenessStatsError(r.status_code))
         else:
             response = r.json()
             app.logger.debug(f'Response from forwarder : {response}')
             return response
 
     except Exception as e:
-        response = {'status': 'Failed',
-                    'code': 520,
-                    'reason': f'Contacting forwarder failed with {e}'}
+        response = create_error_response(ForwarderContactError(str(e)))
 
     return jsonify(response)
 
