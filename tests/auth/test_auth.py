@@ -2,15 +2,11 @@ import pytest
 
 from funcx_web_service.authentication.auth import authorize_endpoint, authorize_function
 from funcx_web_service.models.function import Function, FunctionAuthGroup
+from tests.routes.app_test_base import AppTestBase
 
 
-@pytest.fixture
-def mock_app_logger(mocker):
-    return mocker.patch("funcx_web_service.authentication.auth.app")
-
-
-class TestAuth:
-    def test_authorize_endpoint_restricted_whitelist(self, mocker, mock_app_logger):
+class TestAuth(AppTestBase):
+    def test_authorize_endpoint_restricted_whitelist(self, mocker):
         """
         Test to see that we are authorized if the endpoint is restricted, but the
         requested function is in the whitelist
@@ -26,6 +22,7 @@ class TestAuth:
                                                          Function(function_uuid="123")
                                                      ]
                                                  ))
+
         result = authorize_endpoint(user_id="test_user",
                                     endpoint_uuid="123-45-566",
                                     function_uuid="123",
@@ -33,7 +30,7 @@ class TestAuth:
         assert result
         mock_endpoint_find.assert_called_with("123-45-566")
 
-    def test_authorize_endpoint_restricted_not_whitelist(self, mocker, mock_app_logger):
+    def test_authorize_endpoint_restricted_not_whitelist(self, mocker):
         """
         Test to see that we are authorized if the endpoint is restricted, and the
         requested function is not in the whitelist
@@ -59,7 +56,7 @@ class TestAuth:
             print(excinfo)
             mock_endpoint_find.assert_called_with("123-45-566")
 
-    def test_authorize_endpoint_public(self, mocker, mock_app_logger):
+    def test_authorize_endpoint_public(self, mocker):
         from funcx_web_service.models.endpoint import Endpoint
         authorize_endpoint.cache_clear()
 
@@ -76,7 +73,7 @@ class TestAuth:
         assert result
         mock_endpoint_find.assert_called_with("123-45-566")
 
-    def test_authorize_endpoint_user(self, mocker, mock_app_logger):
+    def test_authorize_endpoint_user(self, mocker):
         from funcx_web_service.models.endpoint import Endpoint
         authorize_endpoint.cache_clear()
 
@@ -94,7 +91,7 @@ class TestAuth:
         assert result
         mock_endpoint_find.assert_called_with("123-45-566")
 
-    def test_authorize_endpoint_group(self, mocker, mock_app_logger):
+    def test_authorize_endpoint_group(self, mocker):
         from funcx_web_service.models.endpoint import Endpoint
         from funcx_web_service.models.auth_groups import AuthGroup
         authorize_endpoint.cache_clear()
@@ -127,7 +124,7 @@ class TestAuth:
         mock_auth_group_find.assert_called_with("123-45-566")
         mock_check_group_membership.assert_called_with("ttttt", ['my-group'])
 
-    def test_authorize_endpoint_no_group(self, mocker, mock_app_logger):
+    def test_authorize_endpoint_no_group(self, mocker):
         from funcx_web_service.models.endpoint import Endpoint
         from funcx_web_service.models.auth_groups import AuthGroup
         authorize_endpoint.cache_clear()
@@ -157,7 +154,7 @@ class TestAuth:
         mock_auth_group_find.assert_called_with("123-45-566")
         mock_check_group_membership.assert_not_called()
 
-    def test_authorize_function_user_owns(self, mocker, mock_app_logger):
+    def test_authorize_function_user_owns(self, mocker):
         from funcx_web_service.models.function import Function
         authorize_function.cache_clear()
 
@@ -173,7 +170,7 @@ class TestAuth:
         assert result
         mock_function_find.assert_called_with("123")
 
-    def test_authorize_function_public(self, mocker, mock_app_logger):
+    def test_authorize_function_public(self, mocker):
         from funcx_web_service.models.function import Function
         authorize_function.cache_clear()
 
@@ -189,7 +186,7 @@ class TestAuth:
         assert result
         mock_function_find.assert_called_with("123")
 
-    def test_authorize_function_auth_group(self, mocker, mock_app_logger):
+    def test_authorize_function_auth_group(self, mocker):
         from funcx_web_service.models.function import Function
         authorize_function.cache_clear()
 
