@@ -51,7 +51,7 @@ class TestFuncX(AppTestBase):
         mock_exists = mocker.patch.object(Task, "exists", return_value=True)
         mock_from_id = mocker.patch.object(Task, "from_id", return_value=mock_task)
 
-        client = self.test_client()
+        client = self.client
 
         result = client.get("/api/v1/tasks/42/status", headers={"Authorization": "my_token"})
 
@@ -62,7 +62,7 @@ class TestFuncX(AppTestBase):
 
     def test_register_function(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
-        client = self.test_client()
+        client = self.client
         result = client.post("api/v1/register_function",
                              json={
                                  "function_source": "def fun(x): return x+1",
@@ -76,22 +76,21 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 200
         assert "function_uuid" in result.json
 
-        with client.application.app_context():
-            saved_function = Function.find_by_uuid(result.json['function_uuid'])
-            assert saved_function.function_uuid == result.json['function_uuid']
-            assert saved_function.function_name == 'test fun'
-            assert saved_function.entry_point == "func()"
-            assert saved_function.description == 'this is a test'
-            assert saved_function.function_source_code == "flksdjfldkjdlkfjslk"
-            assert saved_function.public
+        saved_function = Function.find_by_uuid(result.json['function_uuid'])
+        assert saved_function.function_uuid == result.json['function_uuid']
+        assert saved_function.function_name == 'test fun'
+        assert saved_function.entry_point == "func()"
+        assert saved_function.description == 'this is a test'
+        assert saved_function.function_source_code == "flksdjfldkjdlkfjslk"
+        assert saved_function.public
 
-            assert mock_ingest.call_args[0][0].function_uuid == result.json['function_uuid']
-            assert mock_ingest.call_args[0][1] == 'def fun(x): return x+1'
-            assert mock_ingest.call_args[0][2] == '123-456'
+        assert mock_ingest.call_args[0][0].function_uuid == result.json['function_uuid']
+        assert mock_ingest.call_args[0][1] == 'def fun(x): return x+1'
+        assert mock_ingest.call_args[0][2] == '123-456'
 
     def test_register_function_no_search(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
-        client = self.test_client()
+        client = self.client
         from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
@@ -116,7 +115,7 @@ class TestFuncX(AppTestBase):
 
     def test_register_function_with_container(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
-        client = self.test_client()
+        client = self.client
         from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
@@ -146,13 +145,13 @@ class TestFuncX(AppTestBase):
         assert "function_uuid" in result.json
         assert mock_ingest.not_called
         mock_container_read.assert_called_with("11122-22111")
-        with client.application.app_context():
-            saved_function = Function.find_by_uuid(result.json['function_uuid'])
-            assert saved_function.container.container_id == 44
+
+        saved_function = Function.find_by_uuid(result.json['function_uuid'])
+        assert saved_function.container.container_id == 44
 
     def test_register_function_with_group_auth(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
-        client = self.test_client()
+        client = self.client
         from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
@@ -182,13 +181,13 @@ class TestFuncX(AppTestBase):
         assert "function_uuid" in result.json
         assert mock_ingest.not_called
         mock_authgroup_read.assert_called_with("222-111")
-        with client.application.app_context():
-            saved_function = Function.find_by_uuid(result.json['function_uuid'])
-            assert len(saved_function.auth_groups) == 1
-            assert saved_function.auth_groups[0].group_id == 45
+
+        saved_function = Function.find_by_uuid(result.json['function_uuid'])
+        assert len(saved_function.auth_groups) == 1
+        assert saved_function.auth_groups[0].group_id == 45
 
     def test_register_container(self, mocker, mock_auth_client):
-        client = self.test_client()
+        client = self.client
         result = client.post("api/v1/containers",
                              json={
                                  "name": "myContainer",
@@ -201,20 +200,20 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 200
         assert "container_id" in result.json
         container_uuid = result.json['container_id']
-        with client.application.app_context():
-            saved_container = Container.find_by_uuid(container_uuid)
-            assert saved_container
-            assert saved_container.name == 'myContainer'
-            assert saved_container.container_uuid == container_uuid
-            assert saved_container.description == 'this is a test'
 
-            assert saved_container.images
-            assert len(saved_container.images) == 1
-            assert saved_container.images[0].type == 'docker'
-            assert saved_container.images[0].location == 'http://hub.docker.com/myContainer'
+        saved_container = Container.find_by_uuid(container_uuid)
+        assert saved_container
+        assert saved_container.name == 'myContainer'
+        assert saved_container.container_uuid == container_uuid
+        assert saved_container.description == 'this is a test'
+
+        assert saved_container.images
+        assert len(saved_container.images) == 1
+        assert saved_container.images[0].type == 'docker'
+        assert saved_container.images[0].location == 'http://hub.docker.com/myContainer'
 
     def test_register_container_invalid_spec(self, mocker, mock_auth_client):
-        client = self.test_client()
+        client = self.client
         result = client.post("api/v1/containers",
                              json={
                                  "type": "docker",
@@ -224,7 +223,7 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 400
 
     def test_register_endpoint(self, mocker, mock_auth_client, mock_user):
-        client = self.test_client()
+        client = self.client
 
         get_forwarder_version = mocker.patch(
             "funcx_web_service.routes.funcx.get_forwarder_version",
@@ -256,7 +255,7 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 200
 
     def test_register_endpoint_version_mismatch(self, mocker, mock_auth_client):
-        client = self.test_client()
+        client = self.client
         get_forwarder_version = mocker.patch(
             "funcx_web_service.routes.funcx.get_forwarder_version",
             return_value={"min_ep_version": "1.42.0"})
@@ -271,7 +270,7 @@ class TestFuncX(AppTestBase):
         assert "Endpoint is out of date." in result.data.decode("utf-8")
 
     def test_register_endpoint_no_version(self, mocker, mock_auth_client):
-        client = self.test_client()
+        client = self.client
         get_forwarder_version = mocker.patch(
             "funcx_web_service.routes.funcx.get_forwarder_version",
             return_value={"min_ep_version": "1.42.0"})

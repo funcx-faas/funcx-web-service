@@ -9,7 +9,7 @@ class TestAuth(AppTestBase):
         mock_client.oauth2_get_authorize_url = mocker.Mock(return_value="http://secure.org")
         mocker.patch("funcx_web_service.routes.auth.get_auth_client", return_value=mock_client)
 
-        client = self.test_client()
+        client = self.client
         result = client.get("/callback")
         assert result.status_code == 302
         assert result.headers['Location'] == 'http://secure.org'
@@ -18,7 +18,7 @@ class TestAuth(AppTestBase):
         mock_flash = mocker.patch("funcx_web_service.routes.auth.flash")
         mocker.patch("funcx_web_service.routes.auth.url_for", return_value="http://funcx.home")
 
-        client = self.test_client()
+        client = self.client
 
         result = client.get('/callback?error=FATAL&error_description="bad stuff"')
         assert result.status_code == 302
@@ -39,7 +39,7 @@ class TestAuth(AppTestBase):
         mock_client.oauth2_exchange_code_for_tokens = mocker.Mock(return_value=mock_tokens)
         mocker.patch("funcx_web_service.routes.auth.get_auth_client", return_value=mock_client)
 
-        client = self.test_client()
+        client = self.client
 
         result = client.get("/callback?code=foo")
         assert result.status_code == 302
