@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 import pytest
 from funcx_web_service.models.container import Container
+from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.user import User
 from funcx.utils.response_errors import ResponseErrorCode
@@ -13,6 +14,14 @@ def mock_user(mocker):
     return User(
         username='bob',
         globus_identity='123-456'
+    )
+
+
+@pytest.fixture
+def mock_endpoint(mocker):
+    return Endpoint(
+        user_id=1,
+        endpoint_uuid="11111111-2222-3333-4444-555555555555"
     )
 
 
@@ -303,13 +312,53 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 400
         assert result.json['status'] == 'Failed'
         assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
+        assert result.json['reason'] == "Missing key in JSON request - 'endpoint_name'"
 
-    @pytest.mark.skip()
-    def test_register_endpoint_user_not_found(self):
-        return
+    def test_register_endpoint_already_registered(self, mocker, mock_auth_client, mock_endpoint):
+        client = self.client
 
-    @pytest.mark.skip()
-    def test_register_endpoint_unknown_error(self):
-        # mock the register_endpoint function called within this route to
-        # raise an unknown exception
-        return
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.0.0"})
+
+        mocker.patch.object(Endpoint, "find_by_uuid", return_value=mock_endpoint)
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                                 "version": "1.0.0",
+                                 "endpoint_name": "my-endpoint",
+                                 "endpoint_uuid": "11111111-2222-3333-4444-555555555555"
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+
+        assert result.status_code == 400
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.ENDPOINT_ALREADY_REGISTERED)
+        assert result.json['reason'] ==  "Endpoint 11111111-2222-3333-4444-555555555555 was already registered by a different user"
+
+    def test_register_endpoint_unknown_error(self, mocker, mock_auth_client):
+        client = self.client
+
+        get_forwarder_version = mocker.patch(
+            "funcx_web_service.routes.funcx.get_forwarder_version",
+            return_value={"min_ep_version": "1.0.0"})
+
+        mock_register_endpoint = \
+            mocker.patch("funcx_web_service.routes.funcx.register_endpoint",
+                         return_value="123-45-6789-1011")
+        mock_register_endpoint.side_effect = Exception("hello")
+
+        result = client.post("api/v1/register_endpoint_2",
+                             json={
+                                 "version": "1.0.0",
+                                 "endpoint_name": "my-endpoint",
+                                 "endpoint_uuid": None
+                             },
+                             headers={"Authorization": "my_token"})
+        get_forwarder_version.assert_called()
+
+        assert result.status_code == 500
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.UNKNOWN_ERROR)
+        assert result.json['reason'] ==  "An unknown error occurred: hello"
