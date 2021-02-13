@@ -21,7 +21,7 @@ from funcx_web_service.version import VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import (UserNotFound, UnauthorizedFunctionAccess, UnauthorizedEndpointAccess,
+from funcx.utils.response_errors import (UserNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
                                          LivenessStatsError, RequestKeyError, RequestMalformed)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
@@ -84,7 +84,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     # Check if the user is allowed to access the function
     try:
         if not authorize_function(user_id, function_uuid, token):
-            return create_error_response(UnauthorizedFunctionAccess(function_uuid))
+            return create_error_response(FunctionAccessForbidden(function_uuid))
     except Exception as e:
         # could be FunctionNotFound
         return create_error_response(e)
@@ -99,7 +99,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     for ep in endpoints:
         try:
             if not authorize_endpoint(user_id, ep, function_uuid, token):
-                return create_error_response(UnauthorizedEndpointAccess(ep))
+                return create_error_response(EndpointAccessForbidden(ep))
         except Exception as e:
             # could be an EndpointNotFound or a FunctionNotPermitted
             return create_error_response(e)
@@ -161,7 +161,7 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     db_logger.commit()
 
     return {'status': 'Success',
-            'task_uuids': task_ids}
+            'task_uuids': task_ids}, 200
 
 
 @funcx_api.route('/submit', methods=['POST'])
@@ -213,12 +213,12 @@ def submit(user: User):
                'task_uuids': [],
                'task_uuid': ""}
     for task in tasks:
-        res = auth_and_launch(
+        res, status_code = auth_and_launch(
             user_id, function_uuid=task[0], endpoints=[task[1]],
             input_data=task[2], app=app, token=token, serialize=serialize
         )
         if res.get('status', 'Failed') != 'Success':
-            return res
+            return jsonify(res), status_code
         else:
             results['task_uuids'].extend(res['task_uuids'])
             # For backwards compatibility. <=0.0.1a5 requires "task_uuid" in result
@@ -274,17 +274,18 @@ def submit_batch(user_name):
         input_data = post_req['payload']
         serialize = post_req.get('serialize', None)
     except KeyError as e:
-        return jsonify(create_error_response(RequestKeyError(str(e))))
+        return create_error_response(RequestKeyError(e), True)
     except Exception as e:
-        return jsonify(create_error_response(RequestMalformed(str(e))))
+        return create_error_response(RequestMalformed(e), True)
 
-    return jsonify(auth_and_launch(user_id,
-                                   function_uuid,
-                                   endpoints,
-                                   input_data,
-                                   app,
-                                   token,
-                                   serialize=serialize))
+    res, status_code = auth_and_launch(user_id,
+                                       function_uuid,
+                                       endpoints,
+                                       input_data,
+                                       app,
+                                       token,
+                                       serialize=serialize)
+    return jsonify(res), status_code
 
 
 def get_tasks_from_redis(task_ids):
@@ -604,7 +605,7 @@ def reg_endpoint(user: User):
         endpoint_uuid = register_endpoint(
             user, endpoint_name, description, endpoint_uuid)
     except UserNotFound as e:
-        return jsonify(create_error_response(e))
+        return create_error_response(e, True)
 
     return jsonify({'endpoint_uuid': endpoint_uuid})
 
@@ -705,9 +706,9 @@ def endpoint_whitelist(user: User, endpoint_id):
             post_req = request.json
             functions = post_req['func']
         except KeyError as e:
-            return jsonify(create_error_response(RequestKeyError(str(e))))
+            return create_error_response(RequestKeyError(e), True)
         except Exception as e:
-            return jsonify(create_error_response(RequestMalformed(str(e))))
+            return create_error_response(RequestMalformed(e), True)
         return add_ep_whitelist(user, endpoint_id, functions)
 
 
@@ -764,10 +765,10 @@ def get_ep_stats(user: User, endpoint_id):
 
     try:
         if not authorize_endpoint(user_id, endpoint_id, None, token):
-            return jsonify(create_error_response(UnauthorizedEndpointAccess(endpoint_id)))
+            return create_error_response(EndpointAccessForbidden(endpoint_id), True)
     except Exception as e:
         # could be EndpointNotFound
-        return jsonify(create_error_response(e))
+        return create_error_response(e, True)
 
     # TODO add rc to g.
     rc = get_redis_client()
@@ -790,7 +791,7 @@ def get_ep_stats(user: User, endpoint_id):
 
     except Exception as e:
         app.logger.error("Unable to retrieve ")
-        status = create_error_response(EndpointStatsError(endpoint_id, str(e)))
+        return create_error_response(EndpointStatsError(endpoint_id, e), True)
 
     return jsonify(status)
 
@@ -837,15 +838,15 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
-        return jsonify(create_error_response(RequestKeyError(str(e))))
+        return create_error_response(RequestKeyError(e), True)
 
     except UserNotFound as e:
         app.logger.exception("User not found")
-        return jsonify(create_error_response(e))
+        return create_error_response(e, True)
 
     except Exception as e:
         app.logger.exception("Caught error while registering endpoint")
-        return jsonify(create_error_response(e))
+        return create_error_response(e, True)
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
@@ -855,7 +856,7 @@ def register_endpoint_2(user: User, user_uuid: str):
 
     except Exception as e:
         app.logger.exception("Caught error during forwarder initialization")
-        return jsonify(create_error_response(e))
+        return create_error_response(e, True)
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
@@ -1057,16 +1058,14 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
     try:
         r = requests.get(forwarder_address + '/map.json')
         if r.status_code != 200:
-            response = create_error_response(LivenessStatsError(r.status_code))
+            return create_error_response(LivenessStatsError(r.status_code), True)
         else:
             response = r.json()
             app.logger.debug(f'Response from forwarder : {response}')
             return response
 
     except Exception as e:
-        response = create_error_response(ForwarderContactError(str(e)))
-
-    return jsonify(response)
+        return create_error_response(ForwarderContactError(e), True)
 
 
 @funcx_api.route("/get_map", methods=['GET'])

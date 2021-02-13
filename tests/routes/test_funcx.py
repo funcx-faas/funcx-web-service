@@ -300,7 +300,7 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         get_forwarder_version.assert_called()
 
-        assert result.status_code == 200
+        assert result.status_code == 400
         assert result.json['status'] == 'Failed'
         assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
 
