@@ -5,7 +5,7 @@ import redis
 from flask import current_app as app
 
 from funcx_web_service.models import search
-from funcx.utils.response_errors import FunctionNotFound
+from funcx.utils.response_errors import FunctionNotFound, EndpointAlreadyRegistered
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.tasks import DBTask
@@ -220,7 +220,7 @@ def register_endpoint(user: User, endpoint_name, description, endpoint_uuid=None
             else:
                 app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
                                  f"with user {existing_endpoint.user_id} not {user_id}")
-                raise Exception(f"Endpoint {endpoint_uuid} was already registered by a different user")
+                raise EndpointAlreadyRegistered(endpoint_uuid)
     else:
         endpoint_uuid = str(uuid.uuid4())
     try:
