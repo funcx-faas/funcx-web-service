@@ -2,9 +2,11 @@ from flask import jsonify
 
 from funcx.utils.response_errors import FuncxResponseError
 
-def create_error_response(exception, jsonify_response=False):
 
+def create_error_response(exception, jsonify_response=False):
     if isinstance(exception, FuncxResponseError):
+        # the pack method turns a FuncxResponseError into a record
+        # which will become json
         response = exception.pack()
         status_code = int(exception.http_status_code)
     else:
@@ -13,7 +15,7 @@ def create_error_response(exception, jsonify_response=False):
                     'error_args': [],
                     'reason': f'An unknown error occurred: {exception}'}
         status_code = 500
-    
+
     if jsonify_response:
         response = jsonify(response)
 
