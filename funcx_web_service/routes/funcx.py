@@ -3,7 +3,7 @@ import time
 import uuid
 import requests
 
-from flask import current_app as app, Blueprint, jsonify, request, abort, send_from_directory, g
+from flask import current_app as app, Blueprint, jsonify, request, send_from_directory, g
 
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
@@ -21,9 +21,11 @@ from funcx_web_service.version import VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import (UserNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
+from funcx.utils.response_errors import (UserUnauthenticated, UserNotFound, ContainerNotFound, TaskNotFound,
+                                         AuthGroupNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
-                                         LivenessStatsError, RequestKeyError, RequestMalformed)
+                                         LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
+                                         EndpointOutdated)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -207,7 +209,7 @@ def submit(user: User):
             tasks.append([function_uuid, endpoint, input_data])
         serialize = post_req.get('serialize', None)
     except KeyError as e:
-        abort(422, description=f"Missing key: {e}")
+        return create_error_response(RequestKeyError(e), True)
 
     results = {'status': 'Success',
                'task_uuids': [],
@@ -251,14 +253,13 @@ def submit_batch(user_name):
     app.logger.debug(f"Submit_batch invoked by user:{user_name}")
 
     if not user_name:
-        abort(400, description="Could not find user. You must be "
-                               "logged in to perform this function.")
+        return create_error_response(UserUnauthenticated(), True)
 
     saved_user = User.resolve_user(user_name)
     if not saved_user:
         msg = f"Failed to resolve user_name:{user_name} to user_id"
         app.logger.error(msg)
-        abort(500, description=msg)
+        return create_error_response(InternalError(msg), True)
 
     user_id = saved_user.id
 
@@ -353,7 +354,7 @@ def status_and_result(user_name, task_id):
     rc = get_redis_client()
 
     if not Task.exists(rc, task_id):
-        abort(400, "task_id not found")
+        return create_error_response(TaskNotFound(task_id), True)
 
     task = Task.from_id(rc, task_id)
     task_status = task.status
@@ -407,7 +408,7 @@ def status(user_name, task_id):
     rc = get_redis_client()
 
     if not Task.exists(rc, task_id):
-        abort(400, "task_id not found")
+        return create_error_response(TaskNotFound(task_id), True)
     task = Task.from_id(rc, task_id)
 
     return jsonify({
@@ -492,8 +493,7 @@ def result(user: User, task_id):
 
     except Exception as e:
         app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
+        return create_error_response(InternalError(e), True)
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
@@ -567,10 +567,10 @@ def reg_container(user: User):
         app.logger.debug(f"Created container: {container_rec.container_uuid}")
         return jsonify({'container_id': container_rec.container_uuid})
     except KeyError as e:
-        abort(400, f"Missing property in request: {e}")
+        return create_error_response(RequestKeyError(e), True)
 
     except Exception as e:
-        abort(500, f'Internal server error adding container {e}')
+        return create_error_response(InternalError(f'error adding container - {e}'), True)
 
 
 @funcx_api.route("/register_endpoint", methods=['POST'])
@@ -665,7 +665,7 @@ def get_version():
             "min_ep_version": min_ep_version
         })
 
-    abort(400, "unknown service type or other error.")
+    return create_error_response(RequestMalformed("unknown service type or other error."), True)
 
 
 @funcx_api.route("/addr", methods=['GET'])
@@ -812,10 +812,10 @@ def register_endpoint_2(user: User, user_uuid: str):
     v_info = get_forwarder_version()
     min_ep_version = v_info['min_ep_version']
     if 'version' not in request.json:
-        abort(400, "Endpoint funcx version must be passed in the 'version' field.")
+        return create_error_response(RequestKeyError("Endpoint funcx version must be passed in the 'version' field."), True)
 
     if request.json['version'] < min_ep_version:
-        abort(400, f"Endpoint is out of date. Minimum supported endpoint version is {min_ep_version}")
+        return create_error_response(EndpointOutdated(min_ep_version), True)
 
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
@@ -916,14 +916,14 @@ def reg_function(user: User, user_uuid):
         if container_uuid:
             container = Container.find_by_uuid(container_uuid)
             if not container:
-                abort(400, f'Container with id {container_uuid} not found')
+                return create_error_response(ContainerNotFound(container_uuid), True)
 
         group_uuid = request.json.get("group", None)
         group = None
         if group_uuid:
             group = AuthGroup.find_by_uuid(group_uuid)
             if not group:
-                abort(400, f"AuthGroup with ID {group_uuid} not found")
+                return create_error_response(AuthGroupNotFound(group_uuid), True)
 
         searchable = request.json.get("searchable", True)
 
@@ -953,13 +953,13 @@ def reg_function(user: User, user_uuid):
 
     except KeyError as key_error:
         app.logger.error(key_error)
-        abort(400, "Malformed request " + str(key_error))
+        return create_error_response(RequestKeyError(key_error), True)
 
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".\
             format(user.username, function_rec.function_name, e)
         app.logger.error(message)
-        abort(500, message)
+        return create_error_response(InternalError(message), True)
 
     try:
         ingest_function(function_rec, function_source, user_uuid)
@@ -967,7 +967,7 @@ def reg_function(user: User, user_uuid):
         message = "Function ingest to search failed for user:{} function_name:{} due to {}".\
             format(user.username, function_rec.function_name, e)
         app.logger.error(message)
-        abort(500, message)
+        return create_error_response(InternalError(message), True)
 
     return response
 
