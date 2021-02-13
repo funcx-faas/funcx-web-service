@@ -232,6 +232,9 @@ class TestFuncX(AppTestBase):
                              },
                              headers={"Authorization": "my_token"})
         assert result.status_code == 400
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
+        assert result.json['reason'] ==  "Missing key in JSON request - 'name'"
 
     def test_register_endpoint(self, mocker, mock_auth_client, mock_user):
         client = self.client
@@ -278,7 +281,9 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         get_forwarder_version.assert_called()
         assert result.status_code == 400
-        assert "Endpoint is out of date." in result.data.decode("utf-8")
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.ENDPOINT_OUTDATED)
+        assert "Endpoint is out of date." in result.json['reason']
 
     def test_register_endpoint_no_version(self, mocker, mock_auth_client):
         client = self.client
@@ -292,7 +297,9 @@ class TestFuncX(AppTestBase):
                              headers={"Authorization": "my_token"})
         get_forwarder_version.assert_called()
         assert result.status_code == 400
-        assert "version must be passed in" in result.data.decode("utf-8")
+        assert result.json['status'] == 'Failed'
+        assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
+        assert "version must be passed in" in result.json['reason']
 
     def test_register_endpoint_missing_keys(self, mocker, mock_auth_client):
         client = self.client
