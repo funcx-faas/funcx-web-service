@@ -1,7 +1,4 @@
 FROM python:3.7
-#RUN apk update && \
-#    apk add --no-cache gcc musl-dev linux-headers && \
-#    apk add postgresql-dev libffi-dev g++ make libressl-dev git
 
 # Create a group and user
 RUN addgroup uwsgi && useradd -g uwsgi uwsgi
