@@ -12,3 +12,11 @@ class AppTestBase:
         })
         app.secret_key = "Shhhhh"
         return app.test_client()
+
+    def setup_method(self, method):
+        self.client = self.test_client()
+        self.app_context = self.client.application.app_context()
+        self.app_context.push()
+
+    def teardown_method(self, method):
+        self.app_context.pop()

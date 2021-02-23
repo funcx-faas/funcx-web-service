@@ -6,6 +6,7 @@ RUN addgroup uwsgi && useradd -g uwsgi uwsgi
 WORKDIR /opt/funcx-web-service
 
 COPY ./requirements.txt .
+
 RUN pip install -r requirements.txt
 RUN pip install --disable-pip-version-check uwsgi
 
