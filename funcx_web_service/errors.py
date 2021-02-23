@@ -1,5 +1,6 @@
 class FuncxError(Exception):
-    """ Base class for all Forwarder exceptions
+    """ Base class for all web service exceptions not related to service responses
+    (for web service response exceptions, see: funcx.utils.response_errors)
     """
 
     def __init__(self, reason):
@@ -7,19 +8,3 @@ class FuncxError(Exception):
 
     def __str__(self):
         return self.__repr__()
-
-
-class UserNotFound(FuncxError):
-    """ Base class for all Forwarder exceptions
-    """
-
-    def __init__(self, reason):
-        self.reason = reason
-
-
-class MissingFunction(FuncxError):
-    """ Function could not be resolved from the database
-    """
-    def __init__(self, uuid):
-        self.reason = "FunctionID {} could not be resolved".format(uuid)
-        self.uuid = uuid
