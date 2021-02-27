@@ -384,10 +384,12 @@ class TestFuncX(AppTestBase):
 
         mock_authorize_function.assert_called()
 
-        assert result.status_code == 403
-        assert result.json['status'] == 'Failed'
-        assert result.json['code'] == int(ResponseErrorCode.FUNCTION_ACCESS_FORBIDDEN)
-        assert result.json['reason'] == "Unauthorized access to function 1111"
+        assert result.status_code == 207
+        res = result.json['results'][0]
+        assert res['http_status_code'] == 403
+        assert res['status'] == 'Failed'
+        assert res['code'] == int(ResponseErrorCode.FUNCTION_ACCESS_FORBIDDEN)
+        assert res['reason'] == "Unauthorized access to function 1111"
 
     def test_submit_function_not_found(self, mocker, mock_auth_client):
         client = self.client
@@ -402,10 +404,12 @@ class TestFuncX(AppTestBase):
 
         mock_find_function.assert_called()
 
-        assert result.status_code == 404
-        assert result.json['status'] == 'Failed'
-        assert result.json['code'] == int(ResponseErrorCode.FUNCTION_NOT_FOUND)
-        assert result.json['reason'] == "Function 1111 could not be resolved"
+        assert result.status_code == 207
+        res = result.json['results'][0]
+        assert res['http_status_code'] == 404
+        assert res['status'] == 'Failed'
+        assert res['code'] == int(ResponseErrorCode.FUNCTION_NOT_FOUND)
+        assert res['reason'] == "Function 1111 could not be resolved"
 
     def test_submit_endpoint_access_forbidden(self, mocker, mock_auth_client):
         client = self.client
@@ -430,10 +434,12 @@ class TestFuncX(AppTestBase):
         mock_resolve_function.assert_called()
         mock_authorize_endpoint.assert_called()
 
-        assert result.status_code == 403
-        assert result.json['status'] == 'Failed'
-        assert result.json['code'] == int(ResponseErrorCode.ENDPOINT_ACCESS_FORBIDDEN)
-        assert result.json['reason'] == "Unauthorized access to endpoint 2222"
+        assert result.status_code == 207
+        res = result.json['results'][0]
+        assert res['http_status_code'] == 403
+        assert res['status'] == 'Failed'
+        assert res['code'] == int(ResponseErrorCode.ENDPOINT_ACCESS_FORBIDDEN)
+        assert res['reason'] == "Unauthorized access to endpoint 2222"
 
     def test_submit_endpoint_not_found(self, mocker, mock_auth_client):
         client = self.client
@@ -458,10 +464,12 @@ class TestFuncX(AppTestBase):
         mock_resolve_function.assert_called()
         mock_find_endpoint.assert_called()
 
-        assert result.status_code == 404
-        assert result.json['status'] == 'Failed'
-        assert result.json['code'] == int(ResponseErrorCode.ENDPOINT_NOT_FOUND)
-        assert result.json['reason'] == "Endpoint 2222 could not be resolved"
+        assert result.status_code == 207
+        res = result.json['results'][0]
+        assert res['http_status_code'] == 404
+        assert res['status'] == 'Failed'
+        assert res['code'] == int(ResponseErrorCode.ENDPOINT_NOT_FOUND)
+        assert res['reason'] == "Endpoint 2222 could not be resolved"
 
     def test_submit_function_not_permitted(self, mocker, mock_auth_client, mock_endpoint):
         client = self.client
@@ -486,7 +494,9 @@ class TestFuncX(AppTestBase):
         mock_resolve_function.assert_called()
         mock_find_endpoint.assert_called()
 
-        assert result.status_code == 403
-        assert result.json['status'] == 'Failed'
-        assert result.json['code'] == int(ResponseErrorCode.FUNCTION_NOT_PERMITTED)
-        assert result.json['reason'] == "Function 1111 not permitted on endpoint 2222"
+        assert result.status_code == 207
+        res = result.json['results'][0]
+        assert res['http_status_code'] == 403
+        assert res['status'] == 'Failed'
+        assert res['code'] == int(ResponseErrorCode.FUNCTION_NOT_PERMITTED)
+        assert res['reason'] == "Function 1111 not permitted on endpoint 2222"
