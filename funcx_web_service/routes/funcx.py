@@ -163,7 +163,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     return {'status': 'Success',
             'task_uuid': task_uuid,
-            'http_status_code': 200}, 200
+            'http_status_code': 200}
 
 
 @funcx_api.route('/submit', methods=['POST'])
