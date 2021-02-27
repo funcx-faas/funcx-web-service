@@ -35,7 +35,8 @@ def create_error_response(exception, jsonify_response=False):
         response = {'status': 'Failed',
                     'code': 0,
                     'error_args': [],
-                    'reason': f'An unknown error occurred: {exception}'}
+                    'reason': f'An unknown error occurred: {exception}',
+                    'http_status_code': 500}
         status_code = 500
 
     if jsonify_response:

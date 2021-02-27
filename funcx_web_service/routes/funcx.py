@@ -60,11 +60,8 @@ def g_redis_pubsub(*args, **kwargs):
     return g.redis_pubsub
 
 
-def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, serialize=None):
-    """ Here we do basic authz for (user, fn, endpoint(s)) and launch the functions.
-    Note that this function returns 2 values - a JSON object and an HTTP status code,
-    similar to the way that you can set the HTTP status code in Flask by returning
-    2 values: https://flask.palletsprojects.com/en/1.1.x/quickstart/#about-responses
+def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, serialize=None):
+    """ Here we do basic auth for (user, fn, endpoint) and launch the function.
 
     Parameters
     ==========
@@ -72,11 +69,11 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     user_id : str
        user id
     function_uuid : str
-       uuid string for functions
-    endpoints : [str]
-       endpoint_uuid as list
-    input_data: [string_buffers]
-       input_data as a list in case many function launches are to be made
+       function uuid
+    endpoint_uuid : str
+       endpoint uuid
+    input_data : string_buffer
+       input payload data
     app : app object
     token : globus token
     serialize : bool
@@ -84,30 +81,40 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
         when the input is not already serialized by the SDK.
 
     Returns:
-       JSON object, HTTP status code
+       JSON response object, containing task_uuid, http_status_code, and success or error info
     """
+    task_uuid = str(uuid.uuid4())
     # Check if the user is allowed to access the function
     try:
         if not authorize_function(user_id, function_uuid, token):
-            return create_error_response(FunctionAccessForbidden(function_uuid))
+            res = create_error_response(FunctionAccessForbidden(function_uuid))[0]
+            res['task_uuid'] = task_uuid
+            return res
     except Exception as e:
         # could be FunctionNotFound
-        return create_error_response(e)
+        res = create_error_response(e)[0]
+        res['task_uuid'] = task_uuid
+        return res
 
     try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
     except Exception as e:
         # could be FunctionNotFound
-        return create_error_response(e)
+        res = create_error_response(e)[0]
+        res['task_uuid'] = task_uuid
+        return res
 
     # Make sure the user is allowed to use the function on this endpoint
-    for ep in endpoints:
-        try:
-            if not authorize_endpoint(user_id, ep, function_uuid, token):
-                return create_error_response(EndpointAccessForbidden(ep))
-        except Exception as e:
-            # could be an EndpointNotFound or a FunctionNotPermitted
-            return create_error_response(e)
+    try:
+        if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
+            res = create_error_response(EndpointAccessForbidden(endpoint_uuid))[0]
+            res['task_uuid'] = task_uuid
+            return res
+    except Exception as e:
+        # could be an EndpointNotFound or a FunctionNotPermitted
+        res = create_error_response(e)[0]
+        res['task_uuid'] = task_uuid
+        return res
 
     app.logger.debug(f"Got function container_uuid :{container_uuid}")
 
@@ -123,50 +130,40 @@ def auth_and_launch(user_id, function_uuid, endpoints, input_data, app, token, s
     task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
                                   port=app.config['REDIS_PORT'])
 
-    if isinstance(input_data, list):
-        input_data_items = input_data
-    else:
-        input_data_items = [input_data]
-
-    task_ids = []
-
     db_logger = get_db_logger()
     ep_queue = {}
-    for ep in endpoints:
-        redis_task_queue = EndpointQueue(
-            ep,
-            hostname=app.config['REDIS_HOST'],
-            port=app.config['REDIS_PORT']
-        )
-        redis_task_queue.connect()
-        ep_queue[ep] = redis_task_queue
 
-    for input_data in input_data_items:
-        if serialize:
-            res = serialize_inputs(input_data)
-            if res:
-                input_data = res
+    redis_task_queue = EndpointQueue(
+        endpoint_uuid,
+        hostname=app.config['REDIS_HOST'],
+        port=app.config['REDIS_PORT']
+    )
+    redis_task_queue.connect()
+    ep_queue[endpoint_uuid] = redis_task_queue
 
-        # At this point the packed function body and the args are concatable strings
-        payload = fn_code + input_data
-        task_id = str(uuid.uuid4())
-        task = Task(rc, task_id, container_uuid, serializer, payload)
+    if serialize:
+        serialize_res = serialize_inputs(input_data)
+        if serialize_res:
+            input_data = serialize_res
 
-        for ep in endpoints:
-            task_channel.put(ep, task)
-            app.logger.debug(f"Task:{task_id} placed on queue for endpoint:{ep}")
+    # At this point the packed function body and the args are concatable strings
+    payload = fn_code + input_data
+    task = Task(rc, task_uuid, container_uuid, serializer, payload)
 
-            # increment the counter
-            rc.incr('funcx_invocation_counter')
-            # add an invocation to the database
-            # log_invocation(user_id, task_id, function_uuid, ep)
-            db_logger.log(user_id, task_id, function_uuid, ep, deferred=True)
+    task_channel.put(endpoint_uuid, task)
+    app.logger.debug(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
 
-        task_ids.append(task_id)
+    # increment the counter
+    rc.incr('funcx_invocation_counter')
+    # add an invocation to the database
+    # log_invocation(user_id, task_uuid, function_uuid, ep)
+    db_logger.log(user_id, task_uuid, function_uuid, endpoint_uuid, deferred=True)
+
     db_logger.commit()
 
     return {'status': 'Success',
-            'task_uuids': task_ids}, 200
+            'task_uuid': task_uuid,
+            'http_status_code': 200}, 200
 
 
 @funcx_api.route('/submit', methods=['POST'])
@@ -212,24 +209,25 @@ def submit(user: User):
             tasks.append([function_uuid, endpoint, input_data])
         serialize = post_req.get('serialize', None)
     except KeyError as e:
+        # this should raise a 500 because it prevented any tasks from launching
         return create_error_response(RequestKeyError(e), jsonify_response=True)
 
-    results = {'status': 'Success',
-               'task_uuids': [],
-               'task_uuid': ""}
+    # this is a breaking change for old funcx sdk versions
+    results = {'response': 'batch',
+               'results': []}
+
+    final_http_status = 200
     for task in tasks:
-        res, status_code = auth_and_launch(
-            user_id, function_uuid=task[0], endpoints=[task[1]],
+        res = auth_and_launch(
+            user_id, function_uuid=task[0], endpoint_uuid=task[1],
             input_data=task[2], app=app, token=token, serialize=serialize
         )
+        # the response code is a 207 if some tasks failed to submit
         if res.get('status', 'Failed') != 'Success':
-            return jsonify(res), status_code
-        else:
-            results['task_uuids'].extend(res['task_uuids'])
-            # For backwards compatibility. <=0.0.1a5 requires "task_uuid" in result
-            # Note: previous versions did not support batching, so returning the first one is ok.
-            results['task_uuid'] = res['task_uuids'][0]
-    return jsonify(results)
+            final_http_status = 207
+
+        results['results'].append(res)
+    return jsonify(results), final_http_status
 
 
 # YADU'S BATCH ROUTE FOR ANNA -- CAN WE DELETE?
