@@ -230,9 +230,7 @@ def submit(user: User):
     return jsonify(results), final_http_status
 
 
-# YADU'S BATCH ROUTE FOR ANNA -- CAN WE DELETE?
-# If we delete this we should change auth_and_launch to not accept
-# lists for input and endpoints
+# TODO: deprecated, delete this route
 @funcx_api.route('/submit_batch', methods=['POST'])
 @authenticated
 def submit_batch(user_name):
@@ -391,6 +389,7 @@ def status_and_result(user_name, task_id):
     return jsonify(response)
 
 
+# TODO: deprecated, delete this route
 @funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
 @authenticated
 def status(user_name, task_id):
@@ -441,6 +440,7 @@ def batch_status(user: User):
                     'results': results})
 
 
+# TODO: deprecated, delete this route
 @funcx_api.route("/<task_id>/result", methods=['GET'])
 @authenticated
 def result(user: User, task_id):

@@ -10,6 +10,8 @@ from funcx_web_service.authentication.auth import authenticated
 from flask import current_app as app, Blueprint, jsonify, request, abort
 from funcx_web_service.routes.funcx import auth_and_launch
 
+# TODO: entire automate API needs overhaul
+
 # Flask
 automate_api = Blueprint("automate", __name__)
 
