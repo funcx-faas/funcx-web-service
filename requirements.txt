@@ -8,5 +8,5 @@ flask_wtf
 requests
 flask_socketio
 eventlet
-funcx==0.0.2a0
+funcx==0.0.6a2
 #-e git://github.com/funcx-faas/funcX@dev#egg=funcx
