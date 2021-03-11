@@ -498,67 +498,7 @@ def get_request_addr():
         return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
 
-@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
-@authenticated
-def endpoint_whitelist(user: User, endpoint_id):
-    """Get or insert into the endpoint's whitelist.
-    If POST, insert the list of function ids into the whitelist.
-    if GET, return the list of function ids in the whitelist
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The id of the endpoint
-
-    Returns
-    -------
-    json
-        A dict including a list of whitelisted functions for this endpoint
-    """
-
-    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
-
-    if request.method == "GET":
-        return get_ep_whitelist(user, endpoint_id)
-    else:
-        # Otherwise we need the list of functions passed in
-        try:
-            post_req = request.json
-            functions = post_req['func']
-        except KeyError as e:
-            return create_error_response(RequestKeyError(e), jsonify_response=True)
-        except Exception as e:
-            return create_error_response(RequestMalformed(e), jsonify_response=True)
-        return add_ep_whitelist(user, endpoint_id, functions)
-
-
-@funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
-@authenticated
-def del_endpoint_whitelist(user: User, endpoint_id, function_id):
-    """Delete from an endpoint's whitelist. Return the success/failure of the delete.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The id of the endpoint
-    function_id : str
-        The id of the function to delete
-
-    Returns
-    -------
-    json
-        A dict describing the result of deleting from the endpoint's whitelist
-    """
-
-    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
-
-    return delete_ep_whitelist(user, endpoint_id, function_id)
-
-
+# Endpoint routes
 @funcx_api.route("/endpoints", methods=['POST'])
 @authenticated_w_uuid
 def reg_endpoint(user: User, user_uuid: str):
@@ -663,7 +603,6 @@ def get_ep_stats(user: User, endpoint_id):
         # could be EndpointNotFound
         return create_error_response(e, jsonify_response=True)
 
-    # TODO add rc to g.
     rc = get_redis_client()
 
     status = {'status': 'offline', 'logs': []}
@@ -688,6 +627,91 @@ def get_ep_stats(user: User, endpoint_id):
 
     return jsonify(status)
 
+
+@funcx_api.route("/endpoints/<endpoint_id>", methods=['DELETE'])
+@authenticated
+def del_endpoint(user: User, endpoint_id):
+    """Delete the endpoint.
+
+        Parameters
+        ----------
+        user : User
+            The primary identity of the user
+        endpoint_id : str
+            The endpoint uuid to delete
+
+        Returns
+        -------
+        json
+            Dict containing the result
+        """
+    try:
+        result = Endpoint.delete_endpoint(user, endpoint_id)
+        return jsonify({'result': result})
+    except Exception as e:
+        app.logger.error(e)
+
+
+# Whitelist routes
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
+@authenticated
+def endpoint_whitelist(user: User, endpoint_id):
+    """Get or insert into the endpoint's whitelist.
+    If POST, insert the list of function ids into the whitelist.
+    if GET, return the list of function ids in the whitelist
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+
+    Returns
+    -------
+    json
+        A dict including a list of whitelisted functions for this endpoint
+    """
+
+    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
+
+    if request.method == "GET":
+        return get_ep_whitelist(user, endpoint_id)
+    else:
+        # Otherwise we need the list of functions passed in
+        try:
+            post_req = request.json
+            functions = post_req['func']
+        except KeyError as e:
+            return create_error_response(RequestKeyError(e), jsonify_response=True)
+        except Exception as e:
+            return create_error_response(RequestMalformed(e), jsonify_response=True)
+        return add_ep_whitelist(user, endpoint_id, functions)
+
+
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
+@authenticated
+def del_endpoint_whitelist(user: User, endpoint_id, function_id):
+    """Delete from an endpoint's whitelist. Return the success/failure of the delete.
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+    function_id : str
+        The id of the function to delete
+
+    Returns
+    -------
+    json
+        A dict describing the result of deleting from the endpoint's whitelist
+    """
+
+    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
+
+    return delete_ep_whitelist(user, endpoint_id, function_id)
 
 @funcx_api.route("/functions", methods=['POST'])
 @authenticated_w_uuid
@@ -846,30 +870,6 @@ def del_function(user: User, function_id):
         """
     try:
         result = delete_function(user, function_id)
-        return jsonify({'result': result})
-    except Exception as e:
-        app.logger.error(e)
-
-
-@funcx_api.route("/endpoints/<endpoint_id>", methods=['DELETE'])
-@authenticated
-def del_endpoint(user: User, endpoint_id):
-    """Delete the endpoint.
-
-        Parameters
-        ----------
-        user : User
-            The primary identity of the user
-        endpoint_id : str
-            The endpoint uuid to delete
-
-        Returns
-        -------
-        json
-            Dict containing the result
-        """
-    try:
-        result = Endpoint.delete_endpoint(user, endpoint_id)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
