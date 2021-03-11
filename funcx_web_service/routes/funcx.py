@@ -432,43 +432,6 @@ def reg_container(user: User):
         return create_error_response(InternalError(f'error adding container - {e}'), jsonify_response=True)
 
 
-@funcx_api.route("/register_endpoint", methods=['POST'])
-@authenticated
-def reg_endpoint(user: User):
-    """Register the endpoint. Add this site to the database and associate it with this user.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-
-    Returns
-    -------
-    json
-        A dict containing the endpoint details
-    """
-    endpoint_name = None
-    description = None
-    endpoint_uuid = None
-    try:
-        endpoint_name = request.json["endpoint_name"]
-        description = request.json["description"]
-    except Exception as e:
-        app.logger.error(e)
-
-    if 'endpoint_uuid' in request.json:
-        endpoint_uuid = request.json["endpoint_uuid"]
-
-    app.logger.debug(endpoint_name)
-    try:
-        endpoint_uuid = register_endpoint(
-            user, endpoint_name, description, endpoint_uuid)
-    except UserNotFound as e:
-        return create_error_response(e, jsonify_response=True)
-
-    return jsonify({'endpoint_uuid': endpoint_uuid})
-
-
 def register_with_hub(address, endpoint_id, endpoint_address):
     """ This registers with the Forwarder micro service.
 
