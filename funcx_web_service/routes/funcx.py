@@ -559,68 +559,9 @@ def del_endpoint_whitelist(user: User, endpoint_id, function_id):
     return delete_ep_whitelist(user, endpoint_id, function_id)
 
 
-@funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
-@authenticated
-def get_ep_stats(user: User, endpoint_id):
-    """Retrieve the status updates from an endpoint.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The endpoint uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the endpoint
-    """
-    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
-    last = 10
-
-    user_id = user.id
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    try:
-        if not authorize_endpoint(user_id, endpoint_id, None, token):
-            return create_error_response(EndpointAccessForbidden(endpoint_id), jsonify_response=True)
-    except Exception as e:
-        # could be EndpointNotFound
-        return create_error_response(e, jsonify_response=True)
-
-    # TODO add rc to g.
-    rc = get_redis_client()
-
-    status = {'status': 'offline', 'logs': []}
-    try:
-        end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
-        print("Total len :", end)
-        items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
-        if items:
-            for i in items:
-                status['logs'].append(json.loads(i))
-
-            # timestamp is created using time.time(), which returns seconds since epoch UTC
-            logs = status['logs']  # should have been json loaded already
-            newest_timestamp = logs[0]['timestamp']
-            now = time.time()
-            if now - newest_timestamp < alive_threshold:
-                status['status'] = 'online'
-
-    except Exception as e:
-        app.logger.error("Unable to retrieve ")
-        return create_error_response(EndpointStatsError(endpoint_id, e), jsonify_response=True)
-
-    return jsonify(status)
-
-
 @funcx_api.route("/endpoints", methods=['POST'])
 @authenticated_w_uuid
-def register_endpoint(user: User, user_uuid: str):
+def reg_endpoint(user: User, user_uuid: str):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
@@ -628,7 +569,7 @@ def register_endpoint(user: User, user_uuid: str):
     json
         A dict containing the endpoint details
     """
-    app.logger.debug("register_endpoint_2 triggered")
+    app.logger.debug("register_endpoint triggered")
     app.logger.debug(request.json)
 
     v_info = get_forwarder_version()
@@ -688,6 +629,64 @@ def register_endpoint(user: User, user_uuid: str):
         return jsonify(response)
     except NameError:
         return "oof"
+
+@funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
+@authenticated
+def get_ep_stats(user: User, endpoint_id):
+    """Retrieve the status updates from an endpoint.
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The endpoint uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the endpoint
+    """
+    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
+    last = 10
+
+    user_id = user.id
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    try:
+        if not authorize_endpoint(user_id, endpoint_id, None, token):
+            return create_error_response(EndpointAccessForbidden(endpoint_id), jsonify_response=True)
+    except Exception as e:
+        # could be EndpointNotFound
+        return create_error_response(e, jsonify_response=True)
+
+    # TODO add rc to g.
+    rc = get_redis_client()
+
+    status = {'status': 'offline', 'logs': []}
+    try:
+        end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
+        print("Total len :", end)
+        items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
+        if items:
+            for i in items:
+                status['logs'].append(json.loads(i))
+
+            # timestamp is created using time.time(), which returns seconds since epoch UTC
+            logs = status['logs']  # should have been json loaded already
+            newest_timestamp = logs[0]['timestamp']
+            now = time.time()
+            if now - newest_timestamp < alive_threshold:
+                status['status'] = 'online'
+
+    except Exception as e:
+        app.logger.error("Unable to retrieve ")
+        return create_error_response(EndpointStatsError(endpoint_id, e), jsonify_response=True)
+
+    return jsonify(status)
 
 
 @funcx_api.route("/functions", methods=['POST'])
