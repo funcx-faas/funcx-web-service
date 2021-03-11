@@ -65,7 +65,7 @@ class TestFuncX(AppTestBase):
 
         client = self.client
 
-        result = client.get("/api/v1/tasks/42/status", headers={"Authorization": "my_token"})
+        result = client.get("/api/v1/tasks/42", headers={"Authorization": "my_token"})
 
         # Need to get mock get_redis_client working
         mock_exists.assert_called_with(None, "42")
