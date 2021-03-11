@@ -826,24 +826,25 @@ def upd_function(user: User):
         return jsonify({'result': 500})
 
 
-@funcx_api.route("/delete_function", methods=['POST'])
+@funcx_api.route("/functions/<function_id>", methods=['DELETE'])
 @authenticated
-def del_function(user: User):
+def del_function(user: User, function_id):
     """Delete the function.
 
         Parameters
         ----------
         user : User
             The primary identity of the user
+        function_id : str
+            The function uuid to delete
 
         Returns
         -------
         json
-            Dict containing the result as an integer
+            Dict containing the result
         """
     try:
-        function_uuid = request.json["func"]
-        result = delete_function(user, function_uuid)
+        result = delete_function(user, function_id)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
@@ -860,6 +861,7 @@ def del_endpoint(user: User, endpoint_id):
             The primary identity of the user
         endpoint_id : str
             The endpoint uuid to delete
+
         Returns
         -------
         json
