@@ -233,7 +233,7 @@ def submit(user: User):
 def get_tasks_from_redis(task_ids):
     all_tasks = {}
 
-    rc = get_redis_client()
+    rc = g_redis_client()
     for task_id in task_ids:
         # Get the task from redis
         if not Task.exists(rc, task_id):
@@ -292,7 +292,7 @@ def status_and_result(user_name, task_id):
     json
         The status of the task
     """
-    rc = get_redis_client()
+    rc = g_redis_client()
 
     if not Task.exists(rc, task_id):
         return create_error_response(TaskNotFound(task_id), jsonify_response=True)
@@ -603,7 +603,7 @@ def get_ep_stats(user: User, endpoint_id):
         # could be EndpointNotFound
         return create_error_response(e, jsonify_response=True)
 
-    rc = get_redis_client()
+    rc = g_redis_client()
 
     status = {'status': 'offline', 'logs': []}
     try:
