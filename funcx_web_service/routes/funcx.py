@@ -849,24 +849,24 @@ def del_function(user: User):
         app.logger.error(e)
 
 
-@funcx_api.route("/delete_endpoint", methods=['POST'])
+@funcx_api.route("/endpoints/<endpoint_id>", methods=['DELETE'])
 @authenticated
-def del_endpoint(user: User):
+def del_endpoint(user: User, endpoint_id):
     """Delete the endpoint.
 
         Parameters
         ----------
         user : User
             The primary identity of the user
-
+        endpoint_id : str
+            The endpoint uuid to delete
         Returns
         -------
         json
-            Dict containing the result as an integer
+            Dict containing the result
         """
     try:
-        endpoint_uuid = request.json["endpoint"]
-        result = Endpoint.delete_endpoint(user, endpoint_uuid)
+        result = Endpoint.delete_endpoint(user, endpoint_id)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
