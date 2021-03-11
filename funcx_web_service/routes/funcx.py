@@ -690,7 +690,7 @@ def register_endpoint_2(user: User, user_uuid: str):
         return "oof"
 
 
-@funcx_api.route("/register_function", methods=['POST'])
+@funcx_api.route("/functions", methods=['POST'])
 @authenticated_w_uuid
 def reg_function(user: User, user_uuid):
     """Register the function.
@@ -794,15 +794,17 @@ def reg_function(user: User, user_uuid):
     return response
 
 
-@funcx_api.route("/upd_function", methods=['POST'])
+@funcx_api.route("/functions/<function_id>", methods=['PUT'])
 @authenticated
-def upd_function(user: User):
+def upd_function(user: User, function_id):
     """Update the function.
 
         Parameters
         ----------
         user : User
             The primary identity of the user
+        function_id : str
+            The function to update
 
         Returns
         -------
@@ -810,20 +812,20 @@ def upd_function(user: User):
             Dict containing the result as an integer
         """
     try:
-        function_uuid = request.json["func"]
         function_name = request.json["name"]
         function_desc = request.json["desc"]
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
-        result = update_function(user.username, function_uuid, function_name,
+        result = update_function(user.username, function_id, function_name,
                                  function_desc, function_entry_point, function_code)
 
-        # app.logger.debug("[LOGGER] result: " + str(result))
-        return jsonify({'result': result})
+        response = jsonify({'function_uuid': function_id})
     except Exception as e:
-        # app.logger.debug("[LOGGER] funcx.py try statement failed.")
         app.logger.error(e)
-        return jsonify({'result': 500})
+        message = "Unable to update function for user:{} function_id:{} due to {}".\
+            format(user.username, function_id, e)
+        app.logger.error(message)
+        return create_error_response(InternalError(message), jsonify_response=True)
 
 
 @funcx_api.route("/functions/<function_id>", methods=['DELETE'])
