@@ -903,4 +903,8 @@ def function_count():
         result = rc.get('funcx_invocation_counter')
         return jsonify({"invocation_count": result}), 200
     except Exception as e:
+        app.logger.error(e)
+        message = "Unable to get invocation count due to {}".\
+            format(e)
+        app.logger.error(message)
         return create_error_response(InternalError(message), jsonify_response=True)
