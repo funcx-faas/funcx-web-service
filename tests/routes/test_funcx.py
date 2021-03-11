@@ -59,7 +59,8 @@ class TestFuncX(AppTestBase):
     def test_get_status(self, mock_auth_client, mock_redis, mocker):
 
         from funcx_web_service.models.tasks import Task
-        mock_task = SimpleNamespace(status="ready")
+        mock_task = SimpleNamespace(status="ready", result="foo", exception="bar", 
+                                    completion_time=123)
         mock_exists = mocker.patch.object(Task, "exists", return_value=True)
         mock_from_id = mocker.patch.object(Task, "from_id", return_value=mock_task)
 
