@@ -891,3 +891,16 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
 
     except Exception as e:
         return create_error_response(ForwarderContactError(e), jsonify_response=True)
+
+
+@funcx_api.route("/counters/invocations")
+def function_count():
+    """Get the total number of function invocations.
+    """
+    app.logger.debug("Getting invocation counter")
+    try:
+        rc = g_redis_client()
+        result = rc.get('funcx_invocation_counter')
+        return jsonify({"invocation_count": result}), 200
+    except Exception as e:
+        return create_error_response(InternalError(message), jsonify_response=True)
