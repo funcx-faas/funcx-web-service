@@ -252,7 +252,7 @@ class TestFuncX(AppTestBase):
             mocker.patch("funcx_web_service.routes.funcx.register_with_hub",
                          return_value="Ok")
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                                  "version": "1.0.0",
                                  "endpoint_name": "my-endpoint",
