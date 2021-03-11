@@ -75,7 +75,7 @@ class TestFuncX(AppTestBase):
     def test_register_function(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.client
-        result = client.post("api/v1/register_function",
+        result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
                                  "function_name": "test fun",
@@ -110,7 +110,7 @@ class TestFuncX(AppTestBase):
         )
 
         mocker.patch.object(User, "find_by_username", return_value=mock_user)
-        result = client.post("api/v1/register_function",
+        result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
                                  "function_name": "test fun",
@@ -141,7 +141,7 @@ class TestFuncX(AppTestBase):
         )
 
         mock_container_read = mocker.patch.object(Container, "find_by_uuid", return_value=mock_container)
-        result = client.post("api/v1/register_function",
+        result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
                                  "function_name": "test fun",
@@ -177,7 +177,7 @@ class TestFuncX(AppTestBase):
         )
 
         mock_authgroup_read = mocker.patch.object(AuthGroup, "find_by_uuid", return_value=mock_auth_group)
-        result = client.post("api/v1/register_function",
+        result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
                                  "function_name": "test fun",
@@ -275,7 +275,7 @@ class TestFuncX(AppTestBase):
             "funcx_web_service.routes.funcx.get_forwarder_version",
             return_value={"min_ep_version": "1.42.0"})
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                                  "version": "1.0.0"
                              },
@@ -292,7 +292,7 @@ class TestFuncX(AppTestBase):
             "funcx_web_service.routes.funcx.get_forwarder_version",
             return_value={"min_ep_version": "1.42.0"})
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                              },
                              headers={"Authorization": "my_token"})
@@ -309,7 +309,7 @@ class TestFuncX(AppTestBase):
             "funcx_web_service.routes.funcx.get_forwarder_version",
             return_value={"min_ep_version": "1.0.0"})
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                                  "version": "1.0.0",
                                  "endpoint_uuid": None
@@ -331,7 +331,7 @@ class TestFuncX(AppTestBase):
 
         mocker.patch.object(Endpoint, "find_by_uuid", return_value=mock_endpoint)
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                                  "version": "1.0.0",
                                  "endpoint_name": "my-endpoint",
@@ -357,7 +357,7 @@ class TestFuncX(AppTestBase):
                          return_value="123-45-6789-1011")
         mock_register_endpoint.side_effect = Exception("hello")
 
-        result = client.post("api/v1/register_endpoint_2",
+        result = client.post("api/v1/endpoints",
                              json={
                                  "version": "1.0.0",
                                  "endpoint_name": "my-endpoint",
