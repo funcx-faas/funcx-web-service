@@ -618,9 +618,9 @@ def get_ep_stats(user: User, endpoint_id):
     return jsonify(status)
 
 
-@funcx_api.route("/register_endpoint_2", methods=['POST'])
+@funcx_api.route("/endpoints", methods=['POST'])
 @authenticated_w_uuid
-def register_endpoint_2(user: User, user_uuid: str):
+def register_endpoint(user: User, user_uuid: str):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
