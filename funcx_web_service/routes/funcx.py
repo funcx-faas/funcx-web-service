@@ -230,64 +230,6 @@ def submit(user: User):
     return jsonify(results), final_http_status
 
 
-# TODO: deprecated, delete this route
-@funcx_api.route('/submit_batch', methods=['POST'])
-@authenticated
-def submit_batch(user_name):
-    """
-    Puts the task request(s) into Redis and returns a list of task UUID(s)
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-    POST payload
-    ------------
-    {
-    }
-    Returns
-    -------
-    json
-        The task document
-    """
-    app.logger.debug(f"Submit_batch invoked by user:{user_name}")
-
-    if not user_name:
-        return create_error_response(UserUnauthenticated(), jsonify_response=True)
-
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        msg = f"Failed to resolve user_name:{user_name} to user_id"
-        app.logger.error(msg)
-        return create_error_response(InternalError(msg), jsonify_response=True)
-
-    user_id = saved_user.id
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    # Parse out the function info
-    try:
-        post_req = request.json
-        endpoints = post_req['endpoints']
-        function_uuid = post_req['func']
-        input_data = post_req['payload']
-        serialize = post_req.get('serialize', None)
-    except KeyError as e:
-        return create_error_response(RequestKeyError(e), jsonify_response=True)
-    except Exception as e:
-        return create_error_response(RequestMalformed(e), jsonify_response=True)
-
-    res, status_code = auth_and_launch(user_id,
-                                       function_uuid,
-                                       endpoints,
-                                       input_data,
-                                       app,
-                                       token,
-                                       serialize=serialize)
-    return jsonify(res), status_code
-
-
 def get_tasks_from_redis(task_ids):
     all_tasks = {}
 
@@ -389,33 +331,6 @@ def status_and_result(user_name, task_id):
     return jsonify(response)
 
 
-# TODO: deprecated, delete this route
-@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
-@authenticated
-def status(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name
-    task_id
-
-    Returns
-    -------
-    json
-        'status' : task status
-    """
-    rc = get_redis_client()
-
-    if not Task.exists(rc, task_id):
-        return create_error_response(TaskNotFound(task_id), jsonify_response=True)
-    task = Task.from_id(rc, task_id)
-
-    return jsonify({
-        'status': task.status
-    })
-
-
 @funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
 def batch_status(user: User):
@@ -438,63 +353,6 @@ def batch_status(user: User):
 
     return jsonify({'response': 'batch',
                     'results': results})
-
-
-# TODO: deprecated, delete this route
-@funcx_api.route("/<task_id>/result", methods=['GET'])
-@authenticated
-def result(user: User, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        details = {}
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"ResulOBt_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'Failed', 'reason': 'Unknown task id'}
-
-        res = {'task_id': task_id}
-        if 'status' in task:
-            res['status'] = task['status']
-
-        if 'result' in task:
-            details['result'] = task['result']
-        if 'reason' in task:
-            details['reason'] = task['reason']
-
-        if details:
-            res.update({'details': details})
-
-        app.logger.debug("Status Response: {}".format(str(res)))
-        return jsonify(res)
-
-    except Exception as e:
-        app.logger.error(e)
-        return create_error_response(InternalError(e), jsonify_response=True)
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
