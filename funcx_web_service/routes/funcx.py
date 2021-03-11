@@ -3,7 +3,7 @@ import time
 import uuid
 import requests
 
-from flask import current_app as app, Blueprint, jsonify, request, send_from_directory, g
+from flask import current_app as app, Blueprint, jsonify, request, g
 
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
@@ -21,7 +21,7 @@ from funcx_web_service.version import VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import (UserUnauthenticated, UserNotFound, ContainerNotFound, TaskNotFound,
+from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
                                          AuthGroupNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
@@ -570,6 +570,7 @@ def reg_endpoint(user: User, user_uuid: str):
     except NameError:
         return "oof"
 
+
 @funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
 @authenticated
 def get_ep_stats(user: User, endpoint_id):
@@ -713,6 +714,7 @@ def del_endpoint_whitelist(user: User, endpoint_id, function_id):
 
     return delete_ep_whitelist(user, endpoint_id, function_id)
 
+
 @funcx_api.route("/functions", methods=['POST'])
 @authenticated_w_uuid
 def reg_function(user: User, user_uuid):
@@ -841,8 +843,18 @@ def upd_function(user: User, function_id):
         function_code = request.json["code"]
         result = update_function(user.username, function_id, function_name,
                                  function_desc, function_entry_point, function_code)
-
-        response = jsonify({'function_uuid': function_id})
+        if result == 302:
+            return jsonify({'function_uuid': function_id}), 302
+        elif result == 403:
+            message = "Unable to update function for user:{} function_id:{}. 403 Unauthorized".\
+                format(user.username, function_id)
+            app.logger.error(message)
+            return create_error_response(InternalError(message), jsonify_response=True)
+        elif result == 404:
+            message = "Unable to update function for user:{} function_id:{}. 404 Function not found.".\
+                format(user.username, function_id)
+            app.logger.error(message)
+            return create_error_response(InternalError(message), jsonify_response=True)
     except Exception as e:
         app.logger.error(e)
         message = "Unable to update function for user:{} function_id:{} due to {}".\
