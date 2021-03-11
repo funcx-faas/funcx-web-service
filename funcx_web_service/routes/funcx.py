@@ -888,22 +888,3 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
 
     except Exception as e:
         return create_error_response(ForwarderContactError(e), jsonify_response=True)
-
-
-@funcx_api.route("/get_map", methods=['GET'])
-def get_map():
-    """Delete the endpoint.
-
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-
-    Returns
-    -------
-    json
-    Dict containing the result as an integer
-    """
-    app.logger.debug("Received map request")
-    # return jsonify("hello")
-    return send_from_directory('routes', 'mapper.html')
