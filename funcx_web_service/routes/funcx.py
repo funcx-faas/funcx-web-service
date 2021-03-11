@@ -905,7 +905,7 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
         return create_error_response(ForwarderContactError(e), jsonify_response=True)
 
 
-@funcx_api.route("/counters/invocations")
+@funcx_api.route("/counters/invocations", methods=['GET'])
 def function_count():
     """Get the total number of function invocations.
     """
