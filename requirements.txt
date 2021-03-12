@@ -65,7 +65,7 @@ python-dateutil==2.8.1
 python-engineio==3.13.0
 python-socketio==4.6.0
 pytz==2020.1
-pyzmq==19.0.1
+pyzmq>=22.0.0
 redis==3.5.3
 requests>=2.24
 six==1.15.0
