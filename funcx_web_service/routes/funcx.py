@@ -905,15 +905,15 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
         return create_error_response(ForwarderContactError(e), jsonify_response=True)
 
 
-@funcx_api.route("/counters/invocations", methods=['GET'])
-def function_count():
-    """Get the total number of function invocations.
+@funcx_api.route("/stats", methods=['GET'])
+def funcx_stats():
+    """Get various usage stats.
     """
-    app.logger.debug("Getting invocation counter")
+    app.logger.debug("Getting stats")
     try:
         rc = g_redis_client()
         result = rc.get('funcx_invocation_counter')
-        return jsonify({"invocation_count": result}), 200
+        return jsonify({"total_function_invocations": result}), 200
     except Exception as e:
         app.logger.error(e)
         message = "Unable to get invocation count due to {}".\
