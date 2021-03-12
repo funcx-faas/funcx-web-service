@@ -25,7 +25,7 @@ flask-sqlalchemy
 Flask-Migrate==2.5.3
 Flask-WTF==0.14.3
 git+https://github.com/funcx-faas/funcX.git@main#egg=funcx&subdirectory=funcx_sdk
-funcx_forwarder==0.0.6a0
+git+https://github.com/funcx-faas/funcx-forwarder.git@main#egg=funcx-forwarder
 globus-nexus-client==0.2.9
 globus-sdk==1.9.0
 greenlet==0.4.16
