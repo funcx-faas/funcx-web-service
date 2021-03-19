@@ -25,7 +25,7 @@ flask-sqlalchemy
 Flask-Migrate==2.5.3
 Flask-WTF==0.14.3
 git+https://github.com/funcx-faas/funcX.git@main#egg=funcx&subdirectory=funcx_sdk
-git+https://github.com/funcx-faas/funcx-forwarder.git@forwarder_redesign#egg=funcx-forwarder
+git+https://github.com/funcx-faas/funcx-forwarder.git@main#egg=funcx-forwarder
 globus-nexus-client==0.2.9
 globus-sdk==1.9.0
 greenlet==0.4.16
@@ -65,7 +65,6 @@ python-dateutil==2.8.1
 python-engineio==3.13.0
 python-socketio==4.6.0
 pytz==2020.1
-pyzmq==19.0.1
 redis==3.5.3
 requests>=2.24
 six==1.15.0
@@ -88,4 +87,3 @@ webencodings==0.5.1
 Werkzeug==1.0.1
 WTForms==2.3.1
 zipp==3.1.0
-zmq==0.0.0
