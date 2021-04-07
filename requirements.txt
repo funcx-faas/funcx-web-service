@@ -88,4 +88,3 @@ webencodings==0.5.1
 Werkzeug==1.0.1
 WTForms==2.3.1
 zipp==3.1.0
-zmq==0.0.0
