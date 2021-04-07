@@ -23,8 +23,8 @@ def create_app(test_config=None):
         db.create_all()
 
     # Include the API blueprint
-    application.register_blueprint(funcx_api, url_prefix="/v1")
-    application.register_blueprint(funcx_api, url_prefix="/api/v1")
+    application.register_blueprint(funcx_api, url_prefix="/v2")
+    application.register_blueprint(funcx_api, url_prefix="/api/v2")
     application.register_blueprint(automate_api, url_prefix="/automate")
     application.register_blueprint(auth_api)
     return application
