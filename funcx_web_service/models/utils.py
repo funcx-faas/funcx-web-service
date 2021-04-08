@@ -268,7 +268,7 @@ def resolve_function(user_id, function_uuid):
     function_entry = saved_function.entry_point
 
     if saved_function.container:
-        container_uuid = saved_function.container.container_uuid
+        container_uuid = saved_function.container.container.container_uuid
     else:
         container_uuid = None
 
