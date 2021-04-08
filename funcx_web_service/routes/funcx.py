@@ -116,7 +116,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         res['task_uuid'] = task_uuid
         return res
 
-    app.logger.debug(f"Got function container_uuid :{container_uuid}")
+    app.logger.info(f"Got function container_uuid :{container_uuid}")
 
     # We should replace this with container_hdr = ";ctnr={container_uuid}"
     if not container_uuid:
@@ -151,7 +151,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
     task = Task(rc, task_uuid, container_uuid, serializer, payload)
 
     task_channel.put(endpoint_uuid, task)
-    app.logger.debug(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
+    app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
 
     # increment the counter
     rc.incr('funcx_invocation_counter')
@@ -186,7 +186,7 @@ def submit(user: User):
         The task document
     """
 
-    app.logger.debug(f"batch_run invoked by user:{user.username}")
+    app.logger.info(f"batch_run invoked by user:{user.username}")
 
     user_id = user.id
 
@@ -375,9 +375,9 @@ def get_cont(user: User, container_id, container_type):
         A dictionary of container details
     """
 
-    app.logger.debug(f"Getting container details: {container_id}")
+    app.logger.info(f"Getting container details: {container_id}")
     container = Container.find_by_uuid_and_type(container_id, container_type)
-    app.logger.debug(f"Got container: {container}")
+    app.logger.info(f"Got container: {container}")
     return jsonify({'container': container.to_json()})
 
 
@@ -423,7 +423,7 @@ def reg_container(user: User):
 
         container_rec.save_to_db()
 
-        app.logger.debug(f"Created container: {container_rec.container_uuid}")
+        app.logger.info(f"Created container: {container_rec.container_uuid}")
         return jsonify({'container_id': container_rec.container_uuid})
     except KeyError as e:
         return create_error_response(RequestKeyError(e), jsonify_response=True)
@@ -510,7 +510,7 @@ def reg_endpoint(user: User, user_uuid: str):
         A dict containing the endpoint details
     """
     app.logger.debug("register_endpoint triggered")
-    app.logger.debug(request.json)
+    app.logger.info(request.json)
 
     v_info = get_forwarder_version()
     min_ep_version = v_info['min_ep_version']
@@ -526,18 +526,18 @@ def reg_endpoint(user: User, user_uuid: str):
         endpoint_ip_addr = request.environ['REMOTE_ADDR']
     else:
         endpoint_ip_addr = request.environ['HTTP_X_FORWARDED_FOR']
-    app.logger.debug(f"Registering endpoint IP address as: {endpoint_ip_addr}")
+    app.logger.info(f"Registering endpoint IP address as: {endpoint_ip_addr}")
 
     # always return the jsonified error response as soon as it is available below
     # to prevent further registration steps being taken after an error
     try:
         app.logger.debug(request.json['endpoint_name'])
-        app.logger.debug(f"requesting registration for {request.json}")
+        app.logger.info(f"requesting registration for {request.json}")
         endpoint_uuid = register_endpoint(user,
                                           request.json['endpoint_name'],
                                           "",  # use description from meta? why store here at all
                                           endpoint_uuid=request.json['endpoint_uuid'])
-        app.logger.debug(f"Successfully registered {endpoint_uuid} in database")
+        app.logger.info(f"Successfully registered {endpoint_uuid} in database")
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
@@ -555,7 +555,7 @@ def reg_endpoint(user: User, user_uuid: str):
         forwarder_ip = app.config['FORWARDER_IP']
         response = register_with_hub(
                 f"http://{forwarder_ip}:8080", endpoint_uuid, endpoint_ip_addr)
-        app.logger.debug(f"Successfully registered {endpoint_uuid} with forwarder")
+        app.logger.info(f"Successfully registered {endpoint_uuid} with forwarder")
 
     except Exception as e:
         app.logger.exception("Caught error during forwarder initialization")
@@ -563,7 +563,7 @@ def reg_endpoint(user: User, user_uuid: str):
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
-        app.logger.debug(f"Ingested endpoint {endpoint_uuid}")
+        app.logger.info(f"Ingested endpoint {endpoint_uuid}")
 
     try:
         return jsonify(response)
@@ -674,7 +674,7 @@ def endpoint_whitelist(user: User, endpoint_id):
         A dict including a list of whitelisted functions for this endpoint
     """
 
-    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
+    app.logger.info(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
 
     if request.method == "GET":
         return get_ep_whitelist(user, endpoint_id)
@@ -710,7 +710,7 @@ def del_endpoint_whitelist(user: User, endpoint_id, function_id):
         A dict describing the result of deleting from the endpoint's whitelist
     """
 
-    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
+    app.logger.info(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
 
     return delete_ep_whitelist(user, endpoint_id, function_id)
 
@@ -774,7 +774,7 @@ def reg_function(user: User, user_uuid):
 
         searchable = request.json.get("searchable", True)
 
-        app.logger.debug(f"Registering function {function_rec.function_name} "
+        app.logger.info(f"Registering function {function_rec.function_name} "
                          f"with container {container_uuid}")
 
         if container:
@@ -891,14 +891,14 @@ def del_function(user: User, function_id):
 def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
     """ Get stats from the forwarder
     """
-    app.logger.debug("Getting stats from forwarder")
+    app.logger.info("Getting stats from forwarder")
     try:
         r = requests.get(forwarder_address + '/map.json')
         if r.status_code != 200:
             return create_error_response(LivenessStatsError(r.status_code), jsonify_response=True)
         else:
             response = r.json()
-            app.logger.debug(f'Response from forwarder : {response}')
+            app.logger.info(f'Response from forwarder : {response}')
             return response
 
     except Exception as e:
