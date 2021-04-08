@@ -775,7 +775,7 @@ def reg_function(user: User, user_uuid):
         searchable = request.json.get("searchable", True)
 
         app.logger.info(f"Registering function {function_rec.function_name} "
-                         f"with container {container_uuid}")
+                        f"with container {container_uuid}")
 
         if container:
             function_rec.container = FunctionContainer(
