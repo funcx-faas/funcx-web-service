@@ -3,7 +3,7 @@ import time
 import uuid
 import requests
 
-from flask import current_app as app, Blueprint, jsonify, request, send_from_directory, g
+from flask import current_app as app, Blueprint, jsonify, request, g
 
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
@@ -21,7 +21,7 @@ from funcx_web_service.version import VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import (UserUnauthenticated, UserNotFound, ContainerNotFound, TaskNotFound,
+from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
                                          AuthGroupNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
@@ -230,68 +230,10 @@ def submit(user: User):
     return jsonify(results), final_http_status
 
 
-# TODO: deprecated, delete this route
-@funcx_api.route('/submit_batch', methods=['POST'])
-@authenticated
-def submit_batch(user_name):
-    """
-    Puts the task request(s) into Redis and returns a list of task UUID(s)
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-    POST payload
-    ------------
-    {
-    }
-    Returns
-    -------
-    json
-        The task document
-    """
-    app.logger.debug(f"Submit_batch invoked by user:{user_name}")
-
-    if not user_name:
-        return create_error_response(UserUnauthenticated(), jsonify_response=True)
-
-    saved_user = User.resolve_user(user_name)
-    if not saved_user:
-        msg = f"Failed to resolve user_name:{user_name} to user_id"
-        app.logger.error(msg)
-        return create_error_response(InternalError(msg), jsonify_response=True)
-
-    user_id = saved_user.id
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    # Parse out the function info
-    try:
-        post_req = request.json
-        endpoints = post_req['endpoints']
-        function_uuid = post_req['func']
-        input_data = post_req['payload']
-        serialize = post_req.get('serialize', None)
-    except KeyError as e:
-        return create_error_response(RequestKeyError(e), jsonify_response=True)
-    except Exception as e:
-        return create_error_response(RequestMalformed(e), jsonify_response=True)
-
-    res, status_code = auth_and_launch(user_id,
-                                       function_uuid,
-                                       endpoints,
-                                       input_data,
-                                       app,
-                                       token,
-                                       serialize=serialize)
-    return jsonify(res), status_code
-
-
 def get_tasks_from_redis(task_ids):
     all_tasks = {}
 
-    rc = get_redis_client()
+    rc = g_redis_client()
     for task_id in task_ids:
         # Get the task from redis
         if not Task.exists(rc, task_id):
@@ -350,7 +292,7 @@ def status_and_result(user_name, task_id):
     json
         The status of the task
     """
-    rc = get_redis_client()
+    rc = g_redis_client()
 
     if not Task.exists(rc, task_id):
         return create_error_response(TaskNotFound(task_id), jsonify_response=True)
@@ -389,33 +331,6 @@ def status_and_result(user_name, task_id):
     return jsonify(response)
 
 
-# TODO: deprecated, delete this route
-@funcx_api.route("/tasks/<task_id>/status", methods=['GET'])
-@authenticated
-def status(user_name, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user_name
-    task_id
-
-    Returns
-    -------
-    json
-        'status' : task status
-    """
-    rc = get_redis_client()
-
-    if not Task.exists(rc, task_id):
-        return create_error_response(TaskNotFound(task_id), jsonify_response=True)
-    task = Task.from_id(rc, task_id)
-
-    return jsonify({
-        'status': task.status
-    })
-
-
 @funcx_api.route("/batch_status", methods=['POST'])
 @authenticated
 def batch_status(user: User):
@@ -438,63 +353,6 @@ def batch_status(user: User):
 
     return jsonify({'response': 'batch',
                     'results': results})
-
-
-# TODO: deprecated, delete this route
-@funcx_api.route("/<task_id>/result", methods=['GET'])
-@authenticated
-def result(user: User, task_id):
-    """Check the status of a task.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    task_id : str
-        The task uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the task
-    """
-
-    try:
-        # Get a redis client
-        rc = get_redis_client()
-
-        details = {}
-
-        # Get the task from redis
-        try:
-            result_obj = rc.hget(f"task_{task_id}", 'result')
-            app.logger.debug(f"ResulOBt_obj : {result_obj}")
-            if result_obj:
-                task = json.loads(result_obj)
-            else:
-                task = {'status': 'PENDING'}
-        except Exception as e:
-            app.logger.error(f"Failed to fetch results for {task_id} due to {e}")
-            task = {'status': 'Failed', 'reason': 'Unknown task id'}
-
-        res = {'task_id': task_id}
-        if 'status' in task:
-            res['status'] = task['status']
-
-        if 'result' in task:
-            details['result'] = task['result']
-        if 'reason' in task:
-            details['reason'] = task['reason']
-
-        if details:
-            res.update({'details': details})
-
-        app.logger.debug("Status Response: {}".format(str(res)))
-        return jsonify(res)
-
-    except Exception as e:
-        app.logger.error(e)
-        return create_error_response(InternalError(e), jsonify_response=True)
 
 
 @funcx_api.route("/containers/<container_id>/<container_type>", methods=['GET'])
@@ -574,43 +432,6 @@ def reg_container(user: User):
         return create_error_response(InternalError(f'error adding container - {e}'), jsonify_response=True)
 
 
-@funcx_api.route("/register_endpoint", methods=['POST'])
-@authenticated
-def reg_endpoint(user: User):
-    """Register the endpoint. Add this site to the database and associate it with this user.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-
-    Returns
-    -------
-    json
-        A dict containing the endpoint details
-    """
-    endpoint_name = None
-    description = None
-    endpoint_uuid = None
-    try:
-        endpoint_name = request.json["endpoint_name"]
-        description = request.json["description"]
-    except Exception as e:
-        app.logger.error(e)
-
-    if 'endpoint_uuid' in request.json:
-        endpoint_uuid = request.json["endpoint_uuid"]
-
-    app.logger.debug(endpoint_name)
-    try:
-        endpoint_uuid = register_endpoint(
-            user, endpoint_name, description, endpoint_uuid)
-    except UserNotFound as e:
-        return create_error_response(e, jsonify_response=True)
-
-    return jsonify({'endpoint_uuid': endpoint_uuid})
-
-
 def register_with_hub(address, endpoint_id, endpoint_address):
     """ This registers with the Forwarder micro service.
 
@@ -677,129 +498,10 @@ def get_request_addr():
         return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
 
 
-@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
-@authenticated
-def endpoint_whitelist(user: User, endpoint_id):
-    """Get or insert into the endpoint's whitelist.
-    If POST, insert the list of function ids into the whitelist.
-    if GET, return the list of function ids in the whitelist
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The id of the endpoint
-
-    Returns
-    -------
-    json
-        A dict including a list of whitelisted functions for this endpoint
-    """
-
-    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
-
-    if request.method == "GET":
-        return get_ep_whitelist(user, endpoint_id)
-    else:
-        # Otherwise we need the list of functions passed in
-        try:
-            post_req = request.json
-            functions = post_req['func']
-        except KeyError as e:
-            return create_error_response(RequestKeyError(e), jsonify_response=True)
-        except Exception as e:
-            return create_error_response(RequestMalformed(e), jsonify_response=True)
-        return add_ep_whitelist(user, endpoint_id, functions)
-
-
-@funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
-@authenticated
-def del_endpoint_whitelist(user: User, endpoint_id, function_id):
-    """Delete from an endpoint's whitelist. Return the success/failure of the delete.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The id of the endpoint
-    function_id : str
-        The id of the function to delete
-
-    Returns
-    -------
-    json
-        A dict describing the result of deleting from the endpoint's whitelist
-    """
-
-    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
-
-    return delete_ep_whitelist(user, endpoint_id, function_id)
-
-
-@funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
-@authenticated
-def get_ep_stats(user: User, endpoint_id):
-    """Retrieve the status updates from an endpoint.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    endpoint_id : str
-        The endpoint uuid to look up
-
-    Returns
-    -------
-    json
-        The status of the endpoint
-    """
-    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
-    last = 10
-
-    user_id = user.id
-
-    # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
-
-    try:
-        if not authorize_endpoint(user_id, endpoint_id, None, token):
-            return create_error_response(EndpointAccessForbidden(endpoint_id), jsonify_response=True)
-    except Exception as e:
-        # could be EndpointNotFound
-        return create_error_response(e, jsonify_response=True)
-
-    # TODO add rc to g.
-    rc = get_redis_client()
-
-    status = {'status': 'offline', 'logs': []}
-    try:
-        end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
-        print("Total len :", end)
-        items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
-        if items:
-            for i in items:
-                status['logs'].append(json.loads(i))
-
-            # timestamp is created using time.time(), which returns seconds since epoch UTC
-            logs = status['logs']  # should have been json loaded already
-            newest_timestamp = logs[0]['timestamp']
-            now = time.time()
-            if now - newest_timestamp < alive_threshold:
-                status['status'] = 'online'
-
-    except Exception as e:
-        app.logger.error("Unable to retrieve ")
-        return create_error_response(EndpointStatsError(endpoint_id, e), jsonify_response=True)
-
-    return jsonify(status)
-
-
-@funcx_api.route("/register_endpoint_2", methods=['POST'])
+# Endpoint routes
+@funcx_api.route("/endpoints", methods=['POST'])
 @authenticated_w_uuid
-def register_endpoint_2(user: User, user_uuid: str):
+def reg_endpoint(user: User, user_uuid: str):
     """Register an endpoint. Add this endpoint to the database and associate it with this user.
 
     Returns
@@ -807,7 +509,7 @@ def register_endpoint_2(user: User, user_uuid: str):
     json
         A dict containing the endpoint details
     """
-    app.logger.debug("register_endpoint_2 triggered")
+    app.logger.debug("register_endpoint triggered")
     app.logger.debug(request.json)
 
     v_info = get_forwarder_version()
@@ -869,7 +571,151 @@ def register_endpoint_2(user: User, user_uuid: str):
         return "oof"
 
 
-@funcx_api.route("/register_function", methods=['POST'])
+@funcx_api.route("/endpoints/<endpoint_id>/status", methods=['GET'])
+@authenticated
+def get_ep_stats(user: User, endpoint_id):
+    """Retrieve the status updates from an endpoint.
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The endpoint uuid to look up
+
+    Returns
+    -------
+    json
+        The status of the endpoint
+    """
+    alive_threshold = 2 * 60  # time in seconds since last heartbeat to be counted as alive
+    last = 10
+
+    user_id = user.id
+
+    # Extract the token for endpoint verification
+    token_str = request.headers.get('Authorization')
+    token = str.replace(str(token_str), 'Bearer ', '')
+
+    try:
+        if not authorize_endpoint(user_id, endpoint_id, None, token):
+            return create_error_response(EndpointAccessForbidden(endpoint_id), jsonify_response=True)
+    except Exception as e:
+        # could be EndpointNotFound
+        return create_error_response(e, jsonify_response=True)
+
+    rc = g_redis_client()
+
+    status = {'status': 'offline', 'logs': []}
+    try:
+        end = min(rc.llen(f'ep_status_{endpoint_id}'), last)
+        print("Total len :", end)
+        items = rc.lrange(f'ep_status_{endpoint_id}', 0, end)
+        if items:
+            for i in items:
+                status['logs'].append(json.loads(i))
+
+            # timestamp is created using time.time(), which returns seconds since epoch UTC
+            logs = status['logs']  # should have been json loaded already
+            newest_timestamp = logs[0]['timestamp']
+            now = time.time()
+            if now - newest_timestamp < alive_threshold:
+                status['status'] = 'online'
+
+    except Exception as e:
+        app.logger.error("Unable to retrieve ")
+        return create_error_response(EndpointStatsError(endpoint_id, e), jsonify_response=True)
+
+    return jsonify(status)
+
+
+@funcx_api.route("/endpoints/<endpoint_id>", methods=['DELETE'])
+@authenticated
+def del_endpoint(user: User, endpoint_id):
+    """Delete the endpoint.
+
+        Parameters
+        ----------
+        user : User
+            The primary identity of the user
+        endpoint_id : str
+            The endpoint uuid to delete
+
+        Returns
+        -------
+        json
+            Dict containing the result
+        """
+    try:
+        result = Endpoint.delete_endpoint(user, endpoint_id)
+        return jsonify({'result': result})
+    except Exception as e:
+        app.logger.error(e)
+
+
+# Whitelist routes
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist", methods=['POST', 'GET'])
+@authenticated
+def endpoint_whitelist(user: User, endpoint_id):
+    """Get or insert into the endpoint's whitelist.
+    If POST, insert the list of function ids into the whitelist.
+    if GET, return the list of function ids in the whitelist
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+
+    Returns
+    -------
+    json
+        A dict including a list of whitelisted functions for this endpoint
+    """
+
+    app.logger.debug(f"Adding to endpoint {endpoint_id} whitelist by user: {user.username}")
+
+    if request.method == "GET":
+        return get_ep_whitelist(user, endpoint_id)
+    else:
+        # Otherwise we need the list of functions passed in
+        try:
+            post_req = request.json
+            functions = post_req['func']
+        except KeyError as e:
+            return create_error_response(RequestKeyError(e), jsonify_response=True)
+        except Exception as e:
+            return create_error_response(RequestMalformed(e), jsonify_response=True)
+        return add_ep_whitelist(user, endpoint_id, functions)
+
+
+@funcx_api.route("/endpoints/<endpoint_id>/whitelist/<function_id>", methods=['DELETE'])
+@authenticated
+def del_endpoint_whitelist(user: User, endpoint_id, function_id):
+    """Delete from an endpoint's whitelist. Return the success/failure of the delete.
+
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    endpoint_id : str
+        The id of the endpoint
+    function_id : str
+        The id of the function to delete
+
+    Returns
+    -------
+    json
+        A dict describing the result of deleting from the endpoint's whitelist
+    """
+
+    app.logger.debug(f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}")
+
+    return delete_ep_whitelist(user, endpoint_id, function_id)
+
+
+@funcx_api.route("/functions", methods=['POST'])
 @authenticated_w_uuid
 def reg_function(user: User, user_uuid):
     """Register the function.
@@ -973,15 +819,17 @@ def reg_function(user: User, user_uuid):
     return response
 
 
-@funcx_api.route("/upd_function", methods=['POST'])
+@funcx_api.route("/functions/<function_id>", methods=['PUT'])
 @authenticated
-def upd_function(user: User):
+def upd_function(user: User, function_id):
     """Update the function.
 
         Parameters
         ----------
         user : User
             The primary identity of the user
+        function_id : str
+            The function to update
 
         Returns
         -------
@@ -989,63 +837,51 @@ def upd_function(user: User):
             Dict containing the result as an integer
         """
     try:
-        function_uuid = request.json["func"]
         function_name = request.json["name"]
         function_desc = request.json["desc"]
         function_entry_point = request.json["entry_point"]
         function_code = request.json["code"]
-        result = update_function(user.username, function_uuid, function_name,
+        result = update_function(user.username, function_id, function_name,
                                  function_desc, function_entry_point, function_code)
-
-        # app.logger.debug("[LOGGER] result: " + str(result))
-        return jsonify({'result': result})
+        if result == 302:
+            return jsonify({'function_uuid': function_id}), 302
+        elif result == 403:
+            message = "Unable to update function for user:{} function_id:{}. 403 Unauthorized".\
+                format(user.username, function_id)
+            app.logger.error(message)
+            return create_error_response(InternalError(message), jsonify_response=True)
+        elif result == 404:
+            message = "Unable to update function for user:{} function_id:{}. 404 Function not found.".\
+                format(user.username, function_id)
+            app.logger.error(message)
+            return create_error_response(InternalError(message), jsonify_response=True)
     except Exception as e:
-        # app.logger.debug("[LOGGER] funcx.py try statement failed.")
         app.logger.error(e)
-        return jsonify({'result': 500})
+        message = "Unable to update function for user:{} function_id:{} due to {}".\
+            format(user.username, function_id, e)
+        app.logger.error(message)
+        return create_error_response(InternalError(message), jsonify_response=True)
 
 
-@funcx_api.route("/delete_function", methods=['POST'])
+@funcx_api.route("/functions/<function_id>", methods=['DELETE'])
 @authenticated
-def del_function(user: User):
+def del_function(user: User, function_id):
     """Delete the function.
 
         Parameters
         ----------
         user : User
             The primary identity of the user
+        function_id : str
+            The function uuid to delete
 
         Returns
         -------
         json
-            Dict containing the result as an integer
+            Dict containing the result
         """
     try:
-        function_uuid = request.json["func"]
-        result = delete_function(user, function_uuid)
-        return jsonify({'result': result})
-    except Exception as e:
-        app.logger.error(e)
-
-
-@funcx_api.route("/delete_endpoint", methods=['POST'])
-@authenticated
-def del_endpoint(user: User):
-    """Delete the endpoint.
-
-        Parameters
-        ----------
-        user : User
-            The primary identity of the user
-
-        Returns
-        -------
-        json
-            Dict containing the result as an integer
-        """
-    try:
-        endpoint_uuid = request.json["endpoint"]
-        result = Endpoint.delete_endpoint(user, endpoint_uuid)
+        result = delete_function(user, function_id)
         return jsonify({'result': result})
     except Exception as e:
         app.logger.error(e)
@@ -1069,20 +905,18 @@ def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
         return create_error_response(ForwarderContactError(e), jsonify_response=True)
 
 
-@funcx_api.route("/get_map", methods=['GET'])
-def get_map():
-    """Delete the endpoint.
-
-    Parameters
-    ----------
-    user_name : str
-    The primary identity of the user
-
-    Returns
-    -------
-    json
-    Dict containing the result as an integer
+@funcx_api.route("/stats", methods=['GET'])
+def funcx_stats():
+    """Get various usage stats.
     """
-    app.logger.debug("Received map request")
-    # return jsonify("hello")
-    return send_from_directory('routes', 'mapper.html')
+    app.logger.debug("Getting stats")
+    try:
+        rc = g_redis_client()
+        result = rc.get('funcx_invocation_counter')
+        return jsonify({"total_function_invocations": result}), 200
+    except Exception as e:
+        app.logger.error(e)
+        message = "Unable to get invocation count due to {}".\
+            format(e)
+        app.logger.error(message)
+        return create_error_response(InternalError(message), jsonify_response=True)
