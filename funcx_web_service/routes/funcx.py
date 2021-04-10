@@ -921,9 +921,6 @@ def funcx_stats():
             format(e)
         app.logger.error(message)
         return create_error_response(InternalError(message), jsonify_response=True)
-    app.logger.debug("Received map request")
-    # return jsonify("hello")
-    return send_from_directory('routes', 'mapper.html')
 
 
 @funcx_api.route("/authenticate", methods=['GET'])
