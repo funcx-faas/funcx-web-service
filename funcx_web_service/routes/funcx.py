@@ -60,7 +60,7 @@ def g_redis_pubsub(*args, **kwargs):
     return g.redis_pubsub
 
 
-def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, serialize=None):
+def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, topic_id, serialize=None):
     """ Here we do basic auth for (user, fn, endpoint) and launch the function.
 
     Parameters
@@ -148,7 +148,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
-    task = Task(rc, task_uuid, container_uuid, serializer, payload)
+    task = Task(rc, task_uuid, container_uuid, serializer, payload, topic_id)
 
     task_channel.put(endpoint_uuid, task)
     app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
@@ -212,15 +212,18 @@ def submit(user: User):
         # this should raise a 500 because it prevented any tasks from launching
         return create_error_response(RequestKeyError(e), jsonify_response=True)
 
+    topic_id = str(uuid.uuid4())
+
     # this is a breaking change for old funcx sdk versions
     results = {'response': 'batch',
+               'topic_id': topic_id,
                'results': []}
 
     final_http_status = 200
     for task in tasks:
         res = auth_and_launch(
             user_id, function_uuid=task[0], endpoint_uuid=task[1],
-            input_data=task[2], app=app, token=token, serialize=serialize
+            input_data=task[2], app=app, token=token, topic_id=topic_id, serialize=serialize
         )
         # the response code is a 207 if some tasks failed to submit
         if res.get('status', 'Failed') != 'Success':
