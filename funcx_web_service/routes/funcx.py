@@ -27,6 +27,7 @@ from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNo
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
                                          EndpointOutdated)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
+from funcx.sdk.version import MIN_SDK_VERSION
 
 # Flask
 from ..models.auth_groups import AuthGroup
@@ -484,6 +485,7 @@ def get_version():
             "api": VERSION,
             "funcx": FUNCX_VERSION,
             "forwarder": forwarder_version,
+            "min_sdk_version": MIN_SDK_VERSION,
             "min_ep_version": min_ep_version
         })
 
