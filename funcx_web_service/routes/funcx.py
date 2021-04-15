@@ -16,7 +16,7 @@ from funcx_web_service.models.utils import resolve_function, db_invocation_logge
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
 from funcx_web_service.error_responses import create_error_response
-from funcx_web_service.version import VERSION
+from funcx_web_service.version import VERSION, MIN_SDK_VERSION
 
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
@@ -484,6 +484,7 @@ def get_version():
             "api": VERSION,
             "funcx": FUNCX_VERSION,
             "forwarder": forwarder_version,
+            "min_sdk_version": MIN_SDK_VERSION,
             "min_ep_version": min_ep_version
         })
 
