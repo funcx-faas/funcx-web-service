@@ -16,7 +16,7 @@ from funcx_web_service.models.utils import resolve_function, db_invocation_logge
 from funcx_web_service.models.utils import (update_function, delete_function, get_ep_whitelist,
                                             add_ep_whitelist, delete_ep_whitelist)
 from funcx_web_service.error_responses import create_error_response
-from funcx_web_service.version import VERSION
+from funcx_web_service.version import VERSION, MIN_SDK_VERSION
 
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
@@ -27,7 +27,6 @@ from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNo
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
                                          EndpointOutdated)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
-from funcx.sdk.version import MIN_SDK_VERSION
 
 # Flask
 from ..models.auth_groups import AuthGroup
