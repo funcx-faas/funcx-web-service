@@ -176,3 +176,64 @@ class Task:
     def delete(self):
         """Removes this task from Redis, to be used after the result is gotten"""
         self.rc.delete(self.hname)
+
+
+@auto_name_fields
+class Batch:
+    """
+    ORM-esque class to wrap access to properties of batches for better style and encapsulation
+    """
+    user_id = RedisField(serializer=lambda x: str(x), deserializer=lambda x: int(x))
+    task_count = RedisField(serializer=lambda x: str(x), deserializer=lambda x: int(x))
+
+    BATCH_TTL = timedelta(weeks=1)
+
+    def __init__(self, rc: StrictRedis, batch_id: str, user_id: int = None, task_count: int = None):
+        """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
+        task entry.
+        Parameters
+        ----------
+        rc : StrictRedis
+            Redis client so that properties can get get/set
+        """
+        self.rc = rc
+        self.batch_id = batch_id
+        self.hname = self._generate_hname(self.batch_id)
+
+        if user_id is not None:
+            self.user_id = user_id
+
+        if task_count is not None:
+            self.task_count = task_count
+
+        self.header = self._generate_header()
+        self._set_expire()
+
+    @staticmethod
+    def _generate_hname(batch_id):
+        return f'batch_{batch_id}'
+
+    def _set_expire(self):
+        """Expires task after TASK_TTL, if not already set."""
+        ttl = self.rc.ttl(self.hname)
+        if ttl < 0:
+            # expire was not already set
+            self.rc.expire(self.hname, Batch.BATCH_TTL)
+
+    def _generate_header(self):
+        return self.batch_id
+
+    @classmethod
+    def exists(cls, rc: StrictRedis, batch_id: str):
+        """Check if a given batch_id exists in Redis"""
+        batch_hname = cls._generate_hname(batch_id)
+        return rc.exists(batch_hname)
+
+    @classmethod
+    def from_id(cls, rc: StrictRedis, batch_id: str):
+        """For more readable code, use this to find a batch by id, using the redis client"""
+        return cls(rc, batch_id)
+
+    def delete(self):
+        """Removes this task from Redis, to be used after the result is gotten"""
+        self.rc.delete(self.hname)

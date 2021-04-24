@@ -8,7 +8,7 @@ from flask import current_app as app, Blueprint, jsonify, request, g
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
-from funcx_web_service.models.tasks import Task
+from funcx_web_service.models.tasks import Task, Batch
 from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
 from funcx_web_service.models.utils import register_endpoint, ingest_function
@@ -220,16 +220,25 @@ def submit(user: User):
                'results': []}
 
     final_http_status = 200
+    success_count = 0
     for task in tasks:
         res = auth_and_launch(
             user_id, function_uuid=task[0], endpoint_uuid=task[1],
             input_data=task[2], app=app, token=token, batch_id=batch_id, serialize=serialize
         )
-        # the response code is a 207 if some tasks failed to submit
-        if res.get('status', 'Failed') != 'Success':
+
+        if res.get('status', 'Failed') == 'Success':
+            success_count += 1
+        else:
+            # the response code is a 207 if some tasks failed to submit
             final_http_status = 207
 
         results['results'].append(res)
+
+    if success_count > 0:
+        rc = g_redis_client()
+        Batch(rc, batch_id, user_id, success_count)
+
     return jsonify(results), final_http_status
 
 
@@ -932,7 +941,17 @@ def authenticate(user: User):
     return 'OK'
 
 
-@funcx_api.route("/authorize_task/<task_id>", methods=['GET'])
+@funcx_api.route("/batches/<batch_id>", methods=['GET'])
 @authenticated
-def authorize_task(user: User, task_id):
-    return 'OK'
+def get_batch_info(user: User, batch_id):
+    rc = g_redis_client()
+
+    if not Batch.exists(rc, batch_id):
+        return create_error_response(Exception(f'Batch {batch_id} not found'), jsonify_response=True)
+
+    batch = Batch.from_id(rc, batch_id)
+
+    if batch.user_id != user.id:
+        return create_error_response(Exception(f'Unauthorized access to batch {batch_id}'), jsonify_response=True)
+
+    return jsonify({'task_count': batch.task_count})
