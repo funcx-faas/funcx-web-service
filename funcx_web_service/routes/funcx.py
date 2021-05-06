@@ -201,6 +201,7 @@ def submit(user: User):
         if 'tasks' in post_req:
             # new client is being used
             tasks = post_req['tasks']
+            batch_id = post_req.get('batch_id', str(uuid.uuid4()))
         else:
             # old client was used and create a new task
             function_uuid = post_req['func']
@@ -211,8 +212,6 @@ def submit(user: User):
     except KeyError as e:
         # this should raise a 500 because it prevented any tasks from launching
         return create_error_response(RequestKeyError(e), jsonify_response=True)
-
-    batch_id = str(uuid.uuid4())
 
     # this is a breaking change for old funcx sdk versions
     results = {'response': 'batch',
