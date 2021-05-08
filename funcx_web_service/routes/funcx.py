@@ -8,7 +8,7 @@ from flask import current_app as app, Blueprint, jsonify, request, g
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
-from funcx_web_service.models.tasks import Task, Batch
+from funcx_web_service.models.tasks import Task, TaskGroup
 from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
 from funcx_web_service.models.utils import register_endpoint, ingest_function
@@ -60,7 +60,7 @@ def g_redis_pubsub(*args, **kwargs):
     return g.redis_pubsub
 
 
-def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, batch_id, serialize=None):
+def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, task_group_id, serialize=None):
     """ Here we do basic auth for (user, fn, endpoint) and launch the function.
 
     Parameters
@@ -148,7 +148,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
-    task = Task(rc, task_uuid, container_uuid, serializer, payload, batch_id)
+    task = Task(rc, task_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
     app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
@@ -196,12 +196,20 @@ def submit(user: User):
 
     # Parse out the function info
     tasks = []
+    task_group_id = None
     try:
         post_req = request.json
         if 'tasks' in post_req:
             # new client is being used
+            # TODO: validate that this tasks list is formatted correctly so
+            # that more useful errors can be sent back
             tasks = post_req['tasks']
-            batch_id = post_req.get('batch_id', str(uuid.uuid4()))
+            task_group_id = post_req.get('task_group_id', str(uuid.uuid4()))
+            try:
+                # check that task_group_id is a valid UUID
+                uuid.UUID(task_group_id)
+            except Exception:
+                return create_error_response(Exception('Invalid task_group_id UUID provided'), jsonify_response=True)
         else:
             # old client was used and create a new task
             function_uuid = post_req['func']
@@ -213,9 +221,17 @@ def submit(user: User):
         # this should raise a 500 because it prevented any tasks from launching
         return create_error_response(RequestKeyError(e), jsonify_response=True)
 
+    rc = g_redis_client()
+    task_group = None
+    if task_group_id and TaskGroup.exists(rc, task_group_id):
+        app.logger.debug(f'Task Group {task_group_id} submitted to by user {user_id} already exists, checking if user is authorized')
+        task_group = TaskGroup.from_id(rc, task_group_id)
+        if task_group.user_id != user_id:
+            return create_error_response(Exception(f'Unauthorized access to Task Group {task_group_id}'), jsonify_response=True)
+
     # this is a breaking change for old funcx sdk versions
     results = {'response': 'batch',
-               'batch_id': batch_id,
+               'task_group_id': task_group_id,
                'results': []}
 
     final_http_status = 200
@@ -223,7 +239,7 @@ def submit(user: User):
     for task in tasks:
         res = auth_and_launch(
             user_id, function_uuid=task[0], endpoint_uuid=task[1],
-            input_data=task[2], app=app, token=token, batch_id=batch_id, serialize=serialize
+            input_data=task[2], app=app, token=token, task_group_id=task_group_id, serialize=serialize
         )
 
         if res.get('status', 'Failed') == 'Success':
@@ -234,9 +250,11 @@ def submit(user: User):
 
         results['results'].append(res)
 
-    if success_count > 0:
-        rc = g_redis_client()
-        Batch(rc, batch_id, user_id, success_count)
+    # create a TaskGroup if there are actually tasks with results to wait on and
+    # a TaskGroup with the provided ID doesn't already exist
+    if success_count > 0 and task_group_id and not task_group:
+        app.logger.debug(f'Creating new Task Group {task_group_id} for user {user_id}')
+        TaskGroup(rc, task_group_id, user_id)
 
     return jsonify(results), final_http_status
 
@@ -940,17 +958,17 @@ def authenticate(user: User):
     return 'OK'
 
 
-@funcx_api.route("/batches/<batch_id>", methods=['GET'])
+@funcx_api.route("/task_groups/<task_group_id>", methods=['GET'])
 @authenticated
-def get_batch_info(user: User, batch_id):
+def get_batch_info(user: User, task_group_id):
     rc = g_redis_client()
 
-    if not Batch.exists(rc, batch_id):
-        return create_error_response(Exception(f'Batch {batch_id} not found'), jsonify_response=True)
+    if not TaskGroup.exists(rc, task_group_id):
+        return create_error_response(Exception(f'Task Group {task_group_id} not found'), jsonify_response=True)
 
-    batch = Batch.from_id(rc, batch_id)
+    task_group = TaskGroup.from_id(rc, task_group_id)
 
-    if batch.user_id != user.id:
-        return create_error_response(Exception(f'Unauthorized access to batch {batch_id}'), jsonify_response=True)
+    if task_group.user_id != user.id:
+        return create_error_response(Exception(f'Unauthorized access to Task Group {task_group_id}'), jsonify_response=True)
 
-    return jsonify({'task_count': batch.task_count})
+    return jsonify({'authorized': True})
