@@ -17,7 +17,6 @@ dill==0.3.2
 dnspython==1.16.0
 docutils==0.16
 entrypoints==0.3
-eventlet==0.25.2
 fair-research-login==0.1.5
 Flask==1.1.2
 Flask-SocketIO==4.3.0
