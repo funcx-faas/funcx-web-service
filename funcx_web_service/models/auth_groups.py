@@ -10,10 +10,6 @@ class AuthGroup(db.Model):
     group_id = Column(String(67))
     endpoint_id = Column(String(67))
 
-    def save_to_db(self):
-        db.session.add(self)
-        db.session.commit()
-
     @classmethod
     def find_by_uuid(cls, uuid):
         try:
