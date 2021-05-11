@@ -68,11 +68,9 @@ class FunctionContainer(db.Model):
 class FunctionAuthGroup(db.Model):
     __tablename__ = "function_auth_groups"
     id = db.Column(Integer, primary_key=True)
-    group_id = db.Column(Integer, ForeignKey("auth_groups.id"))
+    group_id = db.Column(String(38))
     function_id = db.Column(Integer, ForeignKey('functions.id'))
-
     function = relationship("Function", back_populates='auth_groups')
-    group = relationship("AuthGroup", back_populates='functions')
 
     @classmethod
     def find_by_function_uuid(cls, function_id):

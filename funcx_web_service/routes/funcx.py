@@ -22,14 +22,13 @@ from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
 from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
-                                         AuthGroupNotFound, FunctionAccessForbidden, EndpointAccessForbidden,
+                                         FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
                                          EndpointOutdated)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
-from ..models.auth_groups import AuthGroup
 from ..models.container import Container, ContainerImage
 from ..models.endpoint import Endpoint
 from ..models.function import Function, FunctionContainer, FunctionAuthGroup
@@ -767,12 +766,6 @@ def reg_function(user: User, user_uuid):
                 return create_error_response(ContainerNotFound(container_uuid), jsonify_response=True)
 
         group_uuid = request.json.get("group", None)
-        group = None
-        if group_uuid:
-            group = AuthGroup.find_by_uuid(group_uuid)
-            if not group:
-                return create_error_response(AuthGroupNotFound(group_uuid), jsonify_response=True)
-
         searchable = request.json.get("searchable", True)
 
         app.logger.info(f"Registering function {function_rec.function_name} "
@@ -784,10 +777,10 @@ def reg_function(user: User, user_uuid):
                 container=container
             )
 
-        if group:
+        if group_uuid:
             function_rec.auth_groups = [
                 FunctionAuthGroup(
-                    group=group,
+                    group_id=group_uuid,
                     function=function_rec
                 )
             ]

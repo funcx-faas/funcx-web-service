@@ -183,12 +183,6 @@ class TestFuncX(AppTestBase):
         )
         mocker.patch.object(User, "find_by_username", return_value=mock_user)
 
-        from funcx_web_service.models.auth_groups import AuthGroup
-        mock_auth_group = AuthGroup(
-            id=45
-        )
-
-        mock_authgroup_read = mocker.patch.object(AuthGroup, "find_by_uuid", return_value=mock_auth_group)
         result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
@@ -201,14 +195,14 @@ class TestFuncX(AppTestBase):
                                  "group": '222-111'
                              },
                              headers={"Authorization": "my_token"})
+
         assert result.status_code == 200
         assert "function_uuid" in result.json
         assert mock_ingest.not_called
-        mock_authgroup_read.assert_called_with("222-111")
 
         saved_function = Function.find_by_uuid(result.json['function_uuid'])
         assert len(saved_function.auth_groups) == 1
-        assert saved_function.auth_groups[0].group_id == 45
+        assert saved_function.auth_groups[0].group_id == "222-111"
 
     def test_register_container(self, mocker, mock_auth_client):
         client = self.client

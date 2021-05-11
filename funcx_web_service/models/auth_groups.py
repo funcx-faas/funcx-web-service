@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
 from funcx_web_service.models import db
@@ -10,12 +9,6 @@ class AuthGroup(db.Model):
     id = Column(Integer, primary_key=True)
     group_id = Column(String(67))
     endpoint_id = Column(String(67))
-
-    functions = relationship("FunctionAuthGroup")
-
-    def save_to_db(self):
-        db.session.add(self)
-        db.session.commit()
 
     @classmethod
     def find_by_uuid(cls, uuid):
