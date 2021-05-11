@@ -1,3 +1,5 @@
+import os
+
 from funcx_web_service.routes.auth import auth_api
 from flask import Flask
 from funcx_web_service.routes.automate import automate_api
@@ -6,6 +8,7 @@ from funcx_web_service.routes.funcx import funcx_api
 
 def create_app(test_config=None):
     application = Flask(__name__)
+    application.logger.setLevel(os.environ.get('LOGLEVEL', 'WARNING').upper())
 
     if test_config:
         application.config.from_mapping(test_config)
