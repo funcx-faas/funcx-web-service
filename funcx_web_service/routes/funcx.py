@@ -225,6 +225,7 @@ def submit(user: User):
     task_group = None
     if task_group_id and TaskGroup.exists(rc, task_group_id):
         app.logger.debug(f'Task Group {task_group_id} submitted to by user {user_id} already exists, checking if user is authorized')
+        # TODO: This could be cached to minimize lookup cost.
         task_group = TaskGroup.from_id(rc, task_group_id)
         if task_group.user_id != user_id:
             return create_error_response(Exception(f'Unauthorized access to Task Group {task_group_id}'), jsonify_response=True)
