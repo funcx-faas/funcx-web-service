@@ -103,7 +103,9 @@ class Task:
     task_group_id = RedisField()
 
     # must keep ttl and _set_expire in merge
-    TASK_TTL = timedelta(weeks=1)
+    # tasks expire in 1 week, we are giving some grace period for
+    # long-lived clients, and we'll revise this if there are complaints
+    TASK_TTL = timedelta(weeks=2)
 
     def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = "", task_group_id: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
