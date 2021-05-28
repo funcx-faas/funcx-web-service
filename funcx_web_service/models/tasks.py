@@ -100,11 +100,14 @@ class Task:
     result = RedisField()
     exception = RedisField()
     completion_time = RedisField()
+    task_group_id = RedisField()
 
     # must keep ttl and _set_expire in merge
-    TASK_TTL = timedelta(weeks=1)
+    # tasks expire in 1 week, we are giving some grace period for
+    # long-lived clients, and we'll revise this if there are complaints
+    TASK_TTL = timedelta(weeks=2)
 
-    def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = ""):
+    def __init__(self, rc: StrictRedis, task_id: str, container: str = "", serializer: str = "", payload: str = "", task_group_id: str = ""):
         """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
         task entry.
         Parameters
@@ -118,6 +121,8 @@ class Task:
         serializer : str
         payload : str
             serialized function + input data
+        task_group_id : str
+            UUID of task group that this task belongs to
         """
         self.rc = rc
         self.task_id = task_id
@@ -137,6 +142,9 @@ class Task:
 
         if payload:
             self.payload = payload
+
+        if task_group_id:
+            self.task_group_id = task_group_id
 
         self.header = self._generate_header()
         self._set_expire()
@@ -169,4 +177,61 @@ class Task:
 
     def delete(self):
         """Removes this task from Redis, to be used after the result is gotten"""
+        self.rc.delete(self.hname)
+
+
+@auto_name_fields
+class TaskGroup:
+    """
+    ORM-esque class to wrap access to properties of batches for better style and encapsulation
+    """
+    user_id = RedisField(serializer=lambda x: str(x), deserializer=lambda x: int(x))
+
+    TASK_GROUP_TTL = timedelta(weeks=1)
+
+    def __init__(self, rc: StrictRedis, task_group_id: str, user_id: int = None):
+        """ If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
+        task entry.
+        Parameters
+        ----------
+        rc : StrictRedis
+            Redis client so that properties can get get/set
+        """
+        self.rc = rc
+        self.task_group_id = task_group_id
+        self.hname = self._generate_hname(self.task_group_id)
+
+        if user_id is not None:
+            self.user_id = user_id
+
+        self.header = self._generate_header()
+        self._set_expire()
+
+    @staticmethod
+    def _generate_hname(task_group_id):
+        return f'task_group_{task_group_id}'
+
+    def _set_expire(self):
+        """Expires task after TASK_TTL, if not already set."""
+        ttl = self.rc.ttl(self.hname)
+        if ttl < 0:
+            # expire was not already set
+            self.rc.expire(self.hname, TaskGroup.TASK_GROUP_TTL)
+
+    def _generate_header(self):
+        return self.task_group_id
+
+    @classmethod
+    def exists(cls, rc: StrictRedis, task_group_id: str):
+        """Check if a given task_group_id exists in Redis"""
+        task_group_hname = cls._generate_hname(task_group_id)
+        return rc.exists(task_group_hname)
+
+    @classmethod
+    def from_id(cls, rc: StrictRedis, task_group_id: str):
+        """For more readable code, use this to find a task group by id, using the redis client"""
+        return cls(rc, task_group_id)
+
+    def delete(self):
+        """Removes this task group from Redis, to be used after the result is gotten"""
         self.rc.delete(self.hname)
