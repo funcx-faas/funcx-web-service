@@ -6,6 +6,7 @@ from funcx_web_service.models.function import Function
 from funcx_web_service.models.user import User
 from funcx.utils.response_errors import ResponseErrorCode
 from tests.routes.app_test_base import AppTestBase
+from unittest.mock import ANY
 
 
 @pytest.fixture
@@ -174,7 +175,6 @@ class TestFuncX(AppTestBase):
         saved_function = Function.find_by_uuid(result.json['function_uuid'])
         assert saved_function.container.container_id == 44
 
-    @pytest.mark.skip(reason="The redis client is not mocked correctly, causing this to fail")
     def test_register_function_with_group_auth(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.client
@@ -185,12 +185,14 @@ class TestFuncX(AppTestBase):
         )
         mocker.patch.object(User, "find_by_username", return_value=mock_user)
 
-        from funcx_web_service.models.auth_groups import AuthGroup
-        mock_auth_group = AuthGroup(
+        from funcx_web_service.models.function import FunctionAuthGroup
+        mock_auth_group = FunctionAuthGroup(
             id=45
         )
 
-        mock_authgroup_read = mocker.patch.object(AuthGroup, "find_by_uuid", return_value=mock_auth_group)
+        mock_authgroup_read = mocker.patch("funcx_web_service.routes.funcx.FunctionAuthGroup")
+        mock_authgroup_read.return_value = mock_auth_group
+
         result = client.post("api/v1/functions",
                              json={
                                  "function_source": "def fun(x): return x+1",
@@ -206,11 +208,11 @@ class TestFuncX(AppTestBase):
         assert result.status_code == 200
         assert "function_uuid" in result.json
         assert mock_ingest.not_called
-        mock_authgroup_read.assert_called_with("222-111")
+        mock_authgroup_read.assert_called_with(function=ANY, group_id="222-111")
 
         saved_function = Function.find_by_uuid(result.json['function_uuid'])
         assert len(saved_function.auth_groups) == 1
-        assert saved_function.auth_groups[0].group_id == 45
+        assert saved_function.auth_groups[0].id == 45
 
     def test_register_container(self, mocker, mock_auth_client):
         client = self.client
