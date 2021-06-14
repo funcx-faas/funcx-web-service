@@ -1,8 +1,12 @@
 import pytest
+
+import funcx_web_service.authentication
+import funcx_web_service.models
+from funcx_web_service.models.tasks import Task
 from funcx_web_service.routes.funcx import TaskGroup
 from funcx_web_service.models.container import Container
 from funcx_web_service.models.endpoint import Endpoint
-from funcx_web_service.models.function import Function
+from funcx_web_service.models.function import Function, FunctionAuthGroup
 from funcx_web_service.models.user import User
 from funcx.utils.response_errors import ResponseErrorCode
 from tests.routes.app_test_base import AppTestBase
@@ -29,7 +33,6 @@ def mock_endpoint(mocker):
 
 @pytest.fixture
 def mock_auth_client(mocker, mock_user):
-    import funcx_web_service.authentication
     mock_auth_client = mocker.Mock()
     mock_auth_client.oauth2_token_introspect = mocker.Mock(
         return_value={
@@ -47,8 +50,6 @@ def mock_auth_client(mocker, mock_user):
 
 @pytest.fixture
 def mock_redis(mocker):
-    import funcx_web_service.models
-
     mock_redis = mocker.Mock()
     mocker.patch.object(funcx_web_service.models.utils,
                         "get_redis_client",
@@ -58,7 +59,6 @@ def mock_redis(mocker):
 
 class TestFuncX(AppTestBase):
     def test_get_status(self, mock_auth_client, mock_redis, mocker):
-        from funcx_web_service.models.tasks import Task
 
         get_rc = mocker.patch(
             "funcx_web_service.routes.funcx.g_redis_client",
@@ -117,7 +117,6 @@ class TestFuncX(AppTestBase):
     def test_register_function_no_search(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.client
-        from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
             username="bob"
@@ -142,14 +141,12 @@ class TestFuncX(AppTestBase):
     def test_register_function_with_container(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.client
-        from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
             username="bob"
         )
         mocker.patch.object(User, "find_by_username", return_value=mock_user)
 
-        from funcx_web_service.models.container import Container
         mock_container = Container(
             id=44
         )
@@ -178,14 +175,12 @@ class TestFuncX(AppTestBase):
     def test_register_function_with_group_auth(self, mock_auth_client, mocker):
         mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
         client = self.client
-        from funcx_web_service.models.user import User
         mock_user = User(
             id=42,
             username="bob"
         )
         mocker.patch.object(User, "find_by_username", return_value=mock_user)
 
-        from funcx_web_service.models.function import FunctionAuthGroup
         mock_auth_group = FunctionAuthGroup(
             id=45
         )
