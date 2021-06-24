@@ -25,7 +25,7 @@ from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNo
                                          FunctionAccessForbidden, EndpointAccessForbidden,
                                          ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
                                          LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
-                                         EndpointOutdated)
+                                         EndpointOutdated, TaskGroupNotFound, TaskGroupAccessForbidden, InvalidUUID)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -208,7 +208,7 @@ def submit(user: User):
                 # check that task_group_id is a valid UUID
                 uuid.UUID(task_group_id)
             except Exception:
-                return create_error_response(Exception('Invalid task_group_id UUID provided'), jsonify_response=True)
+                return create_error_response(InvalidUUID('Invalid task_group_id UUID provided'), jsonify_response=True)
         else:
             # old client was used and create a new task
             function_uuid = post_req['func']
@@ -576,6 +576,10 @@ def reg_endpoint(user: User, user_uuid: str):
     except UserNotFound as e:
         app.logger.exception("User not found")
         return create_error_response(e, jsonify_response=True)
+
+    except ValueError:
+        app.logger.exception("Invalid UUID sent for endpoint")
+        return create_error_response(InvalidUUID('Invalid endpoint UUID provided'), jsonify_response=True)
 
     except Exception as e:
         app.logger.exception("Caught error while registering endpoint")
@@ -958,11 +962,11 @@ def get_batch_info(user: User, task_group_id):
     rc = g_redis_client()
 
     if not TaskGroup.exists(rc, task_group_id):
-        return create_error_response(Exception(f'Task Group {task_group_id} not found'), jsonify_response=True)
+        return create_error_response(TaskGroupNotFound(task_group_id), jsonify_response=True)
 
     task_group = TaskGroup.from_id(rc, task_group_id)
 
     if task_group.user_id != user.id:
-        return create_error_response(Exception(f'Unauthorized access to Task Group {task_group_id}'), jsonify_response=True)
+        return create_error_response(TaskGroupAccessForbidden(task_group_id), jsonify_response=True)
 
     return jsonify({'authorized': True})
