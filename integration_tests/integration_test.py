@@ -70,7 +70,7 @@ delta = time.time() - start
 print("Time to launch {} tasks: {:8.3f} s".format(task_count * len(func_ids), delta))
 print("Got {} tasks_ids ".format(len(task_ids)))
 
-for i in range(10):
+for _i in range(10):
     x = fxc.get_batch_status(task_ids)
     complete_count = sum([1 for t in task_ids if t in x and not x[t].get('pending', True)])
     print("Batch status : {}/{} complete".format(complete_count, len(task_ids)))
