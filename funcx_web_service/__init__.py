@@ -1,4 +1,6 @@
 import os
+import logging
+from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.routes.auth import auth_api
 from flask import Flask
@@ -6,9 +8,25 @@ from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
 
+class CustomJsonFormatter(jsonlogger.JsonFormatter):
+    def add_fields(self, log_record, record, message_dict):
+        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
+        if log_record.get('level'):
+            log_record['level'] = log_record['level'].upper()
+        else:
+            log_record['level'] = record.levelname
+
+
 def create_app(test_config=None):
     application = Flask(__name__)
-    application.logger.setLevel(os.environ.get('LOGLEVEL', 'WARNING').upper())
+
+    level = os.environ.get('LOGLEVEL', 'WARNING').upper()
+    logger = application.logger
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    formatter = CustomJsonFormatter()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     if test_config:
         application.config.from_mapping(test_config)
