@@ -159,7 +159,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         "endpoint_id": endpoint_uuid,
         "task_transition": True
     }
-    app.logger.info(f"Task placed on queue for endpoint", extra=extra_logging)
+    app.logger.info("Task placed on queue for endpoint", extra=extra_logging)
 
     # increment the counter
     rc.incr('funcx_invocation_counter')
