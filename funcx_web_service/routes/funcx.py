@@ -987,4 +987,4 @@ def get_batch_info(user: User, task_group_id):
     if task_group.user_id != user.id:
         return create_error_response(TaskGroupAccessForbidden(task_group_id), jsonify_response=True)
 
-    return jsonify({'authorized': True})
+    return jsonify({'user_id': user.id, 'authorized': True})
