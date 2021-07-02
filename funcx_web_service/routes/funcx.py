@@ -83,12 +83,6 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
     task_uuid = str(uuid.uuid4())
-    extra_logging = {
-        "user_id": user_id,
-        "task_id": task_uuid,
-        "task_group_id": task_group_id,
-        "endpoint_id": endpoint_uuid
-    }
 
     # Check if the user is allowed to access the function
     try:
@@ -122,7 +116,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         res['task_uuid'] = task_uuid
         return res
 
-    app.logger.info(f"Got function container_uuid :{container_uuid}", extra=extra_logging)
+    app.logger.info(f"Got function container_uuid :{container_uuid}")
 
     # We should replace this with container_hdr = ";ctnr={container_uuid}"
     if not container_uuid:
@@ -157,7 +151,15 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
     task = Task(rc, task_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
-    app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}", extra=extra_logging)
+
+    extra_logging = {
+        "user_id": user_id,
+        "task_id": task_uuid,
+        "task_group_id": task_group_id,
+        "endpoint_id": endpoint_uuid,
+        "task_transition": True
+    }
+    app.logger.info(f"Task placed on queue for endpoint", extra=extra_logging)
 
     # increment the counter
     rc.incr('funcx_invocation_counter')
@@ -311,14 +313,14 @@ def get_tasks_from_redis(task_ids):
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def status_and_result(user_name, task_id):
+def status_and_result(user, task_id):
     """Check the status of a task.  Return result if available.
 
     If the query param deserialize=True is passed, then we deserialize the result object.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     task_id : str
         The task uuid to look up
@@ -339,6 +341,15 @@ def status_and_result(user_name, task_id):
     task_exception = task.exception
     task_completion_t = task.completion_time
     if task_result or task_exception:
+        extra_logging = {
+            "user_id": user.id,
+            "task_id": task_id,
+            "task_group_id": task.task_group_id,
+            "endpoint_id": task.endpoint,
+            "task_transition": True
+        }
+        app.logger.info("Task queried by user completed", extra=extra_logging)
+
         task.delete()
 
     deserialize = request.args.get("deserialize", False)
