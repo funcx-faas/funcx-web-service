@@ -83,6 +83,13 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
     task_uuid = str(uuid.uuid4())
+    extra_logging = {
+        "user_id": user_id,
+        "task_id": task_uuid,
+        "task_group_id": task_group_id,
+        "endpoint_id": endpoint_uuid
+    }
+
     # Check if the user is allowed to access the function
     try:
         if not authorize_function(user_id, function_uuid, token):
@@ -115,7 +122,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         res['task_uuid'] = task_uuid
         return res
 
-    app.logger.info(f"Got function container_uuid :{container_uuid}")
+    app.logger.info(f"Got function container_uuid :{container_uuid}", extra=extra_logging)
 
     # We should replace this with container_hdr = ";ctnr={container_uuid}"
     if not container_uuid:
@@ -150,7 +157,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
     task = Task(rc, task_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
-    app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
+    app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}", extra=extra_logging)
 
     # increment the counter
     rc.incr('funcx_invocation_counter')

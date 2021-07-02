@@ -8,23 +8,16 @@ from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
 
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    def add_fields(self, log_record, record, message_dict):
-        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-        if log_record.get('level'):
-            log_record['level'] = log_record['level'].upper()
-        else:
-            log_record['level'] = record.levelname
-
-
 def create_app(test_config=None):
     application = Flask(__name__)
 
-    level = os.environ.get('LOGLEVEL', 'WARNING').upper()
+    level = os.environ.get('LOGLEVEL', 'DEBUG').upper()
     logger = application.logger
+    logger.setLevel(level)
+
     handler = logging.StreamHandler()
     handler.setLevel(level)
-    formatter = CustomJsonFormatter()
+    formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
