@@ -148,7 +148,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
-    task = Task(rc, task_uuid, container_uuid, serializer, payload, task_group_id)
+    task = Task(rc, task_uuid, function_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
 
@@ -156,10 +156,12 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         "user_id": user_id,
         "task_id": task_uuid,
         "task_group_id": task_group_id,
+        "function_id": function_uuid,
         "endpoint_id": endpoint_uuid,
+        "container_id": container_uuid,
         "task_transition": True
     }
-    app.logger.info("Task placed on queue for endpoint", extra=extra_logging)
+    app.logger.info("received", extra=extra_logging)
 
     # increment the counter
     rc.incr('funcx_invocation_counter')
@@ -345,10 +347,12 @@ def status_and_result(user, task_id):
             "user_id": user.id,
             "task_id": task_id,
             "task_group_id": task.task_group_id,
+            "function_id": task.function_id,
             "endpoint_id": task.endpoint,
+            "container_id": task.container,
             "task_transition": True
         }
-        app.logger.info("Task queried by user completed", extra=extra_logging)
+        app.logger.info("complete", extra=extra_logging)
 
         task.delete()
 
