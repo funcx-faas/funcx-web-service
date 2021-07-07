@@ -4,6 +4,7 @@ from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.routes.auth import auth_api
 from flask import Flask
+from flask.logging import default_handler
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
@@ -20,6 +21,8 @@ def create_app(test_config=None):
     formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    logger.removeHandler(default_handler)
 
     if test_config:
         application.config.from_mapping(test_config)
