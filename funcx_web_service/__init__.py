@@ -22,6 +22,10 @@ def create_app(test_config=None):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+    # This removes the default Flask handler. Since we have added a JSON
+    # log formatter and handler above, we must disable the default handler
+    # to prevent duplicate log messages (where one is the normal log format
+    # and the other is JSON format).
     logger.removeHandler(default_handler)
 
     if test_config:

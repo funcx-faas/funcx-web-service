@@ -352,7 +352,7 @@ def status_and_result(user, task_id):
             "container_id": task.container,
             "task_transition": True
         }
-        app.logger.info("complete", extra=extra_logging)
+        app.logger.info("user_fetched", extra=extra_logging)
 
         task.delete()
 
