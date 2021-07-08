@@ -148,7 +148,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
-    task = Task(rc, task_uuid, function_uuid, container_uuid, serializer, payload, task_group_id)
+    task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
 
@@ -344,7 +344,7 @@ def status_and_result(user, task_id):
     task_completion_t = task.completion_time
     if task_result or task_exception:
         extra_logging = {
-            "user_id": user.id,
+            "user_id": task.user_id,
             "task_id": task_id,
             "task_group_id": task.task_group_id,
             "function_id": task.function_id,
@@ -991,4 +991,4 @@ def get_batch_info(user: User, task_group_id):
     if task_group.user_id != user.id:
         return create_error_response(TaskGroupAccessForbidden(task_group_id), jsonify_response=True)
 
-    return jsonify({'user_id': user.id, 'authorized': True})
+    return jsonify({'authorized': True})
