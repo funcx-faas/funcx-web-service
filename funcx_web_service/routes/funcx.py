@@ -83,6 +83,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
     task_uuid = str(uuid.uuid4())
+
     # Check if the user is allowed to access the function
     try:
         if not authorize_function(user_id, function_uuid, token):
@@ -147,10 +148,20 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     # At this point the packed function body and the args are concatable strings
     payload = fn_code + input_data
-    task = Task(rc, task_uuid, container_uuid, serializer, payload, task_group_id)
+    task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
 
     task_channel.put(endpoint_uuid, task)
-    app.logger.info(f"Task:{task_uuid} placed on queue for endpoint:{endpoint_uuid}")
+
+    extra_logging = {
+        "user_id": user_id,
+        "task_id": task_uuid,
+        "task_group_id": task_group_id,
+        "function_id": function_uuid,
+        "endpoint_id": endpoint_uuid,
+        "container_id": container_uuid,
+        "task_transition": True
+    }
+    app.logger.info("received", extra=extra_logging)
 
     # increment the counter
     rc.incr('funcx_invocation_counter')
@@ -304,14 +315,14 @@ def get_tasks_from_redis(task_ids):
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def status_and_result(user_name, task_id):
+def status_and_result(user, task_id):
     """Check the status of a task.  Return result if available.
 
     If the query param deserialize=True is passed, then we deserialize the result object.
 
     Parameters
     ----------
-    user_name : str
+    user : User
         The primary identity of the user
     task_id : str
         The task uuid to look up
@@ -332,6 +343,17 @@ def status_and_result(user_name, task_id):
     task_exception = task.exception
     task_completion_t = task.completion_time
     if task_result or task_exception:
+        extra_logging = {
+            "user_id": task.user_id,
+            "task_id": task_id,
+            "task_group_id": task.task_group_id,
+            "function_id": task.function_id,
+            "endpoint_id": task.endpoint,
+            "container_id": task.container,
+            "task_transition": True
+        }
+        app.logger.info("user_fetched", extra=extra_logging)
+
         task.delete()
 
     deserialize = request.args.get("deserialize", False)

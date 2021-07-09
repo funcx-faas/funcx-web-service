@@ -1,14 +1,32 @@
 import os
+import logging
+from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.routes.auth import auth_api
 from flask import Flask
+from flask.logging import default_handler
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
 
 def create_app(test_config=None):
     application = Flask(__name__)
-    application.logger.setLevel(os.environ.get('LOGLEVEL', 'WARNING').upper())
+
+    level = os.environ.get('LOGLEVEL', 'DEBUG').upper()
+    logger = application.logger
+    logger.setLevel(level)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # This removes the default Flask handler. Since we have added a JSON
+    # log formatter and handler above, we must disable the default handler
+    # to prevent duplicate log messages (where one is the normal log format
+    # and the other is JSON format).
+    logger.removeHandler(default_handler)
 
     if test_config:
         application.config.from_mapping(test_config)
