@@ -937,24 +937,6 @@ def del_function(user: User, function_id):
         app.logger.error(e)
 
 
-@funcx_api.route("/ep_live", methods=['GET'])
-def get_stats_from_forwarder(forwarder_address="http://10.0.0.112:8080"):
-    """ Get stats from the forwarder
-    """
-    app.logger.info("Getting stats from forwarder")
-    try:
-        r = requests.get(forwarder_address + '/map.json')
-        if r.status_code != 200:
-            return create_error_response(LivenessStatsError(r.status_code), jsonify_response=True)
-        else:
-            response = r.json()
-            app.logger.info(f'Response from forwarder : {response}')
-            return response
-
-    except Exception as e:
-        return create_error_response(ForwarderContactError(e), jsonify_response=True)
-
-
 @funcx_api.route("/stats", methods=['GET'])
 def funcx_stats():
     """Get various usage stats.
