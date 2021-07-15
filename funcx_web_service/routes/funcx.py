@@ -23,8 +23,8 @@ from .redis_q import EndpointQueue
 
 from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
                                          FunctionAccessForbidden, EndpointAccessForbidden,
-                                         ForwarderRegistrationError, ForwarderContactError, EndpointStatsError,
-                                         LivenessStatsError, RequestKeyError, RequestMalformed, InternalError,
+                                         ForwarderRegistrationError, EndpointStatsError,
+                                         RequestKeyError, RequestMalformed, InternalError,
                                          EndpointOutdated, TaskGroupNotFound, TaskGroupAccessForbidden, InvalidUUID)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
