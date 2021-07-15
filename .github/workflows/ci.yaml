@@ -62,10 +62,12 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         tag: "${GITHUB_REF##*/}"
 
+#  If this is a merge to main branch then we want to restart the web service
+#  pod on dev cluster to pick up the changes
   deploy:
     needs: publish
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/ci_job'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
