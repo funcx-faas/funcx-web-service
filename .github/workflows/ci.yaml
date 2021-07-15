@@ -74,9 +74,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: deploy to cluster
+      - name: scale to webservice pods to zero
         uses: kodermax/kubectl-aws-eks@master
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_STAGING }}
         with:
-          args: get deploy
+          args:  scale deployment funcx-funcx-web-service --replicas=0
+
+      - name: scale to webservice pods back up
+        uses: kodermax/kubectl-aws-eks@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_STAGING }}
+        with:
+          args:  scale deployment funcx-funcx-web-service --replicas=1
