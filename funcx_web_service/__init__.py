@@ -1,3 +1,5 @@
+from distutils.util import strtobool
+
 import os
 import logging
 from pythonjsonlogger import jsonlogger
@@ -7,6 +9,22 @@ from flask import Flask
 from flask.logging import default_handler
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
+
+
+def _override_config_with_environ(app):
+    """
+    Use app.config as a guide to configuration settings that can be overridden from env
+    vars.
+    """
+    # Env vars will be strings. Convert boolean values
+    def _convert_string(value):
+        return value if value not in ["true", "false"] else strtobool(value)
+
+    # Create a dictionary of environment vars that have keys that match keys from the
+    # loaded config. These will override anything from the config file
+    return {k: (lambda key, value: _convert_string(os.environ[k]))(k, v) for (k, v)
+            in app.config.items()
+            if k in os.environ}
 
 
 def create_app(test_config=None):
@@ -32,14 +50,15 @@ def create_app(test_config=None):
         application.config.from_mapping(test_config)
     else:
         application.config.from_envvar('APP_CONFIG_FILE')
+        application.config.update(_override_config_with_environ(application))
 
     @application.before_first_request
     def create_tables():
         from funcx_web_service.models import db
         import funcx_web_service.models.function  # NOQA F401
-        import funcx_web_service.models.container # NOQA F401
-        import funcx_web_service.models.auth_groups # NOQA F401
-        import funcx_web_service.models.user # NOQA F401
+        import funcx_web_service.models.container  # NOQA F401
+        import funcx_web_service.models.auth_groups  # NOQA F401
+        import funcx_web_service.models.user  # NOQA F401
         db.init_app(application)
         db.create_all()
 
