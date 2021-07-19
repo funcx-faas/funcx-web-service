@@ -160,7 +160,7 @@ def ingest_function(function: Function, function_source, user_uuid):
     -------
     None
     """
-    selected_group = None if not function.auth_groups else function.auth_groups[0].group.group_id
+    selected_group = None if not function.auth_groups else function.auth_groups[0].group_id
     container_uuid = None if not function.container else function.container.container.container_uuid
     data = {
         "function_name": function.function_name,
