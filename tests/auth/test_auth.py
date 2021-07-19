@@ -204,7 +204,7 @@ class TestAuth(AppTestBase):
             return_value=True)
 
         mocker.patch.object(FunctionAuthGroup,
-                            "find_by_function_uuid",
+                            "find_by_function_id",
                             return_value=[
                                 FunctionAuthGroup(
                                     group_id="my-group",
