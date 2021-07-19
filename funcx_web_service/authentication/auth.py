@@ -196,7 +196,7 @@ def authorize_function(user_id, function_uuid, token):
 
     if not authorized:
         # Check if there are any groups associated with this function
-        groups = FunctionAuthGroup.find_by_function_uuid(function_uuid)
+        groups = FunctionAuthGroup.find_by_function_id(function.id)
         function_groups = [g.group_id for g in groups]
 
         if len(function_groups) > 0:
