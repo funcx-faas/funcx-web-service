@@ -4,9 +4,10 @@ import os
 import logging
 from pythonjsonlogger import jsonlogger
 
-from funcx_web_service.routes.auth import auth_api
 from flask import Flask, request
 from flask.logging import default_handler
+from funcx_web_service.response import FuncxResponse
+from funcx_web_service.routes.auth import auth_api
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
@@ -46,6 +47,8 @@ def create_app(test_config=None):
     # and the other is JSON format).
     logger.removeHandler(default_handler)
 
+    application.response_class = FuncxResponse
+
     if test_config:
         application.config.from_mapping(test_config)
     else:
@@ -83,6 +86,8 @@ def create_app(test_config=None):
             "type": "after_request"
         })
         return response
+
+    # TODO: add @app.errorhandler to handle exceptions in our routes
 
     # Include the API blueprint
     application.register_blueprint(funcx_api, url_prefix="/v2")
