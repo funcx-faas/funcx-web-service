@@ -5,7 +5,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.routes.auth import auth_api
-from flask import Flask
+from flask import Flask, request
 from flask.logging import default_handler
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
@@ -61,6 +61,28 @@ def create_app(test_config=None):
         import funcx_web_service.models.user  # NOQA F401
         db.init_app(application)
         db.create_all()
+
+    @application.before_request
+    def before_request():
+        logger.info("before_request", extra={
+            "request_json": request.json,
+            "path": request.path,
+            "full_path": request.full_path,
+            "method": request.method,
+            "type": "before_request"
+        })
+
+    @application.after_request
+    def after_request(response):
+        logger.info("after_request", extra={
+            "request_json": request.json,
+            "response_json": response.json,
+            "path": request.path,
+            "full_path": request.full_path,
+            "method": request.method,
+            "type": "after_request"
+        })
+        return response
 
     # Include the API blueprint
     application.register_blueprint(funcx_api, url_prefix="/v2")
