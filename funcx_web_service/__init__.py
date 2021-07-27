@@ -65,18 +65,29 @@ def create_app(test_config=None):
         db.init_app(application)
         db.create_all()
 
+    # this is called before every request
     @application.before_request
     def before_request():
-        logger.info("before_request", extra={
+        # this is basic request data
+        extra = {
             "request_json": request.json,
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
             "type": "before_request"
-        })
+        }
+        # this is additional data passed into the request URL via
+        # the view arguments (e.g. in '/tasks/<task_id>', the value of
+        # task_id is a view argument, so this will make task_id a
+        # key in the logged JSON object)
+        if request.view_args:
+            extra.update(request.view_args)
+        logger.info("before_request", extra=extra)
 
+    # this is called only after requests that do not raise an exception
     @application.after_request
     def after_request(response):
+        # this is basic request and response data
         extra = {
             "request_json": request.json,
             "response_json": response.json,
@@ -85,6 +96,14 @@ def create_app(test_config=None):
             "method": request.method,
             "type": "after_request"
         }
+        # this is additional data passed into the request URL via
+        # the view arguments (e.g. in '/tasks/<task_id>', the value of
+        # task_id is a view argument, so this will make task_id a
+        # key in the logged JSON object)
+        if request.view_args:
+            extra.update(request.view_args)
+        # update the logged JSON with additional data saved in the
+        # response object, such as user_id
         extra.update(response._log_data.data)
         logger.info("after_request", extra=extra)
         return response
