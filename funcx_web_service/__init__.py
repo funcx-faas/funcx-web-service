@@ -77,14 +77,16 @@ def create_app(test_config=None):
 
     @application.after_request
     def after_request(response):
-        logger.info("after_request", extra={
+        extra = {
             "request_json": request.json,
             "response_json": response.json,
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
             "type": "after_request"
-        })
+        }
+        extra.update(response._log_data.data)
+        logger.info("after_request", extra=extra)
         return response
 
     # TODO: add @app.errorhandler to handle exceptions in our routes
