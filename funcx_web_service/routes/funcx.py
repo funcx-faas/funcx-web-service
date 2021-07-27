@@ -159,7 +159,7 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         "function_id": function_uuid,
         "endpoint_id": endpoint_uuid,
         "container_id": container_uuid,
-        "type": "task_transition"
+        "log_type": "task_transition"
     }
     app.logger.info("received", extra=extra_logging)
 
@@ -350,7 +350,7 @@ def status_and_result(user, task_id):
             "function_id": task.function_id,
             "endpoint_id": task.endpoint,
             "container_id": task.container,
-            "type": "task_transition"
+            "log_type": "task_transition"
         }
         app.logger.info("user_fetched", extra=extra_logging)
 
