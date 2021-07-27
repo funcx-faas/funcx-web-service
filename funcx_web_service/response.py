@@ -10,6 +10,6 @@ class FuncxResponseLogData:
 
 
 class FuncxResponse(Response):
-    def __init__(self, response, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._log_data = FuncxResponseLogData()
-        super().__init__(response, **kwargs)
+        super().__init__(*args, **kwargs)

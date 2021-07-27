@@ -104,7 +104,13 @@ def create_app(test_config=None):
             extra.update(request.view_args)
         # update the logged JSON with additional data saved in the
         # response object, such as user_id
-        extra.update(response._log_data.data)
+        # This fails in testing because it appears that the Flask test_client
+        # uses the wrong Response class in some cases. This is fine since
+        # these logs are not critical
+        try:
+            extra.update(response._log_data.data)
+        except Exception:
+            pass
         logger.info("after_request", extra=extra)
         return response
 
