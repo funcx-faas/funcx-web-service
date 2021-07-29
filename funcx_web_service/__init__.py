@@ -55,6 +55,10 @@ def create_app(test_config=None):
         application.config.from_envvar('APP_CONFIG_FILE')
         application.config.update(_override_config_with_environ(application))
 
+    # 100,000 Bytes is the max content length we will log for request/response JSON
+    # due to the CloudWatch max log size
+    max_log_content_length = 100000
+
     @application.before_first_request
     def create_tables():
         from funcx_web_service.models import db
@@ -70,12 +74,20 @@ def create_app(test_config=None):
     def before_request():
         # this is basic request data
         extra = {
-            "request_json": request.json,
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
             "type": "before_request"
         }
+
+        # check that the request content is not too long and avoid
+        # malformed JSON errors
+        if request.content_length is not None and request.content_length <= max_log_content_length:
+            try:
+                extra["request_json"] = request.json
+            except Exception:
+                pass
+
         # this is additional data passed into the request URL via
         # the view arguments (e.g. in '/tasks/<task_id>', the value of
         # task_id is a view argument, so this will make task_id a
@@ -89,13 +101,27 @@ def create_app(test_config=None):
     def after_request(response):
         # this is basic request and response data
         extra = {
-            "request_json": request.json,
-            "response_json": response.json,
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
             "type": "after_request"
         }
+
+        # check that the request/response content is not too long and avoid
+        # malformed JSON errors
+
+        if request.content_length is not None and request.content_length <= max_log_content_length:
+            try:
+                extra["request_json"] = request.json
+            except Exception:
+                pass
+
+        if response.content_length <= max_log_content_length:
+            try:
+                extra["response_json"] = response.json
+            except Exception:
+                pass
+
         # this is additional data passed into the request URL via
         # the view arguments (e.g. in '/tasks/<task_id>', the value of
         # task_id is a view argument, so this will make task_id a
