@@ -77,7 +77,7 @@ def create_app(test_config=None):
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
-            "type": "before_request"
+            "log_type": "before_request"
         }
 
         # check that the request content is not too long and avoid
@@ -91,9 +91,9 @@ def create_app(test_config=None):
         # this is additional data passed into the request URL via
         # the view arguments (e.g. in '/tasks/<task_id>', the value of
         # task_id is a view argument, so this will make task_id a
-        # key in the logged JSON object)
+        # key in view_args property of the logged JSON)
         if request.view_args:
-            extra.update(request.view_args)
+            extra["view_args"] = request.view_args
         logger.info("before_request", extra=extra)
 
     # this is called only after requests that do not raise an exception
@@ -104,7 +104,7 @@ def create_app(test_config=None):
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
-            "type": "after_request"
+            "log_type": "after_request"
         }
 
         # check that the request/response content is not too long and avoid
@@ -125,9 +125,9 @@ def create_app(test_config=None):
         # this is additional data passed into the request URL via
         # the view arguments (e.g. in '/tasks/<task_id>', the value of
         # task_id is a view argument, so this will make task_id a
-        # key in the logged JSON object)
+        # key in view_args property of the logged JSON)
         if request.view_args:
-            extra.update(request.view_args)
+            extra["view_args"] = request.view_args
         # update the logged JSON with additional data saved in the
         # response object, such as user_id
         # This fails in testing because it appears that the Flask test_client
