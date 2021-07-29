@@ -10,6 +10,7 @@ from funcx_web_service.response import FuncxResponse
 from funcx_web_service.routes.auth import auth_api
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
+from funcx_web_service.error_responses import create_error_response
 
 
 def _override_config_with_environ(app):
@@ -140,7 +141,10 @@ def create_app(test_config=None):
         logger.info("after_request", extra=extra)
         return response
 
-    # TODO: add @app.errorhandler to handle exceptions in our routes
+    @application.errorhandler(Exception)
+    def handle_exception(e):
+        logger.exception(e)
+        return create_error_response(e, jsonify_response=True)
 
     # Include the API blueprint
     application.register_blueprint(funcx_api, url_prefix="/v2")
