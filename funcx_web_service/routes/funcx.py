@@ -59,7 +59,7 @@ def g_redis_pubsub(*args, **kwargs):
     return g.redis_pubsub
 
 
-def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, task_group_id, serialize=None):
+def auth_and_launch(user_id, task_uuid, function_uuid, endpoint_uuid, input_data, app, token, task_group_id, serialize=None):
     """ Here we do basic auth for (user, fn, endpoint) and launch the function.
 
     Parameters
@@ -67,6 +67,8 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
     user_id : str
        user id
+    task_uuid : str
+       task uuid for new task
     function_uuid : str
        function uuid
     endpoint_uuid : str
@@ -82,39 +84,16 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
     Returns:
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
-    task_uuid = str(uuid.uuid4())
 
     # Check if the user is allowed to access the function
-    try:
-        if not authorize_function(user_id, function_uuid, token):
-            res = create_error_response(FunctionAccessForbidden(function_uuid))[0]
-            res['task_uuid'] = task_uuid
-            return res
-    except Exception as e:
-        # could be FunctionNotFound
-        res = create_error_response(e)[0]
-        res['task_uuid'] = task_uuid
-        return res
+    if not authorize_function(user_id, function_uuid, token):
+        raise FunctionAccessForbidden(function_uuid)
 
-    try:
-        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
-    except Exception as e:
-        # could be FunctionNotFound
-        res = create_error_response(e)[0]
-        res['task_uuid'] = task_uuid
-        return res
+    fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
 
     # Make sure the user is allowed to use the function on this endpoint
-    try:
-        if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
-            res = create_error_response(EndpointAccessForbidden(endpoint_uuid))[0]
-            res['task_uuid'] = task_uuid
-            return res
-    except Exception as e:
-        # could be an EndpointNotFound or a FunctionNotPermitted
-        res = create_error_response(e)[0]
-        res['task_uuid'] = task_uuid
-        return res
+    if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
+        raise EndpointAccessForbidden(endpoint_uuid)
 
     app.logger.info(f"Got function container_uuid :{container_uuid}")
 
@@ -248,10 +227,16 @@ def submit(user: User):
     final_http_status = 200
     success_count = 0
     for task in tasks:
-        res = auth_and_launch(
-            user_id, function_uuid=task[0], endpoint_uuid=task[1],
-            input_data=task[2], app=app, token=token, task_group_id=task_group_id, serialize=serialize
-        )
+        task_uuid = str(uuid.uuid4())
+        try:
+            res = auth_and_launch(
+                user_id, task_uuid=task_uuid, function_uuid=task[0], endpoint_uuid=task[1],
+                input_data=task[2], app=app, token=token, task_group_id=task_group_id, serialize=serialize
+            )
+        except Exception as e:
+            app.logger.exception(e)
+            res = create_error_response(e)[0]
+            res['task_uuid'] = task_uuid
 
         if res.get('status', 'Failed') == 'Success':
             success_count += 1
