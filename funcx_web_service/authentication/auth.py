@@ -8,9 +8,13 @@ import functools
 
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, ConfidentialAppAuthClient
+from globus_sdk.base import BaseClient
 
 from functools import wraps
 from flask import abort
+
+# Default scope if not provided in config
+FUNCX_SCOPE = 'https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all'
 
 
 def authenticated(f):
@@ -26,6 +30,7 @@ def authenticated(f):
         try:
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
+            verify_auth_detail(auth_detail)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_rec = User.resolve_user(user_name)
@@ -54,6 +59,7 @@ def authenticated_w_uuid(f):
         try:
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
+            verify_auth_detail(auth_detail)
             app.logger.debug(auth_detail)
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
@@ -67,6 +73,22 @@ def authenticated_w_uuid(f):
             abort(400, "Failed to authenticate user.")
         return f(user_rec, user_uuid, *args, **kwargs)
     return decorated_function
+
+
+def verify_auth_detail(auth_detail):
+    """Validate auth introspect response and ensure token is active and has
+    proper scopes.
+
+    Parameters
+    ----------
+    auth_detail : dict
+        Response object from a token introspect call.
+    """
+    if not auth_detail.get('active', False):
+        abort(401, 'Credentials are inactive.')
+
+    if not app.config.get('FUNCX_SCOPE', FUNCX_SCOPE) in auth_detail['scope']:
+        abort(403, 'Missing Scopes')
 
 
 def check_group_membership(token, endpoint_groups):
@@ -88,19 +110,43 @@ def check_group_membership(token, endpoint_groups):
     client = get_auth_client()
     dep_tokens = client.oauth2_get_dependent_tokens(token)
 
-    nexus_token = dep_tokens.by_resource_server['nexus.api.globus.org']["access_token"]
-
-    # Create a nexus client to retrieve the user's groups
-    nexus_client = NexusClient()
-    nexus_client.authorizer = AccessTokenAuthorizer(nexus_token)
-    user_groups = nexus_client.list_groups(my_statuses="active", fields="id", for_all_identities=True)
+    if "groups.api.globus.org" in dep_tokens.by_resource_server:
+        app.logger.debug("Using groups v2 api.")
+        token = dep_tokens.by_resource_server["groups.api.globus.org"]["access_token"]
+        user_group_ids = _get_group_ids_groups_api(token)
+    else:
+        app.logger.debug("Using legacy nexus api.")
+        token = dep_tokens.by_resource_server["nexus.api.globus.org"]["access_token"]
+        user_group_ids = _get_group_ids_nexus_api(token)
 
     # Check if any of the user's groups match
-    for user_group in user_groups:
-        for endpoint_group in endpoint_groups:
-            if user_group['id'] == endpoint_group:
-                return True
+    if user_group_ids & set(endpoint_groups):
+        return True
     return False
+
+
+def _get_group_ids_groups_api(token):
+    # Create a nexus client to retrieve the user's groups
+    groups_client = BaseClient(
+        "groups",
+        base_url="https://groups.api.globus.org",
+        base_path="/v2/groups/",
+        authorizer=AccessTokenAuthorizer(token),
+    )
+    user_groups = groups_client.get("my_groups").data
+    user_group_ids = set(_["id"] for _ in user_groups)
+    return user_group_ids
+
+
+def _get_group_ids_nexus_api(token):
+    # Create a nexus client to retrieve the user's groups
+    nexus_client = NexusClient()
+    nexus_client.authorizer = AccessTokenAuthorizer(token)
+    user_groups = nexus_client.list_groups(
+        my_statuses="active", fields="id", for_all_identities=True
+    )
+    user_group_ids = set(_["id"] for _ in user_groups)
+    return user_group_ids
 
 
 @functools.lru_cache()
