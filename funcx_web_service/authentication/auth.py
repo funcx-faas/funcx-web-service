@@ -3,7 +3,7 @@ from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.user import User
 from funcx_web_service.models.function import Function, FunctionAuthGroup
 from funcx.utils.response_errors import FunctionNotFound, EndpointNotFound, FunctionNotPermitted
-from flask import request, current_app as app
+from flask import request, make_response, current_app as app
 import functools
 
 from globus_nexus_client import NexusClient
@@ -41,7 +41,9 @@ def authenticated(f):
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
-        return f(user_rec, *args, **kwargs)
+        response = make_response(f(user_rec, *args, **kwargs))
+        response._log_data.set_user(user_rec)
+        return response
     return decorated_function
 
 
@@ -71,7 +73,9 @@ def authenticated_w_uuid(f):
         except Exception as e:
             print(e)
             abort(400, "Failed to authenticate user.")
-        return f(user_rec, user_uuid, *args, **kwargs)
+        response = make_response(f(user_rec, user_uuid, *args, **kwargs))
+        response._log_data.set_user(user_rec)
+        return response
     return decorated_function
 
 
