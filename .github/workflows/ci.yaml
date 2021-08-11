@@ -36,10 +36,7 @@ jobs:
     - name: Check for vulnerabilities in libraries
       run: |
         pip install safety
-        # The `-i 41002` can be removed when
-        # https://github.com/pyupio/safety-db/issues/2335
-        # is resolved
-        pip freeze | safety check -i 41002
+        pip freeze | safety check
     - name: Test with pytest
       run: |
         python -m coverage run -m pytest -r sx tests/
