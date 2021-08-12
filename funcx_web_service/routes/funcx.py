@@ -59,7 +59,7 @@ def g_redis_pubsub(*args, **kwargs):
     return g.redis_pubsub
 
 
-def auth_and_launch(user_id, task_uuid, function_uuid, endpoint_uuid, input_data, app, token, task_group_id, serialize=None):
+def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, token, task_group_id, serialize=None):
     """ Here we do basic auth for (user, fn, endpoint) and launch the function.
 
     Parameters
@@ -67,8 +67,6 @@ def auth_and_launch(user_id, task_uuid, function_uuid, endpoint_uuid, input_data
 
     user_id : str
        user id
-    task_uuid : str
-       task uuid for new task
     function_uuid : str
        function uuid
     endpoint_uuid : str
@@ -85,74 +83,81 @@ def auth_and_launch(user_id, task_uuid, function_uuid, endpoint_uuid, input_data
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
 
-    # Check if the user is allowed to access the function
-    if not authorize_function(user_id, function_uuid, token):
-        raise FunctionAccessForbidden(function_uuid)
+    task_uuid = str(uuid.uuid4())
+    try:
+        # Check if the user is allowed to access the function
+        if not authorize_function(user_id, function_uuid, token):
+            raise FunctionAccessForbidden(function_uuid)
 
-    fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
+        fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
 
-    # Make sure the user is allowed to use the function on this endpoint
-    if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
-        raise EndpointAccessForbidden(endpoint_uuid)
+        # Make sure the user is allowed to use the function on this endpoint
+        if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
+            raise EndpointAccessForbidden(endpoint_uuid)
 
-    app.logger.info(f"Got function container_uuid :{container_uuid}")
+        app.logger.info(f"Got function container_uuid :{container_uuid}")
 
-    # We should replace this with container_hdr = ";ctnr={container_uuid}"
-    if not container_uuid:
-        container_uuid = 'RAW'
+        # We should replace this with container_hdr = ";ctnr={container_uuid}"
+        if not container_uuid:
+            container_uuid = 'RAW'
 
-    # We should replace this with serialize_hdr = ";srlz={container_uuid}"
-    # TODO: this is deprecated.
-    serializer = "ANY"
+        # We should replace this with serialize_hdr = ";srlz={container_uuid}"
+        # TODO: this is deprecated.
+        serializer = "ANY"
 
-    rc = g_redis_client()
-    task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
-                                  port=app.config['REDIS_PORT'])
+        rc = g_redis_client()
+        task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
+                                      port=app.config['REDIS_PORT'])
 
-    db_logger = get_db_logger()
-    ep_queue = {}
+        db_logger = get_db_logger()
+        ep_queue = {}
 
-    redis_task_queue = EndpointQueue(
-        endpoint_uuid,
-        hostname=app.config['REDIS_HOST'],
-        port=app.config['REDIS_PORT']
-    )
-    redis_task_queue.connect()
-    ep_queue[endpoint_uuid] = redis_task_queue
+        redis_task_queue = EndpointQueue(
+            endpoint_uuid,
+            hostname=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT']
+        )
+        redis_task_queue.connect()
+        ep_queue[endpoint_uuid] = redis_task_queue
 
-    if serialize:
-        serialize_res = serialize_inputs(input_data)
-        if serialize_res:
-            input_data = serialize_res
+        if serialize:
+            serialize_res = serialize_inputs(input_data)
+            if serialize_res:
+                input_data = serialize_res
 
-    # At this point the packed function body and the args are concatable strings
-    payload = fn_code + input_data
-    task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
+        # At this point the packed function body and the args are concatable strings
+        payload = fn_code + input_data
+        task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
 
-    task_channel.put(endpoint_uuid, task)
+        task_channel.put(endpoint_uuid, task)
 
-    extra_logging = {
-        "user_id": user_id,
-        "task_id": task_uuid,
-        "task_group_id": task_group_id,
-        "function_id": function_uuid,
-        "endpoint_id": endpoint_uuid,
-        "container_id": container_uuid,
-        "log_type": "task_transition"
-    }
-    app.logger.info("received", extra=extra_logging)
+        extra_logging = {
+            "user_id": user_id,
+            "task_id": task_uuid,
+            "task_group_id": task_group_id,
+            "function_id": function_uuid,
+            "endpoint_id": endpoint_uuid,
+            "container_id": container_uuid,
+            "log_type": "task_transition"
+        }
+        app.logger.info("received", extra=extra_logging)
 
-    # increment the counter
-    rc.incr('funcx_invocation_counter')
-    # add an invocation to the database
-    # log_invocation(user_id, task_uuid, function_uuid, ep)
-    db_logger.log(user_id, task_uuid, function_uuid, endpoint_uuid, deferred=True)
+        # increment the counter
+        rc.incr('funcx_invocation_counter')
+        # add an invocation to the database
+        # log_invocation(user_id, task_uuid, function_uuid, ep)
+        db_logger.log(user_id, task_uuid, function_uuid, endpoint_uuid, deferred=True)
 
-    db_logger.commit()
+        db_logger.commit()
 
-    return {'status': 'Success',
-            'task_uuid': task_uuid,
-            'http_status_code': 200}
+        return {'status': 'Success',
+                'task_uuid': task_uuid,
+                'http_status_code': 200}
+    except Exception as e:
+        app.logger.exception(e)
+        res = create_error_response(e)[0]
+        res['task_uuid'] = task_uuid
+        return res
 
 
 @funcx_api.route('/submit', methods=['POST'])
@@ -227,16 +232,10 @@ def submit(user: User):
     final_http_status = 200
     success_count = 0
     for task in tasks:
-        task_uuid = str(uuid.uuid4())
-        try:
-            res = auth_and_launch(
-                user_id, task_uuid=task_uuid, function_uuid=task[0], endpoint_uuid=task[1],
-                input_data=task[2], app=app, token=token, task_group_id=task_group_id, serialize=serialize
-            )
-        except Exception as e:
-            app.logger.exception(e)
-            res = create_error_response(e)[0]
-            res['task_uuid'] = task_uuid
+        res = auth_and_launch(
+            user_id, function_uuid=task[0], endpoint_uuid=task[1],
+            input_data=task[2], app=app, token=token, task_group_id=task_group_id, serialize=serialize
+        )
 
         if res.get('status', 'Failed') == 'Success':
             success_count += 1
@@ -638,12 +637,8 @@ def get_ep_stats(user: User, endpoint_id):
     token_str = request.headers.get('Authorization')
     token = str.replace(str(token_str), 'Bearer ', '')
 
-    try:
-        if not authorize_endpoint(user_id, endpoint_id, None, token):
-            raise EndpointAccessForbidden(endpoint_id)
-    except Exception as e:
-        # could be EndpointNotFound
-        raise e
+    if not authorize_endpoint(user_id, endpoint_id, None, token):
+        raise EndpointAccessForbidden(endpoint_id)
 
     rc = g_redis_client()
 
