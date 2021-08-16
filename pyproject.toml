@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "funcx-web-service"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+Flask = "^2.0.1"
+requests = "^2.26"
+redis = "^3.5.3"
+Flask-SQLAlchemy = "^2.5.1"
+Flask-Migrate = "^2.5.3"
+SQLAlchemy = "^1.4.22"
+psycopg2-binary = '^2.8.5'
+globus-sdk = "^2"
+globus-nexus-client = "^0.3.0"
+funcx = "^0.3.1"
+python-json-logger = '^2.0.1'
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+pytest-flask = "^1"
+pytest-mock = "^3.2"
+coverage = "^5.2"
+codecov = "^2.1.8"
+flake8 = "^3.8"
+safety = "^1.10.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

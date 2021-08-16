@@ -1,3 +1,3 @@
 #!/bin/sh
 FLASK_APP=funcx_web_service/application.py flask db upgrade
-uwsgi --ini uwsgi.ini
+/uwsgi-venv/bin/uwsgi --ini uwsgi.ini
