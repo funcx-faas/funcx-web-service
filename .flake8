@@ -10,7 +10,9 @@
 # https://github.com/PyCQA/pycodestyle/issues/386
 # W504: Raised by flake8 even when it is followed
 # E722  do not use bare 'except'
-ignore = D203, E124, E126, F405, E402, E129, W504, E722
+#
+# E203 can be false-flagged by `black` inserting whitespace before a colon in a slice
+ignore = D203, E124, E126, F405, E402, E129, W504, E722, E203
 max-line-length = 260
 exclude = migrations
 per-file-ignores =
