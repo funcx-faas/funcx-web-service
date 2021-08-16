@@ -17,8 +17,8 @@ from funcx_web_service.models.utils import (update_function, delete_function, ge
                                             add_ep_whitelist, delete_ep_whitelist)
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.version import VERSION, MIN_SDK_VERSION
+from funcx_web_service.redis_pubsub import RedisPubSub
 
-from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
 from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
