@@ -31,7 +31,15 @@ def authenticated(f):
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
             verify_auth_detail(auth_detail)
-            app.logger.debug(auth_detail)
+            try:
+                # getting auth_detail.data works fine from a GlobusHTTPResponse,
+                # but does not work when the above method is mocked
+                app.logger.debug("auth_detail", extra={
+                    "log_type": "auth_detail",
+                    "auth_detail": auth_detail.data
+                })
+            except Exception:
+                pass
             user_name = auth_detail['username']
             user_rec = User.resolve_user(user_name)
 
@@ -62,7 +70,15 @@ def authenticated_w_uuid(f):
             client = get_auth_client()
             auth_detail = client.oauth2_token_introspect(token)
             verify_auth_detail(auth_detail)
-            app.logger.debug(auth_detail)
+            try:
+                # getting auth_detail.data works fine from a GlobusHTTPResponse,
+                # but does not work when the above method is mocked
+                app.logger.debug("auth_detail", extra={
+                    "log_type": "auth_detail",
+                    "auth_detail": auth_detail.data
+                })
+            except Exception:
+                pass
             user_name = auth_detail['username']
             user_uuid = auth_detail['sub']
             user_rec = User.resolve_user(user_name)
