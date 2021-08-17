@@ -45,6 +45,7 @@ jobs:
         codecov --token=${{ secrets.CODECOV_TOKEN }}
 
   publish:
+    if: ${{ github.repository == 'funcx-faas/funcx-web-service' }}
     needs: test
     runs-on: ubuntu-latest
     steps:
