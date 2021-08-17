@@ -45,7 +45,8 @@ jobs:
         codecov --token=${{ secrets.CODECOV_TOKEN }}
 
   publish:
-    if: ${{ github.repository == 'funcx-faas/funcx-web-service' }}
+    # only trigger on pushes to the main repo (not forks, and not PRs)
+    if: ${{ github.repository == 'funcx-faas/funcx-web-service' && github.event_name == 'push' }}
     needs: test
     runs-on: ubuntu-latest
     steps:
