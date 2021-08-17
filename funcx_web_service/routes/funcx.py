@@ -82,98 +82,82 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
     Returns:
        JSON response object, containing task_uuid, http_status_code, and success or error info
     """
+
     task_uuid = str(uuid.uuid4())
-
-    # Check if the user is allowed to access the function
     try:
+        # Check if the user is allowed to access the function
         if not authorize_function(user_id, function_uuid, token):
-            res = create_error_response(FunctionAccessForbidden(function_uuid))[0]
-            res['task_uuid'] = task_uuid
-            return res
-    except Exception as e:
-        # could be FunctionNotFound
-        res = create_error_response(e)[0]
-        res['task_uuid'] = task_uuid
-        return res
+            raise FunctionAccessForbidden(function_uuid)
 
-    try:
         fn_code, fn_entry, container_uuid = resolve_function(user_id, function_uuid)
-    except Exception as e:
-        # could be FunctionNotFound
-        res = create_error_response(e)[0]
-        res['task_uuid'] = task_uuid
-        return res
 
-    # Make sure the user is allowed to use the function on this endpoint
-    try:
+        # Make sure the user is allowed to use the function on this endpoint
         if not authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
-            res = create_error_response(EndpointAccessForbidden(endpoint_uuid))[0]
-            res['task_uuid'] = task_uuid
-            return res
+            raise EndpointAccessForbidden(endpoint_uuid)
+
+        app.logger.info(f"Got function container_uuid :{container_uuid}")
+
+        # We should replace this with container_hdr = ";ctnr={container_uuid}"
+        if not container_uuid:
+            container_uuid = 'RAW'
+
+        # We should replace this with serialize_hdr = ";srlz={container_uuid}"
+        # TODO: this is deprecated.
+        serializer = "ANY"
+
+        rc = g_redis_client()
+        task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
+                                      port=app.config['REDIS_PORT'])
+
+        db_logger = get_db_logger()
+        ep_queue = {}
+
+        redis_task_queue = EndpointQueue(
+            endpoint_uuid,
+            hostname=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT']
+        )
+        redis_task_queue.connect()
+        ep_queue[endpoint_uuid] = redis_task_queue
+
+        if serialize:
+            serialize_res = serialize_inputs(input_data)
+            if serialize_res:
+                input_data = serialize_res
+
+        # At this point the packed function body and the args are concatable strings
+        payload = fn_code + input_data
+        task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
+
+        task_channel.put(endpoint_uuid, task)
+
+        extra_logging = {
+            "user_id": user_id,
+            "task_id": task_uuid,
+            "task_group_id": task_group_id,
+            "function_id": function_uuid,
+            "endpoint_id": endpoint_uuid,
+            "container_id": container_uuid,
+            "log_type": "task_transition"
+        }
+        app.logger.info("received", extra=extra_logging)
+
+        # increment the counter
+        rc.incr('funcx_invocation_counter')
+        # add an invocation to the database
+        # log_invocation(user_id, task_uuid, function_uuid, ep)
+        db_logger.log(user_id, task_uuid, function_uuid, endpoint_uuid, deferred=True)
+
+        db_logger.commit()
+
+        return {'status': 'Success',
+                'task_uuid': task_uuid,
+                'http_status_code': 200}
     except Exception as e:
-        # could be an EndpointNotFound or a FunctionNotPermitted
+        app.logger.exception(e)
         res = create_error_response(e)[0]
         res['task_uuid'] = task_uuid
         return res
-
-    app.logger.info(f"Got function container_uuid :{container_uuid}")
-
-    # We should replace this with container_hdr = ";ctnr={container_uuid}"
-    if not container_uuid:
-        container_uuid = 'RAW'
-
-    # We should replace this with serialize_hdr = ";srlz={container_uuid}"
-    # TODO: this is deprecated.
-    serializer = "ANY"
-
-    rc = g_redis_client()
-    task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
-                                  port=app.config['REDIS_PORT'])
-
-    db_logger = get_db_logger()
-    ep_queue = {}
-
-    redis_task_queue = EndpointQueue(
-        endpoint_uuid,
-        hostname=app.config['REDIS_HOST'],
-        port=app.config['REDIS_PORT']
-    )
-    redis_task_queue.connect()
-    ep_queue[endpoint_uuid] = redis_task_queue
-
-    if serialize:
-        serialize_res = serialize_inputs(input_data)
-        if serialize_res:
-            input_data = serialize_res
-
-    # At this point the packed function body and the args are concatable strings
-    payload = fn_code + input_data
-    task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
-
-    task_channel.put(endpoint_uuid, task)
-
-    extra_logging = {
-        "user_id": user_id,
-        "task_id": task_uuid,
-        "task_group_id": task_group_id,
-        "function_id": function_uuid,
-        "endpoint_id": endpoint_uuid,
-        "container_id": container_uuid,
-        "log_type": "task_transition"
-    }
-    app.logger.info("received", extra=extra_logging)
-
-    # increment the counter
-    rc.incr('funcx_invocation_counter')
-    # add an invocation to the database
-    # log_invocation(user_id, task_uuid, function_uuid, ep)
-    db_logger.log(user_id, task_uuid, function_uuid, endpoint_uuid, deferred=True)
-
-    db_logger.commit()
-
-    return {'status': 'Success',
-            'task_uuid': task_uuid,
-            'http_status_code': 200}
 
 
 @funcx_api.route('/submit', methods=['POST'])
@@ -219,7 +203,7 @@ def submit(user: User):
                 # check that task_group_id is a valid UUID
                 uuid.UUID(task_group_id)
             except Exception:
-                return create_error_response(InvalidUUID('Invalid task_group_id UUID provided'), jsonify_response=True)
+                raise InvalidUUID('Invalid task_group_id UUID provided')
         else:
             # old client was used and create a new task
             function_uuid = post_req['func']
@@ -229,7 +213,7 @@ def submit(user: User):
         serialize = post_req.get('serialize', None)
     except KeyError as e:
         # this should raise a 500 because it prevented any tasks from launching
-        return create_error_response(RequestKeyError(e), jsonify_response=True)
+        raise RequestKeyError(e)
 
     rc = g_redis_client()
     task_group = None
@@ -238,7 +222,7 @@ def submit(user: User):
         # TODO: This could be cached to minimize lookup cost.
         task_group = TaskGroup.from_id(rc, task_group_id)
         if task_group.user_id != user_id:
-            return create_error_response(Exception(f'Unauthorized access to Task Group {task_group_id}'), jsonify_response=True)
+            raise TaskGroupAccessForbidden(task_group_id)
 
     # this is a breaking change for old funcx sdk versions
     results = {'response': 'batch',
@@ -335,7 +319,7 @@ def status_and_result(user, task_id):
     rc = g_redis_client()
 
     if not Task.exists(rc, task_id):
-        return create_error_response(TaskNotFound(task_id), jsonify_response=True)
+        raise TaskNotFound(task_id)
 
     task = Task.from_id(rc, task_id)
     task_status = task.status
@@ -477,10 +461,10 @@ def reg_container(user: User):
         app.logger.info(f"Created container: {container_rec.container_uuid}")
         return jsonify({'container_id': container_rec.container_uuid})
     except KeyError as e:
-        return create_error_response(RequestKeyError(e), jsonify_response=True)
+        raise RequestKeyError(e)
 
     except Exception as e:
-        return create_error_response(InternalError(f'error adding container - {e}'), jsonify_response=True)
+        raise InternalError(f'error adding container - {e}')
 
 
 def register_with_hub(address, endpoint_id, endpoint_address):
@@ -539,7 +523,7 @@ def get_version():
             "min_ep_version": min_ep_version
         })
 
-    return create_error_response(RequestMalformed("unknown service type or other error."), jsonify_response=True)
+    raise RequestMalformed("unknown service type or other error.")
 
 
 @funcx_api.route("/addr", methods=['GET'])
@@ -567,10 +551,10 @@ def reg_endpoint(user: User, user_uuid: str):
     v_info = get_forwarder_version()
     min_ep_version = v_info['min_ep_version']
     if 'version' not in request.json:
-        return create_error_response(RequestKeyError("Endpoint funcx version must be passed in the 'version' field."), jsonify_response=True)
+        raise RequestKeyError("Endpoint funcx version must be passed in the 'version' field.")
 
     if request.json['version'] < min_ep_version:
-        return create_error_response(EndpointOutdated(min_ep_version), jsonify_response=True)
+        raise EndpointOutdated(min_ep_version)
 
     # Cooley ALCF is the default used here.
     endpoint_ip_addr = '140.221.68.108'
@@ -593,19 +577,19 @@ def reg_endpoint(user: User, user_uuid: str):
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
-        return create_error_response(RequestKeyError(e), jsonify_response=True)
+        raise RequestKeyError(e)
 
     except UserNotFound as e:
         app.logger.exception("User not found")
-        return create_error_response(e, jsonify_response=True)
+        raise e
 
     except ValueError:
         app.logger.exception("Invalid UUID sent for endpoint")
-        return create_error_response(InvalidUUID('Invalid endpoint UUID provided'), jsonify_response=True)
+        raise InvalidUUID('Invalid endpoint UUID provided')
 
     except Exception as e:
         app.logger.exception("Caught error while registering endpoint")
-        return create_error_response(e, jsonify_response=True)
+        raise e
 
     try:
         forwarder_ip = app.config['FORWARDER_IP']
@@ -615,7 +599,7 @@ def reg_endpoint(user: User, user_uuid: str):
 
     except Exception as e:
         app.logger.exception("Caught error during forwarder initialization")
-        return create_error_response(e, jsonify_response=True)
+        raise e
 
     if 'meta' in request.json and endpoint_uuid:
         ingest_endpoint(user.username, user_uuid, endpoint_uuid, request.json['meta'])
@@ -653,12 +637,8 @@ def get_ep_stats(user: User, endpoint_id):
     token_str = request.headers.get('Authorization')
     token = str.replace(str(token_str), 'Bearer ', '')
 
-    try:
-        if not authorize_endpoint(user_id, endpoint_id, None, token):
-            return create_error_response(EndpointAccessForbidden(endpoint_id), jsonify_response=True)
-    except Exception as e:
-        # could be EndpointNotFound
-        return create_error_response(e, jsonify_response=True)
+    if not authorize_endpoint(user_id, endpoint_id, None, token):
+        raise EndpointAccessForbidden(endpoint_id)
 
     rc = g_redis_client()
 
@@ -679,8 +659,7 @@ def get_ep_stats(user: User, endpoint_id):
                 status['status'] = 'online'
 
     except Exception as e:
-        app.logger.error("Unable to retrieve ")
-        return create_error_response(EndpointStatsError(endpoint_id, e), jsonify_response=True)
+        raise EndpointStatsError(endpoint_id, e)
 
     return jsonify(status)
 
@@ -740,9 +719,9 @@ def endpoint_whitelist(user: User, endpoint_id):
             post_req = request.json
             functions = post_req['func']
         except KeyError as e:
-            return create_error_response(RequestKeyError(e), jsonify_response=True)
+            raise RequestKeyError(e)
         except Exception as e:
-            return create_error_response(RequestMalformed(e), jsonify_response=True)
+            raise RequestMalformed(e)
         return add_ep_whitelist(user, endpoint_id, functions)
 
 
@@ -819,7 +798,7 @@ def reg_function(user: User, user_uuid):
         if container_uuid:
             container = Container.find_by_uuid(container_uuid)
             if not container:
-                return create_error_response(ContainerNotFound(container_uuid), jsonify_response=True)
+                raise ContainerNotFound(container_uuid)
 
         group_uuid = request.json.get("group", None)
         searchable = request.json.get("searchable", True)
@@ -850,13 +829,13 @@ def reg_function(user: User, user_uuid):
 
     except KeyError as key_error:
         app.logger.error(key_error)
-        return create_error_response(RequestKeyError(key_error), jsonify_response=True)
+        raise RequestKeyError(key_error)
 
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".\
             format(user.username, function_rec.function_name, e)
         app.logger.error(message)
-        return create_error_response(InternalError(message), jsonify_response=True)
+        raise InternalError(message)
 
     try:
         ingest_function(function_rec, function_source, user_uuid)
@@ -864,7 +843,7 @@ def reg_function(user: User, user_uuid):
         message = "Function ingest to search failed for user:{} function_name:{} due to {}".\
             format(user.username, function_rec.function_name, e)
         app.logger.error(message)
-        return create_error_response(InternalError(message), jsonify_response=True)
+        raise InternalError(message)
 
     return response
 
@@ -899,18 +878,18 @@ def upd_function(user: User, function_id):
             message = "Unable to update function for user:{} function_id:{}. 403 Unauthorized".\
                 format(user.username, function_id)
             app.logger.error(message)
-            return create_error_response(InternalError(message), jsonify_response=True)
+            raise InternalError(message)
         elif result == 404:
             message = "Unable to update function for user:{} function_id:{}. 404 Function not found.".\
                 format(user.username, function_id)
             app.logger.error(message)
-            return create_error_response(InternalError(message), jsonify_response=True)
+            raise InternalError(message)
     except Exception as e:
-        app.logger.error(e)
+        app.logger.exception(e)
         message = "Unable to update function for user:{} function_id:{} due to {}".\
             format(user.username, function_id, e)
         app.logger.error(message)
-        return create_error_response(InternalError(message), jsonify_response=True)
+        raise InternalError(message)
 
 
 @funcx_api.route("/functions/<function_id>", methods=['DELETE'])
@@ -947,11 +926,11 @@ def funcx_stats():
         result = rc.get('funcx_invocation_counter')
         return jsonify({"total_function_invocations": result}), 200
     except Exception as e:
-        app.logger.error(e)
+        app.logger.exception(e)
         message = "Unable to get invocation count due to {}".\
             format(e)
         app.logger.error(message)
-        return create_error_response(InternalError(message), jsonify_response=True)
+        raise InternalError(message)
 
 
 @funcx_api.route("/authenticate", methods=['GET'])
@@ -966,11 +945,11 @@ def get_batch_info(user: User, task_group_id):
     rc = g_redis_client()
 
     if not TaskGroup.exists(rc, task_group_id):
-        return create_error_response(TaskGroupNotFound(task_group_id), jsonify_response=True)
+        raise TaskGroupNotFound(task_group_id)
 
     task_group = TaskGroup.from_id(rc, task_group_id)
 
     if task_group.user_id != user.id:
-        return create_error_response(TaskGroupAccessForbidden(task_group_id), jsonify_response=True)
+        raise TaskGroupAccessForbidden(task_group_id)
 
     return jsonify({'authorized': True})
