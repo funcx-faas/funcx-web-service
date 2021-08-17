@@ -1,10 +1,9 @@
 from flask import jsonify
-
-from funcx.utils.response_errors import FuncxResponseError
+from funcx_common.response_errors import FuncxResponseError
 
 
 def create_error_response(exception, jsonify_response=False):
-    """ Creates JSON object responses for errors that occur in the service.
+    """Creates JSON object responses for errors that occur in the service.
     These responses can be sent back to the funcx SDK client to be decoded.
     They also have a "reason" property so that they are human-readable.
     Note that the returned JSON object will be a dict unless jsonify_response
@@ -32,11 +31,13 @@ def create_error_response(exception, jsonify_response=False):
         # if the error is not recognized as a FuncxResponseError, a generic
         # response of the same format will be sent back, indicating an
         # internal server error
-        response = {'status': 'Failed',
-                    'code': 0,
-                    'error_args': [],
-                    'reason': f'An unknown error occurred: {exception}',
-                    'http_status_code': 500}
+        response = {
+            "status": "Failed",
+            "code": 0,
+            "error_args": [],
+            "reason": f"An unknown error occurred: {exception}",
+            "http_status_code": 500,
+        }
         status_code = 500
 
     if jsonify_response:

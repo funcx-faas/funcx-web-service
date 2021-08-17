@@ -21,11 +21,22 @@ from funcx_web_service.version import VERSION, MIN_SDK_VERSION
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
 from .redis_q import EndpointQueue
 
-from funcx.utils.response_errors import (UserNotFound, ContainerNotFound, TaskNotFound,
-                                         FunctionAccessForbidden, EndpointAccessForbidden,
-                                         ForwarderRegistrationError, EndpointStatsError,
-                                         RequestKeyError, RequestMalformed, InternalError,
-                                         EndpointOutdated, TaskGroupNotFound, TaskGroupAccessForbidden, InvalidUUID)
+from funcx_common.response_errors import (
+    UserNotFound,
+    ContainerNotFound,
+    TaskNotFound,
+    FunctionAccessForbidden,
+    EndpointAccessForbidden,
+    ForwarderRegistrationError,
+    EndpointStatsError,
+    RequestKeyError,
+    RequestMalformed,
+    InternalError,
+    EndpointOutdated,
+    TaskGroupNotFound,
+    TaskGroupAccessForbidden,
+    InvalidUUID
+)
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
@@ -213,7 +224,7 @@ def submit(user: User):
         serialize = post_req.get('serialize', None)
     except KeyError as e:
         # this should raise a 500 because it prevented any tasks from launching
-        raise RequestKeyError(e)
+        raise RequestKeyError(str(e))
 
     rc = g_redis_client()
     task_group = None
@@ -461,7 +472,7 @@ def reg_container(user: User):
         app.logger.info(f"Created container: {container_rec.container_uuid}")
         return jsonify({'container_id': container_rec.container_uuid})
     except KeyError as e:
-        raise RequestKeyError(e)
+        raise RequestKeyError(str(e))
 
     except Exception as e:
         raise InternalError(f'error adding container - {e}')
@@ -577,7 +588,7 @@ def reg_endpoint(user: User, user_uuid: str):
 
     except KeyError as e:
         app.logger.exception("Missing keys in json request")
-        raise RequestKeyError(e)
+        raise RequestKeyError(str(e))
 
     except UserNotFound as e:
         app.logger.exception("User not found")
@@ -719,7 +730,7 @@ def endpoint_whitelist(user: User, endpoint_id):
             post_req = request.json
             functions = post_req['func']
         except KeyError as e:
-            raise RequestKeyError(e)
+            raise RequestKeyError(str(e))
         except Exception as e:
             raise RequestMalformed(e)
         return add_ep_whitelist(user, endpoint_id, functions)
@@ -829,7 +840,7 @@ def reg_function(user: User, user_uuid):
 
     except KeyError as key_error:
         app.logger.error(key_error)
-        raise RequestKeyError(key_error)
+        raise RequestKeyError(str(key_error))
 
     except Exception as e:
         message = "Function registration failed for user:{} function_name:{} due to {}".\
