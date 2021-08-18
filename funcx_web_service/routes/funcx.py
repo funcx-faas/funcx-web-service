@@ -670,7 +670,7 @@ def get_ep_stats(user: User, endpoint_id):
                 status['status'] = 'online'
 
     except Exception as e:
-        raise EndpointStatsError(endpoint_id, e)
+        raise EndpointStatsError(endpoint_id, str(e))
 
     return jsonify(status)
 
@@ -732,7 +732,7 @@ def endpoint_whitelist(user: User, endpoint_id):
         except KeyError as e:
             raise RequestKeyError(str(e))
         except Exception as e:
-            raise RequestMalformed(e)
+            raise RequestMalformed(str(e))
         return add_ep_whitelist(user, endpoint_id, functions)
 
 
