@@ -2,7 +2,11 @@ from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.user import User
 from funcx_web_service.models.function import Function, FunctionAuthGroup
-from funcx.utils.response_errors import FunctionNotFound, EndpointNotFound, FunctionNotPermitted
+from funcx_common.response_errors import (
+    EndpointNotFound,
+    FunctionNotFound,
+    FunctionNotPermitted,
+)
 from flask import request, make_response, current_app as app
 import functools
 

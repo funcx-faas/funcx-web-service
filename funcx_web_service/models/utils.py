@@ -3,9 +3,9 @@ import uuid
 
 import redis
 from flask import current_app as app
+from funcx_common.response_errors import FunctionNotFound, EndpointAlreadyRegistered
 
 from funcx_web_service.models import search
-from funcx.utils.response_errors import FunctionNotFound, EndpointAlreadyRegistered
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function
 from funcx_web_service.models.tasks import DBTask

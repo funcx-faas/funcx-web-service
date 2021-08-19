@@ -1,4 +1,7 @@
+from unittest.mock import ANY
+
 import pytest
+from funcx_common.response_errors import ResponseErrorCode
 
 import funcx_web_service.authentication
 import funcx_web_service.models
@@ -8,9 +11,7 @@ from funcx_web_service.models.container import Container
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function, FunctionAuthGroup
 from funcx_web_service.models.user import User
-from funcx.utils.response_errors import ResponseErrorCode
 from tests.routes.app_test_base import AppTestBase
-from unittest.mock import ANY
 
 
 @pytest.fixture
