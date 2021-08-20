@@ -20,7 +20,6 @@ from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.version import VERSION, MIN_SDK_VERSION
 
 from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
-from .redis_q import EndpointQueue
 
 from funcx_common.response_errors import (
     UserNotFound,
@@ -122,15 +121,6 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
                                       port=app.config['REDIS_PORT'])
 
         db_logger = get_db_logger()
-        ep_queue = {}
-
-        redis_task_queue = EndpointQueue(
-            endpoint_uuid,
-            hostname=app.config['REDIS_HOST'],
-            port=app.config['REDIS_PORT']
-        )
-        redis_task_queue.connect()
-        ep_queue[endpoint_uuid] = redis_task_queue
 
         if serialize:
             serialize_res = serialize_inputs(input_data)
