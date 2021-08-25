@@ -5,10 +5,12 @@ class AppTestBase:
     def test_client(self):
         app = create_app(test_config={
             "REDIS_HOST": "localhost",
+            "REDIS_PORT": 5000,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "HOSTNAME": "http://testhost",
-            "FORWARDER_IP": "192.162.3.5"
+            "FORWARDER_IP": "192.162.3.5",
+            "ADVERTISED_REDIS_HOST": "my-redis.com"
         })
         app.secret_key = "Shhhhh"
         return app.test_client()

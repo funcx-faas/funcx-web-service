@@ -144,3 +144,33 @@ class TestSubmitFunction(AppTestBase):
         assert res['status'] == 'Failed'
         assert res['code'] == int(ResponseErrorCode.FUNCTION_NOT_PERMITTED)
         assert res['reason'] == "Function 1111 not permitted on endpoint 2222"
+
+    def test_submit_function(self, mocker, mock_auth_client, mock_redis_pubsub, mock_redis):
+        mock_function_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_function", return_value=True)
+        mock_endpoint_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
+        mocker.patch("funcx_web_service.routes.funcx.EndpointQueue")
+        mock_redis.ttl = mocker.Mock(return_value=1)
+        mock_resolve = mocker.patch("funcx_web_service.routes.funcx.resolve_function", return_value=("codecode", "entry", "123-45"))
+
+        mocker.patch(
+            "funcx_web_service.models.tasks.RedisField.__get__",
+            return_value=22)
+
+        result = self.client.post("/api/v1/submit",
+                                  json={
+                                      'tasks': [["12", "13", "my_data"]]
+                                  },
+                                  headers={"Authorization": "my_token"})
+
+        assert result.status_code == 200
+        submit_result = result.json
+        assert submit_result["response"] == 'batch'
+        assert len(submit_result['results']) == 1
+        assert submit_result['results'][0]['status'] == 'Success'
+
+        mock_function_auth.assert_called_with(22, "12", "my_token")
+        mock_endpoint_auth.assert_called_with(22, "13", "12", "my_token")
+        mock_resolve.assert_called_with(22, "12")
+
+        put_call = mock_redis_pubsub.put.call_args
+        assert put_call[0][0] == '13'

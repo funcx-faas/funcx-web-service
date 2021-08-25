@@ -1,3 +1,5 @@
+import time
+import json
 from funcx_common.response_errors import ResponseErrorCode
 
 from funcx_web_service.models.endpoint import Endpoint
@@ -16,9 +18,15 @@ class TestRegisterEndpoint(AppTestBase):
             mocker.patch("funcx_web_service.routes.funcx.register_endpoint",
                          return_value="123-45-6789-1011")
 
-        mock_register_with_hub = \
-            mocker.patch("funcx_web_service.routes.funcx.register_with_hub",
-                         return_value="Ok")
+        mock_post_response = mocker.Mock()
+        mock_post_response.json = mocker.Mock(return_value={
+            "forwarder": "1.1",
+            "min_ep_version": "1.2"
+        })
+        mock_post_response.status_code = 200
+
+        mock_post = mocker.patch('funcx_web_service.routes.funcx.requests.post',
+                                 return_value=mock_post_response)
 
         result = client.post("api/v1/endpoints",
                              json={
@@ -31,9 +39,12 @@ class TestRegisterEndpoint(AppTestBase):
         mock_register_endpoint.assert_called_with(
             mock_user, 'my-endpoint', '', endpoint_uuid=None)
 
-        mock_register_with_hub.assert_called_with('http://192.162.3.5:8080',
-                                                  '123-45-6789-1011',
-                                                  '127.0.0.1')
+        mock_post.assert_called_with('http://192.162.3.5:8080/register',
+                                     json={
+                                         'endpoint_id': '123-45-6789-1011',
+                                         'redis_address': 'my-redis.com',
+                                         'endpoint_addr': '127.0.0.1'
+                                     })
 
         assert result.status_code == 200
 
@@ -138,3 +149,74 @@ class TestRegisterEndpoint(AppTestBase):
         assert result.json['status'] == 'Failed'
         assert result.json['code'] == int(ResponseErrorCode.UNKNOWN_ERROR)
         assert result.json['reason'] == "An unknown error occurred: hello"
+
+    def test_endpoint_status(self, mocker, mock_auth_client, mock_redis):
+        mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
+        mock_redis.llen = mocker.Mock(return_value=1)
+        mock_redis.lrange = mocker.Mock(return_value=[json.dumps({
+                "timestamp": time.time()
+        })])
+
+        client = self.client
+        result = client.get("api/v1/endpoints/123/status",
+                            headers={"Authorization": "my_token"})
+        status_result = result.json
+        assert len(status_result['logs']) == 1
+        assert status_result['status'] == 'online'
+        mock_redis.lrange.assert_called_with("ep_status_123", 0, 1)
+
+    def test_endpoint_delete(self, mocker, mock_auth_client, mock_user):
+        mock_delete_endpoint = mocker.patch.object(Endpoint,
+                                                   "delete_endpoint",
+                                                   return_value="Ok")
+
+        client = self.client
+        result = client.delete("api/v1/endpoints/123", headers={"Authorization": "my_token"})
+        assert result.json['result'] == "Ok"
+        mock_delete_endpoint.assert_called_with(mock_user, "123")
+
+    def test_get_whitelist(self, mocker, mock_auth_client, mock_user):
+        get_ep_whitelist = mocker.patch(
+            "funcx_web_service.routes.funcx.get_ep_whitelist",
+            return_value={
+                "status": "success",
+                "functions": ["1", "2", "3"]
+            })
+
+        client = self.client
+        result = client.get("api/v1/endpoints/123/whitelist", headers={"Authorization": "my_token"})
+        whitelist_result = result.json
+        assert whitelist_result["status"] == 'success'
+        assert whitelist_result['functions'] == ["1", "2", "3"]
+        get_ep_whitelist.assert_called_with(mock_user, "123")
+
+    def test_add_whitelist(self, mocker, mock_auth_client, mock_user):
+        add_ep_whitelist = mocker.patch(
+            "funcx_web_service.routes.funcx.add_ep_whitelist",
+            return_value={
+                "status": "success"
+            })
+
+        client = self.client
+        result = client.post("api/v1/endpoints/123/whitelist",
+                             json={
+                                 "func": ["1", "2", "3"]
+                             },
+                             headers={"Authorization": "my_token"})
+        whitelist_result = result.json
+        assert whitelist_result["status"] == 'success'
+        add_ep_whitelist.assert_called_with(mock_user, "123", ["1", "2", "3"])
+
+    def test_delete_whitelisted(self, mocker, mock_auth_client, mock_user):
+        delete_ep_whitelist = mocker.patch(
+            "funcx_web_service.routes.funcx.delete_ep_whitelist",
+            return_value={
+                "status": "success"
+            })
+
+        client = self.client
+        result = client.delete("api/v1/endpoints/123/whitelist/678-9",
+                               headers={"Authorization": "my_token"})
+        whitelist_result = result.json
+        assert whitelist_result["status"] == 'success'
+        delete_ep_whitelist.assert_called_with(mock_user, "123", "678-9")

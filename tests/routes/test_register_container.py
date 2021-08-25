@@ -43,3 +43,16 @@ class TestRegisterContainer(AppTestBase):
         assert result.json['status'] == 'Failed'
         assert result.json['code'] == int(ResponseErrorCode.REQUEST_KEY_ERROR)
         assert result.json['reason'] == "Missing key in JSON request - 'name'"
+
+    def test_get_container(self, mocker, mock_auth_client):
+        container = Container()
+        container.container_uuid = "123-45-678"
+        container.name = "Docky"
+        find_container_mock = mocker.patch.object(Container, "find_by_uuid_and_type", return_value=container)
+
+        client = self.client
+        result = client.get("api/v1/containers/1/docker", headers={"Authorization": "my_token"})
+
+        result_container = result.json['container']
+        assert result_container['container_uuid'] == "123-45-678"
+        find_container_mock.assert_called_with("1", "docker")

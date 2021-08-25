@@ -55,3 +55,8 @@ class TestAuth(AppTestBase):
                                                          )
         mock_client.oauth2_exchange_code_for_tokens.assert_called_with("foo")
         mock_tokens.decode_id_token.assert_called_with(mock_client)
+
+    def test_authenticate(self, mock_auth_client):
+        client = self.client
+        result = client.get("/api/v1/authenticate", headers={"Authorization": "my_token"})
+        assert result.status_code == 200
