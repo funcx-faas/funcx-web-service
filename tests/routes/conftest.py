@@ -28,17 +28,25 @@ def mock_auth_client(mocker, mock_user):
 def mock_user():
     return User(
         username='bob',
-        globus_identity='123-456'
+        globus_identity='123-456',
+        id=22
     )
 
 
 @pytest.fixture
 def mock_redis(mocker):
-    mock_redis = mocker.Mock()
-    mocker.patch.object(funcx_web_service.models.utils,
-                        "get_redis_client",
-                        return_value=mock_redis)
-    return mock_redis
+    mock_redis_client = mocker.Mock()
+    mocker.patch("funcx_web_service.routes.funcx.get_redis_client",
+                 return_value=mock_redis_client)
+    return mock_redis_client
+
+
+@pytest.fixture
+def mock_redis_pubsub(mocker):
+    mock_redis_client = mocker.Mock()
+    mocker.patch("funcx_web_service.routes.funcx.g_redis_pubsub",
+                 return_value=mock_redis_client)
+    return mock_redis_client
 
 
 @pytest.fixture

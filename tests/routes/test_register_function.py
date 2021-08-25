@@ -129,3 +129,27 @@ class TestRegisterFunction(AppTestBase):
         saved_function = Function.find_by_uuid(result.json['function_uuid'])
         assert len(saved_function.auth_groups) == 1
         assert saved_function.auth_groups[0].id == 45
+
+    def test_update_function(self, mock_auth_client, mocker):
+        mock_update = mocker.patch("funcx_web_service.routes.funcx.update_function",
+                                   return_value=302)
+        client = self.client
+        result = client.put("api/v1/functions/123-45",
+                            json={
+                                "function_source": "def fun(x): return x+1",
+                                "name": "test fun",
+                                "desc": "this is a test",
+                                "entry_point": "func()",
+                                "code": "flksdjfldkjdlkfjslk",
+                                "public": True
+                            },
+                            headers={"Authorization": "my_token"})
+        assert result.status_code == 302
+        mock_update.assert_called_with('bob', '123-45', 'test fun', 'this is a test', 'func()', 'flksdjfldkjdlkfjslk')
+
+    def test_delete_function(self, mock_auth_client, mock_user, mocker):
+        mock_delete = mocker.patch("funcx_web_service.routes.funcx.delete_function", return_value=302)
+        client = self.client
+        result = client.delete("api/v1/functions/123-45", headers={"Authorization": "my_token"})
+        assert result.status_code == 200
+        assert mock_delete.called_with("bob", "123-45")
