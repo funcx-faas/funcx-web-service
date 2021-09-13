@@ -1,3 +1,4 @@
+import responses
 import time
 import json
 from funcx_common.response_errors import ResponseErrorCode
@@ -7,44 +8,43 @@ from tests.routes.app_test_base import AppTestBase
 
 
 class TestRegisterEndpoint(AppTestBase):
+    @responses.activate
     def test_register_endpoint(self, mocker, mock_auth_client, mock_user):
         client = self.client
 
-        get_forwarder_version = mocker.patch(
-            "funcx_web_service.routes.funcx.get_forwarder_version",
-            return_value={"min_ep_version": "1.0.0"})
+        responses.add(responses.GET, 'http://192.162.3.5:8080/version', json={
+            'forwarder': '1.2.3',
+            'min_ep_version': '3.2.1'
+        }, status=200)
+
+        responses.add(responses.POST, 'http://192.162.3.5:8080/register', json={
+            "forwarder": "1.1",
+            "min_ep_version": "1.2"
+        }, status=200)
 
         mock_register_endpoint = \
             mocker.patch("funcx_web_service.routes.funcx.register_endpoint",
                          return_value="123-45-6789-1011")
 
-        mock_post_response = mocker.Mock()
-        mock_post_response.json = mocker.Mock(return_value={
-            "forwarder": "1.1",
-            "min_ep_version": "1.2"
-        })
-        mock_post_response.status_code = 200
-
-        mock_post = mocker.patch('funcx_web_service.routes.funcx.requests.post',
-                                 return_value=mock_post_response)
-
         result = client.post("api/v1/endpoints",
                              json={
-                                 "version": "1.0.0",
+                                 "version": "3.2.2",
                                  "endpoint_name": "my-endpoint",
                                  "endpoint_uuid": None
                              },
                              headers={"Authorization": "my_token"})
-        get_forwarder_version.assert_called()
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.url == 'http://192.162.3.5:8080/version'
+
         mock_register_endpoint.assert_called_with(
             mock_user, 'my-endpoint', '', endpoint_uuid=None)
 
-        mock_post.assert_called_with('http://192.162.3.5:8080/register',
-                                     json={
-                                         'endpoint_id': '123-45-6789-1011',
-                                         'redis_address': 'my-redis.com',
-                                         'endpoint_addr': '127.0.0.1'
-                                     })
+        assert responses.calls[1].request.url == 'http://192.162.3.5:8080/register'
+        assert json.loads(responses.calls[1].request.body) == {
+            'endpoint_id': '123-45-6789-1011',
+            'redis_address': 'my-redis.com',
+            'endpoint_addr': '127.0.0.1'
+        }
 
         assert result.status_code == 200
 

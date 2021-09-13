@@ -1,21 +1,27 @@
 from funcx_web_service.version import VERSION
 from tests.routes.app_test_base import AppTestBase
+import responses
 
 
 class TestFuncX(AppTestBase):
-    def test_version(self, mocker):
-        mock_get_response = mocker.Mock()
-        mock_get_response.json = mocker.Mock(return_value={
-            "forwarder": "1.1",
-            "min_ep_version": "1.2"
-        })
-        mocker.patch('funcx_web_service.routes.funcx.requests.get', return_value=mock_get_response)
+    @responses.activate
+    def test_version(self):
+
+        responses.add(responses.GET, 'http://192.162.3.5:8080/version', json={
+            'forwarder': '1.2.3',
+            'min_ep_version': '3.2.1'
+        }, status=200)
+
         client = self.client
         result = client.get("/api/v1/version", query_string={'service': "all"})
         version_result = result.json
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == 'http://192.162.3.5:8080/version'
+
         assert version_result['api'] == VERSION
-        assert version_result['forwarder'] == '1.1'
-        assert version_result['min_ep_version'] == '1.2'
+        assert version_result['forwarder'] == '1.2.3'
+        assert version_result['min_ep_version'] == '3.2.1'
 
         assert "funcx" in version_result
         assert "min_sdk_version" in version_result
