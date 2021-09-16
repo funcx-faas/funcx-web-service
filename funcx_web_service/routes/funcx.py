@@ -491,12 +491,19 @@ def register_with_hub(address, endpoint_id, endpoint_address):
 
     """
     print(address + '/register')
-    r = requests.post(address + '/register',
-                      json={'endpoint_id': endpoint_id,
-                            'redis_address': app.config['ADVERTISED_REDIS_HOST'],
-                            'endpoint_addr': endpoint_address,
-                            }
-                      )
+    try:
+        r = requests.post(address + '/register',
+                          json={'endpoint_id': endpoint_id,
+                                'redis_address': app.config['ADVERTISED_REDIS_HOST'],
+                                'endpoint_addr': endpoint_address,
+                          },
+                          timeout=5,  # timeout for the forwarder response
+        )
+    except requests.Timeout:
+        raise ForwarderRegistrationError("Forwarder is un-responsive, unable to register endpoint within timeout:5s")
+    except Exception as e:
+        raise ForwarderRegistrationError(f"Request to Forwarder failed, unable to register endpoint: {e}")
+
     if r.status_code != 200:
         print(dir(r))
         print(r)
@@ -507,7 +514,7 @@ def register_with_hub(address, endpoint_id, endpoint_address):
 
 def get_forwarder_version():
     forwarder_ip = app.config['FORWARDER_IP']
-    r = requests.get(f"http://{forwarder_ip}:8080/version")
+    r = requests.get(f"http://{forwarder_ip}:8080/version", timeout=5)
     return r.json()
 
 
