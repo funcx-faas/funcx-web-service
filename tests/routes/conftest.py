@@ -1,7 +1,8 @@
 import funcx_web_service
 import pytest
+from funcx_common.tasks import TaskState
 from funcx_web_service.models.endpoint import Endpoint
-from funcx_web_service.models.tasks import Task
+from funcx_web_service.models.tasks import InternalTaskState, RedisTask
 from funcx_web_service.models.user import User
 
 
@@ -49,12 +50,10 @@ def mock_endpoint():
 @pytest.fixture
 def mock_redis_task_factory(mock_redis, mock_user, mocker):
     def func(task_id, user_id=mock_user.id, status=None, internal_status=None):
-        mock_redis.hset(f"task_{task_id}", "user_id", user_id)
-        mock_redis.hset(f"task_{task_id}", "status", status or "waiting-for-ep")
-        mock_redis.hset(
-            f"task_{task_id}", "internal_status", internal_status or "incomplete"
-        )
-
-        return Task(mock_redis, task_id=task_id)
+        t = RedisTask(mock_redis, task_id=task_id)
+        t.user_id = user_id
+        t.status = TaskState.WAITING_FOR_EP
+        t.internal_status = InternalTaskState.INCOMPLETE
+        return t
 
     return func

@@ -9,7 +9,7 @@ from flask import current_app as app, Blueprint, jsonify, request, g
 from funcx_web_service.authentication.auth import authenticated_w_uuid
 from funcx_web_service.authentication.auth import authorize_endpoint, authenticated, authorize_function
 
-from funcx_web_service.models.tasks import Task, TaskGroup
+from funcx_web_service.models.tasks import RedisTask, TaskGroup
 from funcx_web_service.models.utils import get_redis_client, \
     ingest_endpoint
 from funcx_web_service.models.utils import register_endpoint, ingest_function
@@ -19,7 +19,7 @@ from funcx_web_service.models.utils import (update_function, delete_function, ge
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.version import VERSION, MIN_SDK_VERSION
 
-from funcx_forwarder.queues.redis.redis_pubsub import RedisPubSub
+from funcx_common.redis import FuncxRedisPubSub
 
 from funcx_common.response_errors import (
     UserNotFound,
@@ -61,12 +61,12 @@ def g_redis_client():
     return g.redis_client
 
 
-def g_redis_pubsub(*args, **kwargs):
+def g_redis_pubsub():
     if 'redis_pubsub' not in g:
-        g.redis_pubsub = RedisPubSub(*args, **kwargs)
-        g.redis_pubsub.connect()
-        rc = g.redis_pubsub.redis_client
-        rc.ping()
+        g.redis_pubsub = FuncxRedisPubSub(
+            app.config['REDIS_HOST'], port=app.config['REDIS_PORT']
+        )
+        g.redis_pubsub.redis_client.ping()
     return g.redis_pubsub
 
 
@@ -112,13 +112,8 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
         if not container_uuid:
             container_uuid = 'RAW'
 
-        # We should replace this with serialize_hdr = ";srlz={container_uuid}"
-        # TODO: this is deprecated.
-        serializer = "ANY"
-
         rc = g_redis_client()
-        task_channel = g_redis_pubsub(app.config['REDIS_HOST'],
-                                      port=app.config['REDIS_PORT'])
+        task_channel = g_redis_pubsub()
 
         db_logger = get_db_logger()
 
@@ -129,7 +124,15 @@ def auth_and_launch(user_id, function_uuid, endpoint_uuid, input_data, app, toke
 
         # At this point the packed function body and the args are concatable strings
         payload = fn_code + input_data
-        task = Task(rc, task_uuid, user_id, function_uuid, container_uuid, serializer, payload, task_group_id)
+        task = RedisTask(
+            rc,
+            task_uuid,
+            user_id=user_id,
+            function_id=function_uuid,
+            container=container_uuid,
+            payload=payload,
+            task_group_id=task_group_id
+        )
 
         task_channel.put(endpoint_uuid, task)
 
@@ -222,7 +225,7 @@ def submit(user: User):
     if task_group_id and TaskGroup.exists(rc, task_group_id):
         app.logger.debug(f'Task Group {task_group_id} submitted to by user {user_id} already exists, checking if user is authorized')
         # TODO: This could be cached to minimize lookup cost.
-        task_group = TaskGroup.from_id(rc, task_group_id)
+        task_group = TaskGroup(rc, task_group_id)
         if task_group.user_id != user_id:
             raise TaskGroupAccessForbidden(task_group_id)
 
@@ -262,7 +265,7 @@ def get_tasks_from_redis(task_ids, user: User):
     rc = g_redis_client()
     for task_id in task_ids:
         # Get the task from redis
-        if not Task.exists(rc, task_id):
+        if not RedisTask.exists(rc, task_id):
             all_tasks[task_id] = {
                 'task_id': task_id,
                 'status': 'Failed',
@@ -270,7 +273,7 @@ def get_tasks_from_redis(task_ids, user: User):
             }
             continue
 
-        task = Task.from_id(rc, task_id)
+        task = RedisTask(rc, task_id)
         if task.user_id != user.id:
             all_tasks[task_id] = {
                 'task_id': task_id,
@@ -306,13 +309,13 @@ def get_tasks_from_redis(task_ids, user: User):
     return all_tasks
 
 
-def get_task_or_404(rc: Redis, task_id: str) -> Task:
-    if not Task.exists(rc, task_id):
+def get_task_or_404(rc: Redis, task_id: str) -> RedisTask:
+    if not RedisTask.exists(rc, task_id):
         raise TaskNotFound(task_id)
-    return Task.from_id(rc, task_id)
+    return RedisTask(rc, task_id)
 
 
-def authorize_task_or_404(task: Task, user: User):
+def authorize_task_or_404(task: RedisTask, user: User):
     if task.user_id != user.id:
         raise TaskNotFound(task.task_id)
 
@@ -966,7 +969,7 @@ def get_batch_info(user: User, task_group_id):
     if not TaskGroup.exists(rc, task_group_id):
         raise TaskGroupNotFound(task_group_id)
 
-    task_group = TaskGroup.from_id(rc, task_group_id)
+    task_group = TaskGroup(rc, task_group_id)
 
     if task_group.user_id != user.id:
         raise TaskGroupAccessForbidden(task_group_id)

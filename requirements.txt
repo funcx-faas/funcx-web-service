@@ -22,7 +22,7 @@ decorator==5.1.0
 dill==0.3.4
 docutils==0.17.1
 fair-research-login==0.2.3
-funcx-common==0.0.3
+funcx-common==0.0.6
 globus-nexus-client==0.2.9
 globus-sdk==1.11.0
 greenlet==1.1.2

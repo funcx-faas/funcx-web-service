@@ -3,7 +3,7 @@ import json
 import datetime
 
 from funcx_web_service.models.serializer import deserialize_result
-from funcx_web_service.models.tasks import Task
+from funcx_web_service.models.tasks import RedisTask
 from funcx_web_service.models.user import User
 from funcx_web_service.models.utils import get_redis_client
 from funcx_web_service.authentication.auth import authenticated
@@ -238,12 +238,12 @@ def get_task_result(task_id, delete=True):
     """
     rc = get_redis_client()
 
-    if not Task.exists(rc, task_id):
+    if not RedisTask.exists(rc, task_id):
         abort(400, "task_id not found")
 
     task_dict = {}
 
-    task = Task.from_id(rc, task_id)
+    task = RedisTask(rc, task_id)
     task_dict['status'] = convert_automate_status(task.status)
     task_dict['result'] = task.result
     task_dict['exception'] = task.exception
