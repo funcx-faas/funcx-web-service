@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from redis.client import Redis
 import requests
 
 from flask import current_app as app, Blueprint, jsonify, request, g
@@ -265,7 +266,7 @@ def submit(user: User):
     return jsonify(results), final_http_status
 
 
-def get_tasks_from_redis(task_ids):
+def get_tasks_from_redis(task_ids, user: User):
     all_tasks = {}
 
     rc = g_redis_client()
@@ -273,12 +274,21 @@ def get_tasks_from_redis(task_ids):
         # Get the task from redis
         if not Task.exists(rc, task_id):
             all_tasks[task_id] = {
+                'task_id': task_id,
                 'status': 'Failed',
                 'reason': 'Unknown task id'
             }
             continue
 
         task = Task.from_id(rc, task_id)
+        if task.user_id != user.id:
+            all_tasks[task_id] = {
+                'task_id': task_id,
+                'status': 'Failed',
+                'reason': 'Unknown task id'
+            }
+            continue
+
         task_status = task.status
         task_result = task.result
         task_exception = task.exception
@@ -306,11 +316,22 @@ def get_tasks_from_redis(task_ids):
     return all_tasks
 
 
+def get_task_or_404(rc: Redis, task_id: str) -> Task:
+    if not Task.exists(rc, task_id):
+        raise TaskNotFound(task_id)
+    return Task.from_id(rc, task_id)
+
+
+def authorize_task_or_404(task: Task, user: User):
+    if task.user_id != user.id:
+        raise TaskNotFound(task.task_id)
+
+
 # TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed, we should remove this route
 @funcx_api.route("/<task_id>/status", methods=['GET'])
 @funcx_api.route("/tasks/<task_id>", methods=['GET'])
 @authenticated
-def status_and_result(user, task_id):
+def status_and_result(user: User, task_id):
     """Check the status of a task.  Return result if available.
 
     If the query param deserialize=True is passed, then we deserialize the result object.
@@ -328,11 +349,9 @@ def status_and_result(user, task_id):
         The status of the task
     """
     rc = g_redis_client()
+    task = get_task_or_404(rc, task_id)
+    authorize_task_or_404(task, user)
 
-    if not Task.exists(rc, task_id):
-        raise TaskNotFound(task_id)
-
-    task = Task.from_id(rc, task_id)
     task_status = task.status
     task_result = task.result
     task_exception = task.exception
@@ -395,7 +414,7 @@ def batch_status(user: User):
         The status of the task
     """
     app.logger.debug("request : {}".format(request.json))
-    results = get_tasks_from_redis(request.json['task_ids'])
+    results = get_tasks_from_redis(request.json['task_ids'], user)
 
     return jsonify({'response': 'batch',
                     'results': results})
