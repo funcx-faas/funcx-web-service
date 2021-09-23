@@ -544,14 +544,6 @@ def get_version():
     raise RequestMalformed("unknown service type or other error.")
 
 
-@funcx_api.route("/addr", methods=['GET'])
-def get_request_addr():
-    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        return jsonify({'ip': request.environ['REMOTE_ADDR']}), 200
-    else:
-        return jsonify({'ip': request.environ['HTTP_X_FORWARDED_FOR']}), 200
-
-
 # Endpoint routes
 @funcx_api.route("/endpoints", methods=['POST'])
 @authenticated_w_uuid
