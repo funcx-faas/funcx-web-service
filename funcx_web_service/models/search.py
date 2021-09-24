@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from flask import current_app as app
 from globus_sdk import AccessTokenAuthorizer, SearchClient, SearchAPIError
 
@@ -16,15 +17,29 @@ SEARCH_LIMIT = 10000
 DEFAULT_SEARCH_LIMIT = 10
 
 
+def _sanitize_tokens(token_data: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = token_data.get("access_token", "")
+    if access_token is not None:
+        access_token = f"***{token_data['access_token'][-5:]}"
+
+    refresh_token = token_data.get("refresh_token", "")
+    if refresh_token is not None:
+        refresh_token = f"***{token_data['refresh_token'][:-5:]}"
+
+    return {
+         "scope": token_data.get("scope"),
+         "access_token": access_token,
+         "refresh_token": refresh_token,
+    }
+
+
 def get_search_client():
     """Creates a Globus Search Client using FuncX's client token"""
     auth_client = funcx_web_service.authentication.auth.get_auth_client()
     tokens = auth_client.oauth2_client_credentials_tokens(requested_scopes=[SEARCH_SCOPE])
-    app.logger.debug(f"CC Tokens for Search: {tokens}")
     search_token = tokens.by_scopes[SEARCH_SCOPE]
-    app.logger.debug(f"Search token: {search_token}")
+    app.logger.debug(f"Search token: {_sanitize_tokens(search_token)}")
     access_token = search_token['access_token']
-    app.logger.debug("Access token")
     authorizer = AccessTokenAuthorizer(access_token)
     app.logger.debug("Acquired AccessTokenAuthorizer for search")
     search_client = SearchClient(authorizer)
