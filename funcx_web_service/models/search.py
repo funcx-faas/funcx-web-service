@@ -18,12 +18,19 @@ DEFAULT_SEARCH_LIMIT = 10
 
 
 def _sanitize_tokens(token_data: Dict[str, Any]) -> Dict[str, Any]:
-    data_copy = token_data.copy()
-    if data_copy["access_token"] is not None:
-        data_copy["access_token"] = f"***{data_copy['access_token'][-5:]}"
-    if data_copy["refresh_token"] is not None:
-        data_copy["refresh_token"] = f"***{data_copy['refresh_token'][:-5:]}"
-    return data_copy
+    access_token = token_data.get("access_token", "")
+    if access_token is not None:
+        access_token = f"***{token_data['access_token'][-5:]}"
+
+    refresh_token = token_data.get("refresh_token", "")
+    if refresh_token is not None:
+        refresh_token = f"***{token_data['refresh_token'][:-5:]}"
+
+    return {
+         "scope": token_data.get("scope"),
+         "access_token": access_token,
+         "refresh_token": refresh_token,
+    }
 
 
 def get_search_client():
