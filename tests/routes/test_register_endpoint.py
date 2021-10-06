@@ -152,18 +152,18 @@ class TestRegisterEndpoint(AppTestBase):
 
     def test_endpoint_status(self, mocker, mock_auth_client, mock_redis):
         mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
-        mock_redis.llen = mocker.Mock(return_value=1)
-        mock_redis.lrange = mocker.Mock(return_value=[json.dumps({
-                "timestamp": time.time()
-        })])
+
+        epid = 123
+        mock_redis.lpush(f"ep_status_{epid}", json.dumps({"timestamp": time.time()}))
+        lrange_spy = mocker.spy(mock_redis, "lrange")
 
         client = self.client
-        result = client.get("api/v1/endpoints/123/status",
+        result = client.get(f"api/v1/endpoints/{epid}/status",
                             headers={"Authorization": "my_token"})
         status_result = result.json
         assert len(status_result['logs']) == 1
         assert status_result['status'] == 'online'
-        mock_redis.lrange.assert_called_with("ep_status_123", 0, 1)
+        lrange_spy.assert_called_with("ep_status_123", 0, 1)
 
     def test_endpoint_delete(self, mocker, mock_auth_client, mock_user):
         mock_delete_endpoint = mocker.patch.object(Endpoint,

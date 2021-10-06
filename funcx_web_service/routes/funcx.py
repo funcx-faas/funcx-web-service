@@ -952,7 +952,7 @@ def funcx_stats():
     app.logger.debug("Getting stats")
     try:
         rc = g_redis_client()
-        result = rc.get('funcx_invocation_counter')
+        result = int(rc.get('funcx_invocation_counter'))
         return jsonify({"total_function_invocations": result}), 200
     except Exception as e:
         app.logger.exception(e)

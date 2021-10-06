@@ -149,12 +149,7 @@ class TestSubmitFunction(AppTestBase):
         mock_function_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_function", return_value=True)
         mock_endpoint_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
         mocker.patch("funcx_web_service.routes.funcx.EndpointQueue")
-        mock_redis.ttl = mocker.Mock(return_value=1)
         mock_resolve = mocker.patch("funcx_web_service.routes.funcx.resolve_function", return_value=("codecode", "entry", "123-45"))
-
-        mocker.patch(
-            "funcx_web_service.models.tasks.RedisField.__get__",
-            return_value=22)
 
         result = self.client.post("/api/v1/submit",
                                   json={
