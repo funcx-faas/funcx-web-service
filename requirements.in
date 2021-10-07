@@ -1,0 +1,40 @@
+# application requirements as a requirements.txt file, specifying only the
+# things which are needed by the app itself (first-order requirements)
+#
+# freeze with `pipdeptree -f` to get structured requirements.txt data for use
+# with `pip install`
+#
+# note that a requirement which is satisfied by a second-order requirement
+# (e.g. globus-sdk=>requests) should also be listed here, in case the upstream
+# libraries change and alter their dependencies
+#
+# tl,dr: If it's used by the application, it goes in this list.
+
+# flask
+Flask<2
+Werkzeug<2
+
+# flask plugins
+flask-sqlalchemy<3
+Flask-Migrate<3
+
+# sqlalchemy + psycopg2 for postgres connections
+sqlalchemy<1.5
+psycopg2-binary==2.8.5
+
+# redis connections
+redis==3.5.3
+
+# funcx tools
+funcx_common==0.0.3
+git+https://github.com/funcx-faas/funcX.git@main#egg=funcx&subdirectory=funcx_sdk
+git+https://github.com/funcx-faas/funcx-forwarder.git@main#egg=funcx-forwarder
+
+# globus clients
+globus-nexus-client==0.2.9
+globus-sdk<3
+
+
+
+requests>=2.24,<3
+python-json-logger<3

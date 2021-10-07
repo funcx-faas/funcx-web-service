@@ -17,6 +17,8 @@ api/*
 forwarder/.idea/*
 forwarder/.idea/forwarder.iml
 *.iml
+# TODO: remove this after we move to a tool for managing dependencies
+/frozen-requirements-tree.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
