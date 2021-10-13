@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask.logging import default_handler
 from pythonjsonlogger import jsonlogger
 
+from funcx_web_service.container_service_adapter import ContainerServiceAdapter
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.response import FuncxResponse
 from funcx_web_service.routes.funcx import funcx_api
@@ -57,6 +58,17 @@ def create_app(test_config=None):
     else:
         application.config.from_envvar("APP_CONFIG_FILE")
         application.config.update(_override_config_with_environ(application))
+
+    if not hasattr(application, "extensions"):
+        application.extensions = {}
+
+    if application.config.get("CONTAINER_SERVICE_ENABLED", False):
+        container_service = ContainerServiceAdapter(
+            application.config["CONTAINER_SERVICE"]
+        )
+        application.extensions["ContainerService"] = container_service
+    else:
+        application.extensions["ContainerService"] = None
 
     # 100,000 Bytes is the max content length we will log for request/response JSON
     # due to the CloudWatch max log size

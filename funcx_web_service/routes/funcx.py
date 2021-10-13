@@ -575,14 +575,18 @@ def get_version():
         return jsonify(forwarder_version)
 
     if s == "all":
-        return jsonify(
-            {
-                "api": VERSION,
-                "forwarder": forwarder_version,
-                "min_sdk_version": MIN_SDK_VERSION,
-                "min_ep_version": min_ep_version,
-            }
-        )
+        result = {
+            "api": VERSION,
+            "forwarder": forwarder_version,
+            "min_sdk_version": MIN_SDK_VERSION,
+            "min_ep_version": min_ep_version,
+        }
+
+        if app.extensions["ContainerService"]:
+            result["container_service"] = app.extensions[
+                "ContainerService"
+            ].get_version()["version"]
+        return jsonify(result)
 
     raise RequestMalformed("unknown service type or other error.")
 

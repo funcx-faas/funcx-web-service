@@ -3,3 +3,8 @@ REDIS_HOST = "localhost"
 
 GLOBUS_CLIENT = <<Globus Client ID>>
 GLOBUS_KEY = <<Globus Secret Key>>
+
+CONTAINER_SERVICE_ENABLED = False
+
+# URL of Container Service
+CONTAINER_SERVICE = http://localhost:5001
