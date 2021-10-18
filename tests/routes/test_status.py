@@ -1,7 +1,7 @@
 from unittest import mock
 
-from funcx_web_service.models.user import User
 from funcx_web_service.models.tasks import RedisTask
+from funcx_web_service.models.user import User
 from tests.routes.app_test_base import AppTestBase
 
 
@@ -79,4 +79,6 @@ class TestStatus(AppTestBase):
             assert result.json["results"][task_id]["reason"] == "Unknown task id"
             assert result.json["results"][task_id]["status"] == "Failed"
 
-        exists_spy.assert_has_calls([mock.call(mock_redis, "1"), mock.call(mock_redis, "2")])
+        exists_spy.assert_has_calls(
+            [mock.call(mock_redis, "1"), mock.call(mock_redis, "2")]
+        )

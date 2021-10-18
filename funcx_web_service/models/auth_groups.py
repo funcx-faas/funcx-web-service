@@ -5,7 +5,7 @@ from funcx_web_service.models import db
 
 
 class AuthGroup(db.Model):
-    __tablename__ = 'auth_groups'
+    __tablename__ = "auth_groups"
     id = Column(Integer, primary_key=True)
     group_id = Column(String(67))
     endpoint_id = Column(String(67))

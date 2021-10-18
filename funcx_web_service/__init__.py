@@ -1,16 +1,16 @@
-from distutils.util import strtobool
-
-import os
 import logging
-from pythonjsonlogger import jsonlogger
+import os
+from distutils.util import strtobool
 
 from flask import Flask, request
 from flask.logging import default_handler
+from pythonjsonlogger import jsonlogger
+
+from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.response import FuncxResponse
 from funcx_web_service.routes.auth import auth_api
 from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
-from funcx_web_service.error_responses import create_error_response
 
 
 def _override_config_with_environ(app):
@@ -24,21 +24,25 @@ def _override_config_with_environ(app):
 
     # Create a dictionary of environment vars that have keys that match keys from the
     # loaded config. These will override anything from the config file
-    return {k: (lambda key, value: _convert_string(os.environ[k]))(k, v) for (k, v)
-            in app.config.items()
-            if k in os.environ}
+    return {
+        k: (lambda key, value: _convert_string(os.environ[k]))(k, v)
+        for (k, v) in app.config.items()
+        if k in os.environ
+    }
 
 
 def create_app(test_config=None):
     application = Flask(__name__)
 
-    level = os.environ.get('LOGLEVEL', 'DEBUG').upper()
+    level = os.environ.get("LOGLEVEL", "DEBUG").upper()
     logger = application.logger
     logger.setLevel(level)
 
     handler = logging.StreamHandler()
     handler.setLevel(level)
-    formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+    formatter = jsonlogger.JsonFormatter(
+        "%(asctime)s %(name)s %(levelname)s %(message)s"
+    )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -53,7 +57,7 @@ def create_app(test_config=None):
     if test_config:
         application.config.from_mapping(test_config)
     else:
-        application.config.from_envvar('APP_CONFIG_FILE')
+        application.config.from_envvar("APP_CONFIG_FILE")
         application.config.update(_override_config_with_environ(application))
 
     # 100,000 Bytes is the max content length we will log for request/response JSON
@@ -62,11 +66,12 @@ def create_app(test_config=None):
 
     @application.before_first_request
     def create_tables():
-        from funcx_web_service.models import db
-        import funcx_web_service.models.function  # NOQA F401
-        import funcx_web_service.models.container  # NOQA F401
         import funcx_web_service.models.auth_groups  # NOQA F401
+        import funcx_web_service.models.container  # NOQA F401
+        import funcx_web_service.models.function  # NOQA F401
         import funcx_web_service.models.user  # NOQA F401
+        from funcx_web_service.models import db
+
         db.init_app(application)
         db.create_all()
 
@@ -78,12 +83,15 @@ def create_app(test_config=None):
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
-            "log_type": "before_request"
+            "log_type": "before_request",
         }
 
         # check that the request content is not too long and avoid
         # malformed JSON errors
-        if request.content_length is not None and request.content_length <= max_log_content_length:
+        if (
+            request.content_length is not None
+            and request.content_length <= max_log_content_length
+        ):
             try:
                 extra["request_json"] = request.json
             except Exception:
@@ -105,13 +113,16 @@ def create_app(test_config=None):
             "path": request.path,
             "full_path": request.full_path,
             "method": request.method,
-            "log_type": "after_request"
+            "log_type": "after_request",
         }
 
         # check that the request/response content is not too long and avoid
         # malformed JSON errors
 
-        if request.content_length is not None and request.content_length <= max_log_content_length:
+        if (
+            request.content_length is not None
+            and request.content_length <= max_log_content_length
+        ):
             try:
                 extra["request_json"] = request.json
             except Exception:

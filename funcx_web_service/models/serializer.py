@@ -1,5 +1,4 @@
 import requests
-
 from flask import current_app as app
 
 
@@ -15,10 +14,10 @@ def serialize_inputs(input_data):
     -------
     str : The encoded data
     """
-    ser_addr = app.config['SERIALIZATION_ADDR']
-    ser_port = app.config['SERIALIZATION_PORT']
+    ser_addr = app.config["SERIALIZATION_ADDR"]
+    ser_port = app.config["SERIALIZATION_PORT"]
 
-    res = requests.post(f'http://{ser_addr}:{ser_port}/serialize', json=input_data)
+    res = requests.post(f"http://{ser_addr}:{ser_port}/serialize", json=input_data)
     if res.status_code == 200:
         return res.json()
 
@@ -37,10 +36,10 @@ def deserialize_result(result):
     -------
     str : The decoded data
     """
-    ser_addr = app.config['SERIALIZATION_ADDR']
-    ser_port = app.config['SERIALIZATION_PORT']
+    ser_addr = app.config["SERIALIZATION_ADDR"]
+    ser_port = app.config["SERIALIZATION_PORT"]
 
-    res = requests.post(f'http://{ser_addr}:{ser_port}/deserialize', json=result)
+    res = requests.post(f"http://{ser_addr}:{ser_port}/deserialize", json=result)
     if res.status_code == 200:
         return res.json()
 

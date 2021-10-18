@@ -2,18 +2,14 @@ import typing as t
 from datetime import datetime, timedelta
 from enum import Enum
 
-from funcx_common.redis import (
-    INT_SERDE,
-    JSON_SERDE,
-    FuncxRedisEnumSerde,
-    HasRedisFieldsMeta,
-    RedisField,
-)
+from funcx_common.redis import (INT_SERDE, JSON_SERDE, FuncxRedisEnumSerde,
+                                HasRedisFieldsMeta, RedisField)
 from funcx_common.tasks import TaskProtocol, TaskState
-from funcx_web_service.models import db
 from redis import Redis
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
+from funcx_web_service.models import db
 
 
 # This internal state is never shown to the user and is meant to track whether

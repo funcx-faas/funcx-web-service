@@ -1,13 +1,16 @@
-import uuid
-import json
 import datetime
+import json
+import uuid
 
+from flask import Blueprint, abort
+from flask import current_app as app
+from flask import jsonify, request
+
+from funcx_web_service.authentication.auth import authenticated
 from funcx_web_service.models.serializer import deserialize_result
 from funcx_web_service.models.tasks import RedisTask
 from funcx_web_service.models.user import User
 from funcx_web_service.models.utils import get_redis_client
-from funcx_web_service.authentication.auth import authenticated
-from flask import current_app as app, Blueprint, jsonify, request, abort
 from funcx_web_service.routes.funcx import auth_and_launch
 
 # TODO: entire automate API needs overhaul
@@ -20,7 +23,7 @@ endpoint_cache = {}
 caching = True
 
 
-@automate_api.route('/run', methods=['POST'])
+@automate_api.route("/run", methods=["POST"])
 @authenticated
 def run(user: User):
     """Puts a job in Redis and returns an id
@@ -40,91 +43,99 @@ def run(user: User):
     user_id = user.id
 
     # Extract the token for endpoint verification
-    token_str = request.headers.get('Authorization')
-    token = str.replace(str(token_str), 'Bearer ', '')
+    token_str = request.headers.get("Authorization")
+    token = str.replace(str(token_str), "Bearer ", "")
 
     # Parse out the function info
     tasks = []
     try:
-        post_req = request.json['body']
-        if 'tasks' in post_req:
-            tasks = post_req.get('tasks', [])
+        post_req = request.json["body"]
+        if "tasks" in post_req:
+            tasks = post_req.get("tasks", [])
         else:
             # Check if the old client was used and create a new task
-            function_uuid = post_req.get('func', None)
-            endpoint = post_req.get('endpoint', None)
-            input_data = post_req.get('payload', None)
-            tasks.append({'func': function_uuid, 'endpoint': endpoint, 'payload': input_data})
+            function_uuid = post_req.get("func", None)
+            endpoint = post_req.get("endpoint", None)
+            input_data = post_req.get("payload", None)
+            tasks.append(
+                {"func": function_uuid, "endpoint": endpoint, "payload": input_data}
+            )
 
         # Sets serialize to True by default
-        serialize = post_req.get('serialize', True)
+        serialize = post_req.get("serialize", True)
     except KeyError as e:
-        return jsonify({'status': 'Failed',
-                        'reason': "Missing Key {}".format(str(e))})
+        return jsonify({"status": "Failed", "reason": f"Missing Key {str(e)}"})
     except Exception as e:
-        return jsonify({'status': 'Failed',
-                        'reason': 'Request Malformed. Missing critical information: {}'.format(str(e))})
+        return jsonify(
+            {
+                "status": "Failed",
+                "reason": "Request Malformed. Missing critical information: {}".format(
+                    str(e)
+                ),
+            }
+        )
 
-    results = {'status': 'Success',
-               'task_uuids': []}
-    app.logger.info(f'tasks to submit: {tasks}')
+    results = {"status": "Success", "task_uuids": []}
+    app.logger.info(f"tasks to submit: {tasks}")
     for task in tasks:
-        res = auth_and_launch(user_id,
-                              task['func'],
-                              [task['endpoint']],
-                              task['payload'],
-                              app,
-                              token,
-                              serialize=serialize)
-        if res.get('status', 'Failed') != 'Success':
+        res = auth_and_launch(
+            user_id,
+            task["func"],
+            [task["endpoint"]],
+            task["payload"],
+            app,
+            token,
+            serialize=serialize,
+        )
+        if res.get("status", "Failed") != "Success":
             return res
         else:
-            results['task_uuids'].extend(res['task_uuids'])
+            results["task_uuids"].extend(res["task_uuids"])
 
     # if the batch size is just one, we can return it as the action id
-    if len(results['task_uuids']) == 1:
-        action_id = results['task_uuids'][0]
+    if len(results["task_uuids"]) == 1:
+        action_id = results["task_uuids"][0]
     else:
         # Otherwise we need to create an action id for the batch
         action_id = str(uuid.uuid4())
         # Now store the list of ids in redis with this batch id
         rc = get_redis_client()
-        rc.hset(f'batch_{action_id}', 'batch', json.dumps(results['task_uuids']))
+        rc.hset(f"batch_{action_id}", "batch", json.dumps(results["task_uuids"]))
 
     automate_response = {
-        "status": 'ACTIVE',
+        "status": "ACTIVE",
         "action_id": action_id,
         "details": None,
-        "release_after": 'P30D',
-        "start_time": str(datetime.datetime.utcnow())
+        "release_after": "P30D",
+        "start_time": str(datetime.datetime.utcnow()),
     }
     print(automate_response)
     return jsonify(automate_response)
 
 
-@automate_api.route("/<task_id>/status", methods=['GET'])
+@automate_api.route("/<task_id>/status", methods=["GET"])
 @authenticated
 def status(user: User, task_id):
     """Check the status of a task.
 
-        Parameters
-        ----------
-        user : User
-            The primary identity of the user
-        task_id : str
-            The task uuid to look up
+    Parameters
+    ----------
+    user : User
+        The primary identity of the user
+    task_id : str
+        The task uuid to look up
 
-        Returns
-        -------
-        json
-            The status of the task
-        """
+    Returns
+    -------
+    json
+        The status of the task
+    """
 
     automate_response = {
         "details": None,
         "status": "ACTIVE",
         "action_id": task_id,
-        "release_after": 'P30D'
+        "release_after": "P30D",
     }
 
     rc = get_redis_client()
@@ -144,29 +155,28 @@ def status(user: User, task_id):
                 task_results = []
                 for tid in task_ids:
                     task = get_task_result(tid, delete=False)
-                    task['task_id'] = tid
+                    task["task_id"] = tid
                     task_results.append(task)
 
                 # If it is done, return it all
-                automate_response['details'] = task_results
+                automate_response["details"] = task_results
                 # They all have a success status
-                automate_response['status'] = task['status']
+                automate_response["status"] = task["status"]
         else:
             # it is not a batch, get the single task result
             task = get_task_result(task_id, delete=False)
-            task['task_id'] = task_id
+            task["task_id"] = task_id
 
-            automate_response['details'] = task
-            automate_response['status'] = task['status']
+            automate_response["details"] = task
+            automate_response["status"] = task["status"]
     except Exception as e:
         app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
+        return jsonify({"status": "Failed", "reason": f"InternalError: {e}"})
 
     return json.dumps(automate_response)
 
 
-@automate_api.route("/<task_id>/release", methods=['POST'])
+@automate_api.route("/<task_id>/release", methods=["POST"])
 @authenticated
 def release(user: User, task_id):
     """
@@ -177,7 +187,7 @@ def release(user: User, task_id):
         "details": None,
         "status": "SUCCEEDED",
         "action_id": task_id,
-        "release_after": 'P30D'
+        "release_after": "P30D",
     }
 
     rc = get_redis_client()
@@ -197,24 +207,23 @@ def release(user: User, task_id):
                 task_results = []
                 for tid in task_ids:
                     task = get_task_result(tid)
-                    task['task_id'] = tid
+                    task["task_id"] = tid
                     task_results.append(task)
 
                 # If it is done, return it all
-                automate_response['details'] = task_results
+                automate_response["details"] = task_results
                 # They all have a success status
-                automate_response['status'] = task['status']
+                automate_response["status"] = task["status"]
         else:
             # it is not a batch, get the single task result
             task = get_task_result(task_id)
-            task['task_id'] = task_id
+            task["task_id"] = task_id
 
-            automate_response['details'] = task
-            automate_response['status'] = task['status']
+            automate_response["details"] = task
+            automate_response["status"] = task["status"]
     except Exception as e:
         app.logger.error(e)
-        return jsonify({'status': 'Failed',
-                        'reason': 'InternalError: {}'.format(e)})
+        return jsonify({"status": "Failed", "reason": f"InternalError: {e}"})
 
     return json.dumps(automate_response)
 
@@ -244,15 +253,15 @@ def get_task_result(task_id, delete=True):
     task_dict = {}
 
     task = RedisTask(rc, task_id)
-    task_dict['status'] = convert_automate_status(task.status)
-    task_dict['result'] = task.result
-    task_dict['exception'] = task.exception
-    task_dict['completion_t'] = task.completion_time
-    if (task_dict['result'] or task_dict['exception']) and delete:
+    task_dict["status"] = convert_automate_status(task.status)
+    task_dict["result"] = task.result
+    task_dict["exception"] = task.exception
+    task_dict["completion_t"] = task.completion_time
+    if (task_dict["result"] or task_dict["exception"]) and delete:
         task.delete()
 
-    if task_dict['result']:
-        task_dict['result'] = deserialize_result(task_dict['result'])
+    if task_dict["result"]:
+        task_dict["result"] = deserialize_result(task_dict["result"])
 
     return task_dict
 
@@ -276,7 +285,7 @@ def check_batch_status(task_ids):
     try:
         for task_id in task_ids:
             app.logger.debug(f"Checking task id for: task_{task_id}")
-            result_obj = rc.hget(f"task_{task_id}", 'result')
+            result_obj = rc.hget(f"task_{task_id}", "result")
             app.logger.debug(f"Batch Result_obj : {result_obj}")
             if not result_obj:
                 return False
@@ -307,8 +316,13 @@ def convert_automate_status(task_status):
 
     if task_status == "success":
         response = "SUCCEEDED"
-    elif task_status in ["received", "waiting-for-ep", "waiting-for-nodes",
-                         "waiting-for-launch", "running"]:
+    elif task_status in [
+        "received",
+        "waiting-for-ep",
+        "waiting-for-nodes",
+        "waiting-for-launch",
+        "running",
+    ]:
         response = "ACTIVE"
 
     return response

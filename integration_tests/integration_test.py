@@ -1,13 +1,17 @@
 import sys
 import time
+
 from funcx.sdk.client import FuncXClient
+
 endpoint = "4a55d09b-a4c3-4f02-8e9e-4e5371d73b54"
 
 if len(sys.argv) > 0:
     endpoint = sys.argv[1]
 
 fxc = FuncXClient(funcx_service_address="http://localhost:5000/v1")
-container = fxc.register_container("NCSA", "Docker", "test-image", "This is just a test")
+container = fxc.register_container(
+    "NCSA", "Docker", "test-image", "This is just a test"
+)
 print("Registered container ", container)
 
 saved_container = fxc.get_container(container, "Docker")
@@ -55,7 +59,7 @@ def test_batch3(a, b, c=2, d=2):
 funcs = [test_batch1, test_batch2, test_batch3]
 func_ids = []
 for func in funcs:
-    func_ids.append(fxc.register_function(func, description='test'))
+    func_ids.append(fxc.register_function(func, description="test"))
 
 start = time.time()
 task_count = 5
@@ -67,13 +71,15 @@ for func_id in func_ids:
 task_ids = fxc.batch_run(batch)
 
 delta = time.time() - start
-print("Time to launch {} tasks: {:8.3f} s".format(task_count * len(func_ids), delta))
-print("Got {} tasks_ids ".format(len(task_ids)))
+print(f"Time to launch {task_count * len(func_ids)} tasks: {delta:8.3f} s")
+print(f"Got {len(task_ids)} tasks_ids ")
 
 for _i in range(10):
     x = fxc.get_batch_status(task_ids)
-    complete_count = sum([1 for t in task_ids if t in x and not x[t].get('pending', True)])
-    print("Batch status : {}/{} complete".format(complete_count, len(task_ids)))
+    complete_count = sum(
+        1 for t in task_ids if t in x and not x[t].get("pending", True)
+    )
+    print(f"Batch status : {complete_count}/{len(task_ids)} complete")
     if complete_count == len(task_ids):
         print(x)
         break
@@ -98,14 +104,15 @@ except Exception as e:
 # Check task status updates
 def funcx_sleep(val):
     import time
+
     time.sleep(int(val))
-    return 'done'
+    return "done"
 
 
 func_uuid = fxc.register_function(funcx_sleep, description="A sleep function")
 
 # check for pending status
-print('check pending')
+print("check pending")
 payload = 2
 res = fxc.run(payload, endpoint_id=endpoint, function_id=func_uuid)
 print(res)
@@ -116,12 +123,12 @@ except Exception as e:
     pass
 
 # Check for done
-print('check done')
+print("check done")
 time.sleep(3)
 print(fxc.get_result(res))
 
 # check for running
-print('check running')
+print("check running")
 payload = 90
 res = fxc.run(payload, endpoint_id=endpoint, function_id=func_uuid)
 print(res)
@@ -130,7 +137,7 @@ try:
     print(fxc.get_result(res))
 except Exception as e:
     print(e)
-print('check still running')
+print("check still running")
 try:
     print(fxc.get_result(res))
 except Exception as e:
@@ -138,6 +145,6 @@ except Exception as e:
     pass
     pass
 
-print('check done')
+print("check done")
 time.sleep(32)
 print(fxc.get_result(res))

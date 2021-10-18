@@ -1,6 +1,7 @@
-import funcx_web_service
 import pytest
 from funcx_common.tasks import TaskState
+
+import funcx_web_service
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.tasks import InternalTaskState, RedisTask
 from funcx_web_service.models.user import User
