@@ -22,12 +22,12 @@ run it on your host for debugging.
     REDIS_PORT = 6379
     REDIS_HOST = "localhost"
     ```
-3. Forward the postgres pod ports to your host. This command will not return so 
+3. Forward the postgres pod ports to your host. This command will not return so
 start it in another shell.
     ```shell script
     kubectl port-forward funcx-postgresql-0 5432:5432
     ```
-4. Forward the Redis master pod ports to your host. This command will not 
+4. Forward the Redis master pod ports to your host. This command will not
 return so  start it in another shell.
     ```shell script
     kubectl port-forward funcx-redis-master-0 6379:6379
@@ -41,6 +41,6 @@ return so  start it in another shell.
     python integration_tests/get_valid_token.py
     ```
 7. Use the postman tests in `integration_tests/funcX.postman_collection.json`
-with the `host` variable set to `localhost:5000` and the `access_token` set 
+with the `host` variable set to `localhost:5000` and the `access_token` set
 to your JWT.
 
