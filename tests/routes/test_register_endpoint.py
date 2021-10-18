@@ -138,8 +138,8 @@ class TestRegisterEndpoint(AppTestBase):
         assert result.json["status"] == "Failed"
         assert result.json["code"] == int(ResponseErrorCode.ENDPOINT_ALREADY_REGISTERED)
         assert (
-            result.json["reason"]
-            == "Endpoint 11111111-2222-3333-4444-555555555555 was already registered by a different user"
+            result.json["reason"] == "Endpoint 11111111-2222-3333-4444-555555555555 "
+            "was already registered by a different user"
         )
 
     def test_register_endpoint_unknown_error(self, mocker, mock_auth_client):

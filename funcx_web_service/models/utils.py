@@ -3,8 +3,7 @@ import uuid
 
 import redis
 from flask import current_app as app
-from funcx_common.response_errors import (EndpointAlreadyRegistered,
-                                          FunctionNotFound)
+from funcx_common.response_errors import EndpointAlreadyRegistered, FunctionNotFound
 
 from funcx_web_service.models import search
 from funcx_web_service.models.endpoint import Endpoint
@@ -110,7 +109,8 @@ def get_ep_whitelist(user: User, endpoint_id):
     if endpoint.user != user:
         return {
             "status": "Failed",
-            "reason": f"User {user.username} is not authorized to perform this action on endpoint {endpoint_id}",
+            "reason": f"User {user.username} is not authorized to perform this action "
+            f"on endpoint {endpoint_id}",
         }
 
     functions = [f.function_uuid for f in endpoint.restricted_functions]
@@ -147,7 +147,8 @@ def delete_ep_whitelist(user: User, endpoint_id, function_id):
     if saved_endpoint.user != user:
         return {
             "status": "Failed",
-            "reason": f"User {user.username} is not authorized to perform this action on endpoint {endpoint_id}",
+            "reason": f"User {user.username} is not authorized to perform this action "
+            f"on endpoint {endpoint_id}",
         }
 
     saved_function = Function.find_by_uuid(function_id)

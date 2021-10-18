@@ -78,7 +78,8 @@ def _trim_func_data(func_data):
 def _exists(client, index, func_uuid):
     """Checks if a func_uuid exists in the search index
 
-    Mainly used to determine whether we need a create or an update call to the search API
+    Mainly used to determine whether we need a create or an update call to the
+    search API
 
     Parameters
     ----------
@@ -120,8 +121,10 @@ def func_ingest_or_update(func_uuid, func_data, author="", author_urn=""):
             group = f"urn:globus:groups:id:{group}"
         acl.append(group)
 
-    # Ensure that the author of the function and the funcx search admin group have access
-    # TODO: do we want access to everything? Is this the default since we control the index?
+    # Ensure that the author of the function and the funcx search admin group have
+    # access
+    # TODO: do we want access to everything?
+    #       Is this the default since we control the index?
     acl.append(author_urn)
     acl.append("urn:globus:groups:id:69e12e30-b499-11ea-91c1-0a0ee5aecb35")
 
@@ -165,8 +168,10 @@ def endpoint_ingest_or_update(ep_uuid, data, owner="", owner_urn=""):
     acl.extend(data["visible_to"])
     del data["visible_to"]
 
-    # Ensure that the author of the function and the funcx search admin group have access
-    # TODO: do we want access to everything? Is this the default since we control the index?
+    # Ensure that the author of the function and the funcx search admin group have
+    # access
+    # TODO: do we want access to everything?
+    #       Is this the default since we control the index?
     acl.append(owner_urn)
     acl.append("urn:globus:groups:id:69e12e30-b499-11ea-91c1-0a0ee5aecb35")
 

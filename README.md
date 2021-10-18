@@ -18,7 +18,7 @@ run it on your host for debugging.
     DB_USER = "funcx"
     DB_PASSWORD = "leftfoot1"
     DB_HOST = "localhost"
-    
+
     REDIS_PORT = 6379
     REDIS_HOST = "localhost"
     ```

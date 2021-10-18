@@ -1,7 +1,6 @@
 import pytest
 
-from funcx_web_service.authentication.auth import (authorize_endpoint,
-                                                   authorize_function)
+from funcx_web_service.authentication.auth import authorize_endpoint, authorize_function
 from funcx_web_service.models.function import Function, FunctionAuthGroup
 from tests.routes.app_test_base import AppTestBase
 

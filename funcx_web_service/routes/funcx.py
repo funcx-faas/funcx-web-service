@@ -8,31 +8,45 @@ from flask import current_app as app
 from flask import g, jsonify, request
 from funcx.sdk.version import VERSION as FUNCX_VERSION
 from funcx_common.redis import FuncxRedisPubSub
-from funcx_common.response_errors import (ContainerNotFound,
-                                          EndpointAccessForbidden,
-                                          EndpointOutdated, EndpointStatsError,
-                                          ForwarderRegistrationError,
-                                          FunctionAccessForbidden,
-                                          InternalError, InvalidUUID,
-                                          RequestKeyError, RequestMalformed,
-                                          TaskGroupAccessForbidden,
-                                          TaskGroupNotFound, TaskNotFound,
-                                          UserNotFound)
+from funcx_common.response_errors import (
+    ContainerNotFound,
+    EndpointAccessForbidden,
+    EndpointOutdated,
+    EndpointStatsError,
+    ForwarderRegistrationError,
+    FunctionAccessForbidden,
+    InternalError,
+    InvalidUUID,
+    RequestKeyError,
+    RequestMalformed,
+    TaskGroupAccessForbidden,
+    TaskGroupNotFound,
+    TaskNotFound,
+    UserNotFound,
+)
 from redis.client import Redis
 
-from funcx_web_service.authentication.auth import (authenticated,
-                                                   authenticated_w_uuid,
-                                                   authorize_endpoint,
-                                                   authorize_function)
+from funcx_web_service.authentication.auth import (
+    authenticated,
+    authenticated_w_uuid,
+    authorize_endpoint,
+    authorize_function,
+)
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.models.tasks import RedisTask, TaskGroup
-from funcx_web_service.models.utils import (add_ep_whitelist,
-                                            db_invocation_logger,
-                                            delete_ep_whitelist,
-                                            delete_function, get_ep_whitelist,
-                                            get_redis_client, ingest_endpoint,
-                                            ingest_function, register_endpoint,
-                                            resolve_function, update_function)
+from funcx_web_service.models.utils import (
+    add_ep_whitelist,
+    db_invocation_logger,
+    delete_ep_whitelist,
+    delete_function,
+    get_ep_whitelist,
+    get_redis_client,
+    ingest_endpoint,
+    ingest_function,
+    register_endpoint,
+    resolve_function,
+    update_function,
+)
 from funcx_web_service.version import MIN_SDK_VERSION, VERSION
 
 # Flask
@@ -92,11 +106,12 @@ def auth_and_launch(
     app : app object
     token : globus token
     serialize : bool
-        Whether or not to serialize the input using the serialization service. This is used
-        when the input is not already serialized by the SDK.
+        Whether or not to serialize the input using the serialization service. This is
+        used when the input is not already serialized by the SDK.
 
     Returns:
-       JSON response object, containing task_uuid, http_status_code, and success or error info
+       JSON response object, containing task_uuid, http_status_code, and success or
+       error info
     """
 
     task_uuid = str(uuid.uuid4())
@@ -227,7 +242,8 @@ def submit(user: User):
     task_group = None
     if task_group_id and TaskGroup.exists(rc, task_group_id):
         app.logger.debug(
-            f"Task Group {task_group_id} submitted to by user {user_id} already exists, checking if user is authorized"
+            f"Task Group {task_group_id} submitted to by user {user_id} "
+            "already exists, checking if user is authorized"
         )
         # TODO: This could be cached to minimize lookup cost.
         task_group = TaskGroup(rc, task_group_id)
@@ -306,13 +322,15 @@ def get_tasks_from_redis(task_ids, user: User):
             "exception": task_exception,
         }
 
-        # Note: this is for backwards compat, when we can't include a None result and have a
-        # non-complete status, we must forgo the result field if task not complete.
+        # Note: this is for backwards compat, when we can't include a None result and
+        # have a non-complete status, we must forgo the result field if task not
+        # complete.
         if task_result is None:
             del all_tasks[task_id]["result"]
 
-        # Note: this is for backwards compat, when we can't include a None result and have a
-        # non-complete status, we must forgo the result field if task not complete.
+        # Note: this is for backwards compat, when we can't include a None result and
+        # have a non-complete status, we must forgo the result field if task not
+        # complete.
         if task_exception is None:
             del all_tasks[task_id]["exception"]
     return all_tasks
@@ -329,14 +347,16 @@ def authorize_task_or_404(task: RedisTask, user: User):
         raise TaskNotFound(task.task_id)
 
 
-# TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed, we should remove this route
+# TODO: Old APIs look at "/<task_id>/status" for status and result, when that's changed,
+# we should remove this route
 @funcx_api.route("/<task_id>/status", methods=["GET"])
 @funcx_api.route("/tasks/<task_id>", methods=["GET"])
 @authenticated
 def status_and_result(user: User, task_id):
     """Check the status of a task.  Return result if available.
 
-    If the query param deserialize=True is passed, then we deserialize the result object.
+    If the query param deserialize=True is passed, then we deserialize the result
+    object.
 
     Parameters
     ----------
@@ -377,8 +397,8 @@ def status_and_result(user: User, task_id):
         task_result = deserialize_result(task_result)
 
     # TODO: change client to have better naming conventions
-    # these fields like 'status' should be changed to 'task_status', because 'status' is normally
-    # used for HTTP codes.
+    # these fields like 'status' should be changed to 'task_status', because 'status' is
+    # normally used for HTTP codes.
     response = {
         "task_id": task_id,
         "status": task_status,
@@ -575,7 +595,9 @@ def get_version():
 @funcx_api.route("/endpoints", methods=["POST"])
 @authenticated_w_uuid
 def reg_endpoint(user: User, user_uuid: str):
-    """Register an endpoint. Add this endpoint to the database and associate it with this user.
+    """
+    Register an endpoint. Add this endpoint to the database and associate it with
+    this user.
 
     Returns
     -------
@@ -695,7 +717,7 @@ def get_ep_stats(user: User, endpoint_id):
             for i in items:
                 status["logs"].append(json.loads(i))
 
-            # timestamp is created using time.time(), which returns seconds since epoch UTC
+            # timestamp is an epoch timestamp
             logs = status["logs"]  # should have been json loaded already
             newest_timestamp = logs[0]["timestamp"]
             now = time.time()
@@ -792,7 +814,8 @@ def del_endpoint_whitelist(user: User, endpoint_id, function_id):
     """
 
     app.logger.info(
-        f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by user: {user.username}"
+        f"Deleting function {function_id} from endpoint {endpoint_id} whitelist by "
+        f"user: {user.username}"
     )
 
     return delete_ep_whitelist(user, endpoint_id, function_id)
@@ -878,8 +901,9 @@ def reg_function(user: User, user_uuid):
         raise RequestKeyError(str(key_error))
 
     except Exception as e:
-        message = "Function registration failed for user:{} function_name:{} due to {}".format(
-            user.username, function_rec.function_name, e
+        message = (
+            f"Function registration failed for user:{user.username} "
+            f"function_name:{function_rec.function_name} due to {e}"
         )
         app.logger.error(message)
         raise InternalError(message)
@@ -887,8 +911,9 @@ def reg_function(user: User, user_uuid):
     try:
         ingest_function(function_rec, function_source, user_uuid)
     except Exception as e:
-        message = "Function ingest to search failed for user:{} function_name:{} due to {}".format(
-            user.username, function_rec.function_name, e
+        message = (
+            f"Function ingest to search failed for user:{user.username} "
+            f"function_name:{function_rec.function_name} due to {e}"
         )
         app.logger.error(message)
         raise InternalError(message)
@@ -929,14 +954,16 @@ def upd_function(user: User, function_id):
         if result == 302:
             return jsonify({"function_uuid": function_id}), 302
         elif result == 403:
-            message = "Unable to update function for user:{} function_id:{}. 403 Unauthorized".format(
-                user.username, function_id
+            message = (
+                f"Unable to update function for user:{user.username} "
+                f"function_id:{function_id}. 403 Unauthorized"
             )
             app.logger.error(message)
             raise InternalError(message)
         elif result == 404:
-            message = "Unable to update function for user:{} function_id:{}. 404 Function not found.".format(
-                user.username, function_id
+            message = (
+                f"Unable to update function for user:{user.username} "
+                f"function_id:{function_id}. 404 Function not found."
             )
             app.logger.error(message)
             raise InternalError(message)

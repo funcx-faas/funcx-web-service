@@ -54,16 +54,18 @@ def store_data(ep_data, conn, cur):
 
     data struct:
     {'ip': '140.221.68.107', 'hostname': 'cooleylogin1.cooley.pub.alcf.anl.gov',
-    'city': 'New York City', 'region': 'New York', 'country': 'US', 'loc': '40.7143,-74.0060',
-    'org': 'AS683 Argonne National Lab', 'postal': '10004', 'timezone': 'America/New_York',
-    'readme': 'https://ipinfo.io/missingauth', 'core_hours': 108.97,
-    'latitude': '40.7143', 'longitude': '-74.0060'}
+    'city': 'New York City', 'region': 'New York', 'country': 'US',
+    'loc': '40.7143,-74.0060', 'org': 'AS683 Argonne National Lab', 'postal': '10004',
+    'timezone': 'America/New_York', 'readme': 'https://ipinfo.io/missingauth',
+    'core_hours': 108.97, 'latitude': '40.7143', 'longitude': '-74.0060'}
 
     """
     for data in ep_data:
         query = (
-            "update sites set latitude = %s, longitude = %s, ip_addr = %s, city = %s, region = %s, country = %s, "
-            "zipcode = %s, hostname = %s, org = %s, core_hours = %s where endpoint_uuid = %s "
+            "update sites set latitude = %s, longitude = %s, ip_addr = %s, city = %s, "
+            "region = %s, country = %s, "
+            "zipcode = %s, hostname = %s, org = %s, core_hours = %s "
+            "where endpoint_uuid = %s "
         )
         cur.execute(
             query,

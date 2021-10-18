@@ -2,8 +2,13 @@ import typing as t
 from datetime import datetime, timedelta
 from enum import Enum
 
-from funcx_common.redis import (INT_SERDE, JSON_SERDE, FuncxRedisEnumSerde,
-                                HasRedisFieldsMeta, RedisField)
+from funcx_common.redis import (
+    INT_SERDE,
+    JSON_SERDE,
+    FuncxRedisEnumSerde,
+    HasRedisFieldsMeta,
+    RedisField,
+)
 from funcx_common.tasks import TaskProtocol, TaskState
 from redis import Redis
 from sqlalchemy import DateTime, ForeignKey, Integer, String
@@ -42,7 +47,8 @@ class DBTask(db.Model):
 
 class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
     """
-    ORM-esque class to wrap access to properties of tasks for better style and encapsulation
+    ORM-esque class to wrap access to properties of tasks for better style and
+    encapsulation
     """
 
     status = t.cast(TaskState, RedisField(serde=FuncxRedisEnumSerde(TaskState)))
@@ -127,7 +133,8 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
 
 class TaskGroup(metaclass=HasRedisFieldsMeta):
     """
-    ORM-esque class to wrap access to properties of batches for better style and encapsulation
+    ORM-esque class to wrap access to properties of batches for better style and
+    encapsulation
     """
 
     user_id = RedisField(serde=INT_SERDE)
@@ -135,8 +142,9 @@ class TaskGroup(metaclass=HasRedisFieldsMeta):
     TASK_GROUP_TTL = timedelta(weeks=1)
 
     def __init__(self, redis_client: Redis, task_group_id: str, user_id: int = None):
-        """If the kwargs are passed, then they will be overwritten.  Otherwise, they will gotten from existing
-        task entry.
+        """
+        If the kwargs are passed, then they will be overwritten.  Otherwise, they
+        will gotten from existing task entry.
 
         :param redis_client: Redis client so that properties can get/set
         """

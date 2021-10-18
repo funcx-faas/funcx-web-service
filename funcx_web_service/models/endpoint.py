@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import (Boolean, DateTime, Float, ForeignKey, Integer, String,
-                        and_)
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, and_
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 

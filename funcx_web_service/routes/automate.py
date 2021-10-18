@@ -231,7 +231,8 @@ def release(user: User, task_id):
 def get_task_result(task_id, delete=True):
     """Check the status of a task. Return result if available.
 
-    If the query param deserialize=True is passed, then we deserialize the result object.
+    If the query param deserialize=True is passed, then we deserialize the result
+    object.
 
     Parameters
     ----------

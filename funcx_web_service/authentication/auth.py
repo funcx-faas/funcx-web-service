@@ -4,8 +4,11 @@ from functools import wraps
 from flask import abort
 from flask import current_app as app
 from flask import make_response, request
-from funcx_common.response_errors import (EndpointNotFound, FunctionNotFound,
-                                          FunctionNotPermitted)
+from funcx_common.response_errors import (
+    EndpointNotFound,
+    FunctionNotFound,
+    FunctionNotPermitted,
+)
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, ConfidentialAppAuthClient
 from globus_sdk.base import BaseClient

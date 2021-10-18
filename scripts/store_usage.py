@@ -31,8 +31,11 @@ def rds_usage(conn, cur):
 
     # Active endpoints, users, functions in last day
     query = (
-        "select count(distinct function_id) as functions, count(distinct user_id) as users, count(distinct "
-        "endpoint_id) as endpoints from tasks WHERE created_at > current_date - interval '1' day; "
+        "select count(distinct function_id) as functions, "
+        "count(distinct user_id) as users, "
+        "count(distinct endpoint_id) as endpoints "
+        "from tasks "
+        "WHERE created_at > current_date - interval '1' day; "
     )
     cur.execute(query)
     row = cur.fetchone()
@@ -43,8 +46,10 @@ def rds_usage(conn, cur):
 
     # Active endpoints, users, functions in last week
     query = (
-        "select count(distinct function_id) as functions, count(distinct user_id) as users, count(distinct "
-        "endpoint_id) as endpoints from tasks WHERE created_at > current_date - interval '7' day; "
+        "select count(distinct function_id) as functions, "
+        "count(distinct user_id) as users, count(distinct "
+        "endpoint_id) as endpoints from tasks "
+        "WHERE created_at > current_date - interval '7' day; "
     )
     cur.execute(query)
     row = cur.fetchone()
@@ -55,8 +60,10 @@ def rds_usage(conn, cur):
 
     # Active things this month
     query = (
-        "select count(distinct function_id) as functions, count(distinct user_id) as users, count(distinct "
-        "endpoint_id) as endpoints from tasks WHERE created_at >= date_trunc('month', CURRENT_DATE); "
+        "select count(distinct function_id) as functions, "
+        "count(distinct user_id) as users, count(distinct "
+        "endpoint_id) as endpoints from tasks "
+        "WHERE created_at >= date_trunc('month', CURRENT_DATE); "
     )
     cur.execute(query)
     row = cur.fetchone()
@@ -102,9 +109,10 @@ def store_data(data, conn, cur):
       users_month int
     """
     query = (
-        "insert into usage_info (total_functions, total_endpoints, total_users, total_core_hours, "
-        "total_invocations, functions_day, functions_week, functions_month, endpoints_day, "
-        "endpoints_week, endpoints_month, users_day, users_week, users_month) values (%s, %s, %s, %s, "
+        "insert into usage_info (total_functions, total_endpoints, total_users, "
+        "total_core_hours, total_invocations, functions_day, functions_week, "
+        "functions_month, endpoints_day, endpoints_week, endpoints_month, users_day, "
+        "users_week, users_month) values (%s, %s, %s, %s, "
         "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     )
     cur.execute(
