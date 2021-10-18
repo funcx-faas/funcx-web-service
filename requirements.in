@@ -27,10 +27,9 @@ redis==3.5.3
 
 # funcx tools
 funcx_common[redis]==0.0.6
-git+https://github.com/funcx-faas/funcX.git@main#egg=funcx&subdirectory=funcx_sdk
 
 # globus clients
-globus-nexus-client==0.2.9
+globus-nexus-client==0.3.0
 globus-sdk<3
 
 

@@ -25,7 +25,6 @@ class TestFuncX(AppTestBase):
         assert version_result["forwarder"] == "1.2.3"
         assert version_result["min_ep_version"] == "3.2.1"
 
-        assert "funcx" in version_result
         assert "min_sdk_version" in version_result
 
     def test_stats(self, mocker, mock_redis):
