@@ -148,7 +148,6 @@ class TestSubmitFunction(AppTestBase):
     def test_submit_function(self, mocker, mock_auth_client, mock_redis_pubsub, mock_redis):
         mock_function_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_function", return_value=True)
         mock_endpoint_auth = mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
-        mocker.patch("funcx_web_service.routes.funcx.EndpointQueue")
         mock_resolve = mocker.patch("funcx_web_service.routes.funcx.resolve_function", return_value=("codecode", "entry", "123-45"))
 
         result = self.client.post("/api/v1/submit",
