@@ -37,7 +37,6 @@ from funcx_common.response_errors import (
     TaskGroupAccessForbidden,
     InvalidUUID
 )
-from funcx.sdk.version import VERSION as FUNCX_VERSION
 
 # Flask
 from ..models.container import Container, ContainerImage
@@ -535,8 +534,6 @@ def get_version():
     s = request.args.get("service")
     if s == "api" or s is None:
         return jsonify(VERSION)
-    elif s == "funcx":
-        return jsonify(FUNCX_VERSION)
 
     forwarder_v_info = get_forwarder_version()
     forwarder_version = forwarder_v_info['forwarder']
@@ -547,7 +544,6 @@ def get_version():
     if s == 'all':
         return jsonify({
             "api": VERSION,
-            "funcx": FUNCX_VERSION,
             "forwarder": forwarder_version,
             "min_sdk_version": MIN_SDK_VERSION,
             "min_ep_version": min_ep_version
