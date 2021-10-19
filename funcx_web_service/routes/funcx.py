@@ -6,7 +6,6 @@ import requests
 from flask import Blueprint
 from flask import current_app as app
 from flask import g, jsonify, request
-from funcx.sdk.version import VERSION as FUNCX_VERSION
 from funcx_common.redis import FuncxRedisPubSub
 from funcx_common.response_errors import (
     ContainerNotFound,
@@ -568,8 +567,6 @@ def get_version():
     s = request.args.get("service")
     if s == "api" or s is None:
         return jsonify(VERSION)
-    elif s == "funcx":
-        return jsonify(FUNCX_VERSION)
 
     forwarder_v_info = get_forwarder_version()
     forwarder_version = forwarder_v_info["forwarder"]
@@ -581,7 +578,6 @@ def get_version():
         return jsonify(
             {
                 "api": VERSION,
-                "funcx": FUNCX_VERSION,
                 "forwarder": forwarder_version,
                 "min_sdk_version": MIN_SDK_VERSION,
                 "min_ep_version": min_ep_version,

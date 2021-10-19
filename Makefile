@@ -28,4 +28,3 @@ freezedeps:
 	echo "# frozen requirements; generate with 'make freezedeps'" > requirements.txt
 	tox -qq -e freezedeps | tee frozen-requirements-tree.txt
 	sed 's/ //g' frozen-requirements-tree.txt | sort -u >> requirements.txt
-	cat requirements.in | grep -E '^git' | grep 'funcx-faas' >> requirements.txt
