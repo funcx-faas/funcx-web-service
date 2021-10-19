@@ -1,18 +1,17 @@
 from datetime import datetime
 
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
 from funcx_web_service.models import db
-from sqlalchemy import ForeignKey, DateTime, Integer, String, Text
-
 from funcx_web_service.models.endpoint import restricted_endpoint_table
 
 
 class Function(db.Model):
-    __tablename__ = 'functions'
+    __tablename__ = "functions"
     __table_args__ = (
-        db.UniqueConstraint('function_uuid', name='unique_function_uuid'),
+        db.UniqueConstraint("function_uuid", name="unique_function_uuid"),
     )
 
     id = db.Column(Integer, nullable=False, primary_key=True, autoincrement=True)
@@ -29,7 +28,9 @@ class Function(db.Model):
     deleted = db.Column(db.Boolean, default=False)
     public = db.Column(db.Boolean, default=False)
 
-    container = relationship("FunctionContainer", uselist=False, back_populates="function")
+    container = relationship(
+        "FunctionContainer", uselist=False, back_populates="function"
+    )
     auth_groups = relationship("FunctionAuthGroup")
 
     tasks = relationship("DBTask")
@@ -37,7 +38,8 @@ class Function(db.Model):
     restricted_endpoints = relationship(
         "Endpoint",
         secondary=restricted_endpoint_table,
-        back_populates="restricted_functions")
+        back_populates="restricted_functions",
+    )
 
     user = relationship("User", back_populates="functions")
 
@@ -54,23 +56,23 @@ class Function(db.Model):
 
 
 class FunctionContainer(db.Model):
-    __tablename__ = 'function_containers'
+    __tablename__ = "function_containers"
     id = db.Column(Integer, primary_key=True)
-    container_id = db.Column(Integer, ForeignKey('containers.id'))
-    function_id = db.Column(Integer, ForeignKey('functions.id'))
+    container_id = db.Column(Integer, ForeignKey("containers.id"))
+    function_id = db.Column(Integer, ForeignKey("functions.id"))
     created_at = db.Column(DateTime, default=datetime.utcnow)
     modified_at = db.Column(DateTime, default=datetime.utcnow)
 
-    function = relationship("Function", back_populates='container')
-    container = relationship("Container", back_populates='functions')
+    function = relationship("Function", back_populates="container")
+    container = relationship("Container", back_populates="functions")
 
 
 class FunctionAuthGroup(db.Model):
     __tablename__ = "function_auth_groups"
     id = db.Column(Integer, primary_key=True)
     group_id = db.Column(String(38))
-    function_id = db.Column(Integer, ForeignKey('functions.id'))
-    function = relationship("Function", back_populates='auth_groups')
+    function_id = db.Column(Integer, ForeignKey("functions.id"))
+    function = relationship("Function", back_populates="auth_groups")
 
     @classmethod
     def find_by_function_id(cls, function_id):

@@ -1,6 +1,7 @@
-import funcx_web_service
 import pytest
 from funcx_common.tasks import TaskState
+
+import funcx_web_service
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.tasks import InternalTaskState, RedisTask
 from funcx_web_service.models.user import User
@@ -14,7 +15,7 @@ def mock_auth_client(mocker, mock_user):
             "username": "bob",
             "sub": "123-456",
             "active": True,
-            "scope": "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all",
+            "scope": "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all",  # noqa: E501
         }
     )
 

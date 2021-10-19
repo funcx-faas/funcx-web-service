@@ -3,7 +3,7 @@ import uuid
 
 import redis
 from flask import current_app as app
-from funcx_common.response_errors import FunctionNotFound, EndpointAlreadyRegistered
+from funcx_common.response_errors import EndpointAlreadyRegistered, FunctionNotFound
 
 from funcx_web_service.models import search
 from funcx_web_service.models.endpoint import Endpoint
@@ -12,16 +12,15 @@ from funcx_web_service.models.tasks import DBTask
 from funcx_web_service.models.user import User
 
 
-class db_invocation_logger(object):
-
+class db_invocation_logger:
     def log(self, user_id, task_id, function_id, endpoint_id, deferred=False):
         try:
-            status = 'CREATED'
+            status = "CREATED"
             task_record = DBTask(
                 user_id=user_id,
                 function_id=function_id,
                 endpoint_id=endpoint_id,
-                status=status
+                status=status,
             )
             task_record.save_to_db()
         except Exception:
@@ -56,25 +55,33 @@ def add_ep_whitelist(user: User, endpoint_uuid, functions):
     endpoint = Endpoint.find_by_uuid(endpoint_uuid)
 
     if not endpoint:
-        return {'status': 'Failed',
-                'reason': f'Endpoint {endpoint_uuid} is not found in database'}
+        return {
+            "status": "Failed",
+            "reason": f"Endpoint {endpoint_uuid} is not found in database",
+        }
 
     if endpoint.user_id != user_id:
-        return {'status': 'Failed',
-                'reason': f'Endpoint does not belong to User {user.username}'}
+        return {
+            "status": "Failed",
+            "reason": f"Endpoint does not belong to User {user.username}",
+        }
 
     try:
-        endpoint.restricted_functions = [
-            Function.find_by_uuid(f) for f in functions
-        ]
+        endpoint.restricted_functions = [Function.find_by_uuid(f) for f in functions]
         endpoint.save_to_db()
     except Exception as e:
         print(e)
-        return {'status': 'Failed', 'reason': f'Unable to add functions {functions} '
-                                              f'to endpoint {endpoint_uuid}, {e}'}
+        return {
+            "status": "Failed",
+            "reason": f"Unable to add functions {functions} "
+            f"to endpoint {endpoint_uuid}, {e}",
+        }
 
-    return {'status': 'Success', 'reason': f'Added functions {functions} '
-                                           f'to endpoint {endpoint_uuid} whitelist.'}
+    return {
+        "status": "Success",
+        "reason": f"Added functions {functions} "
+        f"to endpoint {endpoint_uuid} whitelist.",
+    }
 
 
 def get_ep_whitelist(user: User, endpoint_id):
@@ -97,15 +104,17 @@ def get_ep_whitelist(user: User, endpoint_id):
 
     endpoint = Endpoint.find_by_uuid(endpoint_id)
     if not endpoint:
-        return {'status': 'Failed',
-                'reason': f'Could not find endpoint  {endpoint_id}'}
+        return {"status": "Failed", "reason": f"Could not find endpoint  {endpoint_id}"}
 
     if endpoint.user != user:
-        return {'status': 'Failed',
-                'reason': f'User {user.username} is not authorized to perform this action on endpoint {endpoint_id}'}
+        return {
+            "status": "Failed",
+            "reason": f"User {user.username} is not authorized to perform this action "
+            f"on endpoint {endpoint_id}",
+        }
 
     functions = [f.function_uuid for f in endpoint.restricted_functions]
-    return {'status': 'Success', 'result': functions}
+    return {"status": "Success", "result": functions}
 
 
 def delete_ep_whitelist(user: User, endpoint_id, function_id):
@@ -130,21 +139,28 @@ def delete_ep_whitelist(user: User, endpoint_id, function_id):
 
     saved_endpoint = Endpoint.find_by_uuid(endpoint_id)
     if not saved_endpoint:
-        return {'status': 'Failed',
-                'reason': f'Endpoint {endpoint_id} not found in database'}
+        return {
+            "status": "Failed",
+            "reason": f"Endpoint {endpoint_id} not found in database",
+        }
 
     if saved_endpoint.user != user:
-        return {'status': 'Failed',
-                'reason': f'User {user.username} is not authorized to perform this action on endpoint {endpoint_id}'}
+        return {
+            "status": "Failed",
+            "reason": f"User {user.username} is not authorized to perform this action "
+            f"on endpoint {endpoint_id}",
+        }
 
     saved_function = Function.find_by_uuid(function_id)
 
     if not saved_function:
-        return {'status': 'Failed',
-                'reason': f'Function {function_id} not found in database'}
+        return {
+            "status": "Failed",
+            "reason": f"Function {function_id} not found in database",
+        }
 
     saved_endpoint.delete_whitelist_for_function(saved_function)
-    return {'status': 'Success', 'result': function_id}
+    return {"status": "Success", "result": function_id}
 
 
 def ingest_function(function: Function, function_source, user_uuid):
@@ -160,8 +176,12 @@ def ingest_function(function: Function, function_source, user_uuid):
     -------
     None
     """
-    selected_group = None if not function.auth_groups else function.auth_groups[0].group_id
-    container_uuid = None if not function.container else function.container.container.container_uuid
+    selected_group = (
+        None if not function.auth_groups else function.auth_groups[0].group_id
+    )
+    container_uuid = (
+        None if not function.container else function.container.container.container_uuid
+    )
     data = {
         "function_name": function.function_name,
         "function_code": function.function_source_code,
@@ -170,17 +190,19 @@ def ingest_function(function: Function, function_source, user_uuid):
         "entry_point": function.entry_point,
         "description": function.description,
         "public": function.public,
-        "group": selected_group
+        "group": selected_group,
     }
     user_urn = f"urn:globus:auth:identity:{user_uuid}"
-    search.func_ingest_or_update(function.function_uuid, data,
-                                 author=function.user.username,
-                                 author_urn=user_urn)
+    search.func_ingest_or_update(
+        function.function_uuid, data, author=function.user.username, author_urn=user_urn
+    )
 
 
 def ingest_endpoint(user_name, user_uuid, ep_uuid, data):
     owner_urn = f"urn:globus:auth:identity:{user_uuid}"
-    search.endpoint_ingest_or_update(ep_uuid, data, owner=user_name, owner_urn=owner_urn)
+    search.endpoint_ingest_or_update(
+        ep_uuid, data, owner=user_name, owner_urn=owner_urn
+    )
 
 
 def register_endpoint(user: User, endpoint_name, description, endpoint_uuid=None):
@@ -218,18 +240,21 @@ def register_endpoint(user: User, endpoint_name, description, endpoint_uuid=None
                 existing_endpoint.save_to_db()
                 return endpoint_uuid
             else:
-                app.logger.debug(f"Endpoint {endpoint_uuid} was previously registered "
-                                 f"with user {existing_endpoint.user_id} not {user_id}")
+                app.logger.debug(
+                    f"Endpoint {endpoint_uuid} was previously registered "
+                    f"with user {existing_endpoint.user_id} not {user_id}"
+                )
                 raise EndpointAlreadyRegistered(endpoint_uuid)
     else:
         endpoint_uuid = str(uuid.uuid4())
     try:
-        new_endpoint = Endpoint(user=user,
-                                endpoint_name=endpoint_name,
-                                description=description,
-                                status="OFFLINE",
-                                endpoint_uuid=endpoint_uuid
-                                )
+        new_endpoint = Endpoint(
+            user=user,
+            endpoint_name=endpoint_name,
+            description=description,
+            status="OFFLINE",
+            endpoint_uuid=endpoint_uuid,
+        )
         new_endpoint.save_to_db()
     except Exception as e:
         app.logger.error(e)
@@ -273,7 +298,7 @@ def resolve_function(user_id, function_uuid):
         container_uuid = None
 
     delta = time.time() - start
-    app.logger.info("Time to fetch function {0:.1f}ms".format(delta * 1000))
+    app.logger.info(f"Time to fetch function {delta * 1000:.1f}ms")
     return function_code, function_entry, container_uuid
 
 
@@ -286,14 +311,24 @@ def get_redis_client():
         A client for redis
     """
     try:
-        redis_client = redis.StrictRedis(host=app.config['REDIS_HOST'], port=app.config['REDIS_PORT'],
-                                         decode_responses=True)
+        redis_client = redis.StrictRedis(
+            host=app.config["REDIS_HOST"],
+            port=app.config["REDIS_PORT"],
+            decode_responses=True,
+        )
         return redis_client
     except Exception as e:
         print(e)
 
 
-def update_function(user_name, function_uuid, function_name, function_desc, function_entry_point, function_code):
+def update_function(
+    user_name,
+    function_uuid,
+    function_name,
+    function_desc,
+    function_entry_point,
+    function_code,
+):
     """Delete a function
 
     Parameters

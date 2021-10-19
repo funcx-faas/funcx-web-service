@@ -1,35 +1,37 @@
-from funcx_web_service.models.auth_groups import AuthGroup
-from funcx_web_service.models.endpoint import Endpoint
-from funcx_web_service.models.user import User
-from funcx_web_service.models.function import Function, FunctionAuthGroup
+import functools
+from functools import wraps
+
+from flask import abort
+from flask import current_app as app
+from flask import make_response, request
 from funcx_common.response_errors import (
     EndpointNotFound,
     FunctionNotFound,
     FunctionNotPermitted,
 )
-from flask import request, make_response, current_app as app
-import functools
-
 from globus_nexus_client import NexusClient
 from globus_sdk import AccessTokenAuthorizer, ConfidentialAppAuthClient
 from globus_sdk.base import BaseClient
 
-from functools import wraps
-from flask import abort
+from funcx_web_service.models.auth_groups import AuthGroup
+from funcx_web_service.models.endpoint import Endpoint
+from funcx_web_service.models.function import Function, FunctionAuthGroup
+from funcx_web_service.models.user import User
 
 # Default scope if not provided in config
-FUNCX_SCOPE = 'https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all'
+FUNCX_SCOPE = "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all"
 
 
 def authenticated(f):
     """Decorator for globus auth."""
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'Authorization' not in request.headers:
-            abort(401, 'You must be logged in to perform this function.')
+        if "Authorization" not in request.headers:
+            abort(401, "You must be logged in to perform this function.")
 
-        token = request.headers.get('Authorization')
-        token = str.replace(str(token), 'Bearer ', '')
+        token = request.headers.get("Authorization")
+        token = str.replace(str(token), "Bearer ", "")
         user_name = None
         try:
             client = get_auth_client()
@@ -38,13 +40,13 @@ def authenticated(f):
             try:
                 # getting auth_detail.data works fine from a GlobusHTTPResponse,
                 # but does not work when the above method is mocked
-                app.logger.debug("auth_detail", extra={
-                    "log_type": "auth_detail",
-                    "auth_detail": auth_detail.data
-                })
+                app.logger.debug(
+                    "auth_detail",
+                    extra={"log_type": "auth_detail", "auth_detail": auth_detail.data},
+                )
             except Exception:
                 pass
-            user_name = auth_detail['username']
+            user_name = auth_detail["username"]
             user_rec = User.resolve_user(user_name)
 
             if not user_rec:
@@ -56,18 +58,20 @@ def authenticated(f):
         response = make_response(f(user_rec, *args, **kwargs))
         response._log_data.set_user(user_rec)
         return response
+
     return decorated_function
 
 
 def authenticated_w_uuid(f):
     """Decorator for globus auth."""
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'Authorization' not in request.headers:
-            abort(401, 'You must be logged in to perform this function.')
+        if "Authorization" not in request.headers:
+            abort(401, "You must be logged in to perform this function.")
 
-        token = request.headers.get('Authorization')
-        token = str.replace(str(token), 'Bearer ', '')
+        token = request.headers.get("Authorization")
+        token = str.replace(str(token), "Bearer ", "")
         user_name = None
         user_uuid = None
         try:
@@ -77,14 +81,14 @@ def authenticated_w_uuid(f):
             try:
                 # getting auth_detail.data works fine from a GlobusHTTPResponse,
                 # but does not work when the above method is mocked
-                app.logger.debug("auth_detail", extra={
-                    "log_type": "auth_detail",
-                    "auth_detail": auth_detail.data
-                })
+                app.logger.debug(
+                    "auth_detail",
+                    extra={"log_type": "auth_detail", "auth_detail": auth_detail.data},
+                )
             except Exception:
                 pass
-            user_name = auth_detail['username']
-            user_uuid = auth_detail['sub']
+            user_name = auth_detail["username"]
+            user_uuid = auth_detail["sub"]
             user_rec = User.resolve_user(user_name)
 
             if not user_rec:
@@ -96,6 +100,7 @@ def authenticated_w_uuid(f):
         response = make_response(f(user_rec, user_uuid, *args, **kwargs))
         response._log_data.set_user(user_rec)
         return response
+
     return decorated_function
 
 
@@ -108,11 +113,11 @@ def verify_auth_detail(auth_detail):
     auth_detail : dict
         Response object from a token introspect call.
     """
-    if not auth_detail.get('active', False):
-        abort(401, 'Credentials are inactive.')
+    if not auth_detail.get("active", False):
+        abort(401, "Credentials are inactive.")
 
-    if not app.config.get('FUNCX_SCOPE', FUNCX_SCOPE) in auth_detail['scope']:
-        abort(403, 'Missing Scopes')
+    if not app.config.get("FUNCX_SCOPE", FUNCX_SCOPE) in auth_detail["scope"]:
+        abort(403, "Missing Scopes")
 
 
 def check_group_membership(token, endpoint_groups):
@@ -158,7 +163,7 @@ def _get_group_ids_groups_api(token):
         authorizer=AccessTokenAuthorizer(token),
     )
     user_groups = groups_client.get("my_groups").data
-    user_group_ids = set(_["id"] for _ in user_groups)
+    user_group_ids = {_["id"] for _ in user_groups}
     return user_group_ids
 
 
@@ -169,7 +174,7 @@ def _get_group_ids_nexus_api(token):
     user_groups = nexus_client.list_groups(
         my_statuses="active", fields="id", for_all_identities=True
     )
-    user_group_ids = set(_["id"] for _ in user_groups)
+    user_group_ids = {_["id"] for _ in user_groups}
     return user_group_ids
 
 
@@ -279,4 +284,6 @@ def get_auth_client():
     """
     Create an AuthClient for the portal
     """
-    return ConfidentialAppAuthClient(app.config['GLOBUS_CLIENT'], app.config['GLOBUS_KEY'])
+    return ConfidentialAppAuthClient(
+        app.config["GLOBUS_CLIENT"], app.config["GLOBUS_KEY"]
+    )
