@@ -27,9 +27,7 @@ class Endpoint(db.Model):
     user_id = db.Column(Integer, ForeignKey("users.id"))
     status = db.Column(String(10))
     endpoint_name = db.Column(String(256))
-    endpoint_uuid = db.Column(
-        String(38),
-    )
+    endpoint_uuid = db.Column(String(38))
     public = db.Column(Boolean, default=False)
     deleted = db.Column(Boolean, default=False)
     ip_addr = db.Column(String(15))
