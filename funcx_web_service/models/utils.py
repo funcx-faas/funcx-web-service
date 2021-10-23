@@ -67,7 +67,8 @@ def add_ep_whitelist(user: User, endpoint_uuid, functions):
         }
 
     try:
-        endpoint.restricted_functions = [Function.find_by_uuid(f) for f in functions]
+        restricted_functions = [Function.find_by_uuid(f) for f in functions]
+        endpoint.restricted_functions.extend(restricted_functions)
         endpoint.save_to_db()
     except Exception as e:
         print(e)
