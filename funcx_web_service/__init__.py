@@ -9,7 +9,6 @@ from pythonjsonlogger import jsonlogger
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.response import FuncxResponse
 from funcx_web_service.routes.auth import auth_api
-from funcx_web_service.routes.automate import automate_api
 from funcx_web_service.routes.funcx import funcx_api
 
 
@@ -162,6 +161,5 @@ def create_app(test_config=None):
     # Keeping these routes for backwards compatibility on tests.
     application.register_blueprint(funcx_api, url_prefix="/v1")
     application.register_blueprint(funcx_api, url_prefix="/api/v1")
-    application.register_blueprint(automate_api, url_prefix="/automate")
     application.register_blueprint(auth_api)
     return application
