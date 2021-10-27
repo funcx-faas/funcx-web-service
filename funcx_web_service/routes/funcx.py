@@ -6,7 +6,7 @@ import requests
 from flask import Blueprint
 from flask import current_app as app
 from flask import g, jsonify, request
-from funcx_common.redis import FuncxRedisPubSub
+from funcx_common.redis import FuncxRedisPubSub, default_redis_connection_factory
 from funcx_common.response_errors import (
     ContainerNotFound,
     EndpointAccessForbidden,
@@ -72,9 +72,16 @@ def g_redis_client():
 
 def g_redis_pubsub():
     if "redis_pubsub" not in g:
-        g.redis_pubsub = FuncxRedisPubSub(
-            app.config["REDIS_HOST"], port=app.config["REDIS_PORT"]
-        )
+        # TODO: remove support for REDIS_HOST and REDIS_PORT
+        # instead, allow configuration via FUNCX_COMMON_REDIS_URL and instantiate
+        # FuncxRedisPubSub with no arguments
+        if "REDIS_HOST" in app.config and "REDIS_PORT" in app.config:
+            redis_client = default_redis_connection_factory(
+                f"redis://{app.config['REDIS_HOST']}:{app.config['REDIS_PORT']}"
+            )
+        else:
+            redis_client = None
+        g.redis_pubsub = FuncxRedisPubSub(redis_client=redis_client)
         g.redis_pubsub.redis_client.ping()
     return g.redis_pubsub
 
