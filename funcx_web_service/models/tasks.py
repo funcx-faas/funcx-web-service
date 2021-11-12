@@ -61,6 +61,9 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
     container = RedisField()
     payload = RedisField(serde=JSON_SERDE)
     result = RedisField()
+    result_reference = t.cast(
+        t.Optional[t.Dict[str, t.Any]], RedisField(serde=JSON_SERDE)
+    )
     exception = RedisField()
     completion_time = RedisField()
     task_group_id = RedisField()
