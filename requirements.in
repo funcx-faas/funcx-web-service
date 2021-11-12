@@ -11,8 +11,8 @@
 # tl,dr: If it's used by the application, it goes in this list.
 
 # flask
-Flask<2
-Werkzeug<2
+Flask<3
+Werkzeug<3
 
 # flask plugins
 flask-sqlalchemy<3
