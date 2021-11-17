@@ -5,7 +5,7 @@ from funcx_web_service.models.user import User
 
 
 def test_get_status(
-    flask_test_client, mock_auth_client, mock_redis_task_factory, mock_user: User
+    flask_test_client, in_mock_auth_state, mock_redis_task_factory, mock_user: User
 ):
     mock_redis_task_factory("42")
     result = flask_test_client.get(
@@ -16,7 +16,7 @@ def test_get_status(
 
 
 def test_unauthorized_get_status(
-    flask_test_client, mock_auth_client, mock_redis_task_factory, mock_user: User
+    flask_test_client, in_mock_auth_state, mock_redis_task_factory, mock_user: User
 ):
     """
     Verify that a user cannot retrieve a Task status which is not theirs
@@ -31,7 +31,7 @@ def test_unauthorized_get_status(
 
 def test_get_batch_status(
     flask_test_client,
-    mock_auth_client,
+    in_mock_auth_state,
     mock_redis,
     mock_redis_task_factory,
     mock_user: User,
@@ -58,7 +58,7 @@ def test_get_batch_status(
 
 
 def test_unauthorized_get_batch_status(
-    flask_test_client, mocker, mock_auth_client, mock_redis_task_factory, mock_redis
+    flask_test_client, mocker, in_mock_auth_state, mock_redis_task_factory, mock_redis
 ):
     """
     Verify that a user cannot retrieve a status for a Batch which is not theirs

@@ -3,7 +3,9 @@ from funcx_common.response_errors import ResponseErrorCode
 from funcx_web_service.models.tasks import TaskGroup
 
 
-def test_submit_function_access_forbidden(flask_test_client, mocker, mock_auth_client):
+def test_submit_function_access_forbidden(
+    flask_test_client, mocker, in_mock_auth_state
+):
     mock_authorize_function = mocker.patch(
         "funcx_web_service.routes.funcx.authorize_function", return_value=False
     )
@@ -26,7 +28,7 @@ def test_submit_function_access_forbidden(flask_test_client, mocker, mock_auth_c
     assert res["reason"] == "Unauthorized access to function 1111"
 
 
-def test_submit_function_not_found(flask_test_client, mocker, mock_auth_client):
+def test_submit_function_not_found(flask_test_client, mocker, in_mock_auth_state):
 
     mock_find_function = mocker.patch(
         "funcx_web_service.authentication.auth.Function.find_by_uuid",
@@ -51,7 +53,9 @@ def test_submit_function_not_found(flask_test_client, mocker, mock_auth_client):
     assert res["reason"] == "Function 1111 could not be resolved"
 
 
-def test_submit_endpoint_access_forbidden(flask_test_client, mocker, mock_auth_client):
+def test_submit_endpoint_access_forbidden(
+    flask_test_client, mocker, in_mock_auth_state
+):
     mock_authorize_function = mocker.patch(
         "funcx_web_service.routes.funcx.authorize_function", return_value=True
     )
@@ -85,7 +89,7 @@ def test_submit_endpoint_access_forbidden(flask_test_client, mocker, mock_auth_c
     assert res["reason"] == "Unauthorized access to endpoint 2222"
 
 
-def test_submit_endpoint_not_found(flask_test_client, mocker, mock_auth_client):
+def test_submit_endpoint_not_found(flask_test_client, mocker, in_mock_auth_state):
     mock_authorize_function = mocker.patch(
         "funcx_web_service.routes.funcx.authorize_function", return_value=True
     )
@@ -121,7 +125,7 @@ def test_submit_endpoint_not_found(flask_test_client, mocker, mock_auth_client):
 
 
 def test_submit_function_not_permitted(
-    flask_test_client, mocker, mock_auth_client, mock_endpoint
+    flask_test_client, mocker, in_mock_auth_state, mock_endpoint
 ):
     mock_authorize_function = mocker.patch(
         "funcx_web_service.routes.funcx.authorize_function", return_value=True
@@ -158,7 +162,7 @@ def test_submit_function_not_permitted(
 
 
 def test_submit_function(
-    flask_test_client, mocker, mock_auth_client, mock_redis_pubsub, mock_redis
+    flask_test_client, mocker, in_mock_auth_state, mock_redis_pubsub, mock_redis
 ):
     mock_function_auth = mocker.patch(
         "funcx_web_service.routes.funcx.authorize_function", return_value=True

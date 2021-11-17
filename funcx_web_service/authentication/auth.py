@@ -1,22 +1,22 @@
 import functools
 from functools import wraps
 
-from flask import abort
-from flask import current_app as app
-from flask import make_response, request
+from flask import current_app, make_response
 from funcx_common.response_errors import (
     EndpointNotFound,
     FunctionNotFound,
     FunctionNotPermitted,
 )
 from globus_nexus_client import NexusClient
-from globus_sdk import AccessTokenAuthorizer, ConfidentialAppAuthClient
+from globus_sdk import AccessTokenAuthorizer
 from globus_sdk.base import BaseClient
 
 from funcx_web_service.models.auth_groups import AuthGroup
 from funcx_web_service.models.endpoint import Endpoint
 from funcx_web_service.models.function import Function, FunctionAuthGroup
-from funcx_web_service.models.user import User
+
+from .auth_state import get_auth_state
+from .globus_auth import get_auth_client
 
 # Default scope if not provided in config
 FUNCX_SCOPE = "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all"
@@ -27,36 +27,23 @@ def authenticated(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "Authorization" not in request.headers:
-            abort(401, "You must be logged in to perform this function.")
+        auth_state = get_auth_state()
+        auth_state.assert_is_authenticated()
+        auth_state.assert_has_default_scope()
 
-        token = request.headers.get("Authorization")
-        token = str.replace(str(token), "Bearer ", "")
-        user_name = None
-        try:
-            client = get_auth_client()
-            auth_detail = client.oauth2_token_introspect(token)
-            verify_auth_detail(auth_detail)
-            try:
-                # getting auth_detail.data works fine from a GlobusHTTPResponse,
-                # but does not work when the above method is mocked
-                app.logger.debug(
-                    "auth_detail",
-                    extra={"log_type": "auth_detail", "auth_detail": auth_detail.data},
-                )
-            except Exception:
-                pass
-            user_name = auth_detail["username"]
-            user_rec = User.resolve_user(user_name)
+        # TODO: review, should this be getting logged here?
+        # it's the raw introspect response and could be logged by the
+        # AuthenticationState object if that's desirable
+        introspect_detail = getattr(
+            auth_state.introspect_data, "data", auth_state.introspect_data
+        )
+        current_app.logger.debug(
+            "auth_detail",
+            extra={"log_type": "auth_detail", "auth_detail": introspect_detail},
+        )
 
-            if not user_rec:
-                abort(400, description=f"User {user_name} not found in database.")
-
-        except Exception as e:
-            print(e)
-            abort(400, "Failed to authenticate user.")
-        response = make_response(f(user_rec, *args, **kwargs))
-        response._log_data.set_user(user_rec)
+        response = make_response(f(auth_state.user_object, *args, **kwargs))
+        response._log_data.set_user(auth_state.user_object)
         return response
 
     return decorated_function
@@ -67,57 +54,26 @@ def authenticated_w_uuid(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "Authorization" not in request.headers:
-            abort(401, "You must be logged in to perform this function.")
+        auth_state = get_auth_state()
+        auth_state.assert_is_authenticated()
+        auth_state.assert_has_default_scope()
 
-        token = request.headers.get("Authorization")
-        token = str.replace(str(token), "Bearer ", "")
-        user_name = None
-        user_uuid = None
-        try:
-            client = get_auth_client()
-            auth_detail = client.oauth2_token_introspect(token)
-            verify_auth_detail(auth_detail)
-            try:
-                # getting auth_detail.data works fine from a GlobusHTTPResponse,
-                # but does not work when the above method is mocked
-                app.logger.debug(
-                    "auth_detail",
-                    extra={"log_type": "auth_detail", "auth_detail": auth_detail.data},
-                )
-            except Exception:
-                pass
-            user_name = auth_detail["username"]
-            user_uuid = auth_detail["sub"]
-            user_rec = User.resolve_user(user_name)
+        # TODO: review, as above
+        introspect_detail = getattr(
+            auth_state.introspect_data, "data", auth_state.introspect_data
+        )
+        current_app.logger.debug(
+            "auth_detail",
+            extra={"log_type": "auth_detail", "auth_detail": introspect_detail},
+        )
 
-            if not user_rec:
-                abort(400, description=f"User {user_name} not found in database.")
-
-        except Exception as e:
-            print(e)
-            abort(400, "Failed to authenticate user.")
-        response = make_response(f(user_rec, user_uuid, *args, **kwargs))
-        response._log_data.set_user(user_rec)
+        response = make_response(
+            f(auth_state.user_object, auth_state.identity_id, *args, **kwargs)
+        )
+        response._log_data.set_user(auth_state.user_object)
         return response
 
     return decorated_function
-
-
-def verify_auth_detail(auth_detail):
-    """Validate auth introspect response and ensure token is active and has
-    proper scopes.
-
-    Parameters
-    ----------
-    auth_detail : dict
-        Response object from a token introspect call.
-    """
-    if not auth_detail.get("active", False):
-        abort(401, "Credentials are inactive.")
-
-    if not app.config.get("FUNCX_SCOPE", FUNCX_SCOPE) in auth_detail["scope"]:
-        abort(403, "Missing Scopes")
 
 
 def check_group_membership(token, endpoint_groups):
@@ -140,11 +96,11 @@ def check_group_membership(token, endpoint_groups):
     dep_tokens = client.oauth2_get_dependent_tokens(token)
 
     if "groups.api.globus.org" in dep_tokens.by_resource_server:
-        app.logger.debug("Using groups v2 api.")
+        current_app.logger.debug("Using groups v2 api.")
         token = dep_tokens.by_resource_server["groups.api.globus.org"]["access_token"]
         user_group_ids = _get_group_ids_groups_api(token)
     else:
-        app.logger.debug("Using legacy nexus api.")
+        current_app.logger.debug("Using legacy nexus api.")
         token = dep_tokens.by_resource_server["nexus.api.globus.org"]["access_token"]
         user_group_ids = _get_group_ids_nexus_api(token)
 
@@ -213,7 +169,7 @@ def authorize_endpoint(user_id, endpoint_uuid, function_uuid, token):
         raise EndpointNotFound(endpoint_uuid)
 
     if endpoint.restricted:
-        app.logger.debug("Restricted endpoint, checking function is allowed.")
+        current_app.logger.debug("Restricted endpoint, checking function is allowed.")
         whitelisted_functions = [f.function_uuid for f in endpoint.restricted_functions]
 
         if function_uuid not in whitelisted_functions:
@@ -278,12 +234,3 @@ def authorize_function(user_id, function_uuid, token):
             authorized = check_group_membership(token, function_groups)
 
     return authorized
-
-
-def get_auth_client():
-    """
-    Create an AuthClient for the portal
-    """
-    return ConfidentialAppAuthClient(
-        app.config["GLOBUS_CLIENT"], app.config["GLOBUS_KEY"]
-    )
