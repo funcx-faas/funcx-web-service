@@ -52,17 +52,13 @@ def test_get_auth_state_no_authz_header(flask_app, flask_app_ctx):
     # codepaths
     # this generally is not necessary to imitate: simply construct an
     # AuthenticationState in tests instead
-    ctx = flask_app.test_request_context(headers={})
-    ctx.push()
+    with flask_app.test_request_context(headers={}):
+        state = get_auth_state()
+        assert isinstance(state, AuthenticationState)
+        assert state.is_authenticated is False
 
-    state = get_auth_state()
-    assert isinstance(state, AuthenticationState)
-    assert state.is_authenticated is False
-
-    with pytest.raises(Unauthorized):
-        state.assert_is_authenticated()
-
-    ctx.pop()
+        with pytest.raises(Unauthorized):
+            state.assert_is_authenticated()
 
 
 def test_get_auth_state_good_token(flask_app, flask_app_ctx, good_introspect):
@@ -70,20 +66,16 @@ def test_get_auth_state_good_token(flask_app, flask_app_ctx, good_introspect):
     # codepaths
     # this generally is not necessary to imitate: simply construct an
     # AuthenticationState in tests instead
-    ctx = flask_app.test_request_context(headers={"Authorization": "Bearer foo"})
-    ctx.push()
+    with flask_app.test_request_context(headers={"Authorization": "Bearer foo"}):
+        state = get_auth_state()
+        assert isinstance(state, AuthenticationState)
+        assert state.is_authenticated is True
 
-    state = get_auth_state()
-    assert isinstance(state, AuthenticationState)
-    assert state.is_authenticated is True
+        assert state.username == INTROSPECT_RESPONSE["username"]
+        assert state.identity_id == INTROSPECT_RESPONSE["sub"]
 
-    assert state.username == INTROSPECT_RESPONSE["username"]
-    assert state.identity_id == INTROSPECT_RESPONSE["sub"]
-
-    state.assert_is_authenticated()
-    state.assert_has_default_scope()
-
-    ctx.pop()
+        state.assert_is_authenticated()
+        state.assert_has_default_scope()
 
 
 def test_auth_state_bad_scope(flask_request_ctx, badscope_introspect):
