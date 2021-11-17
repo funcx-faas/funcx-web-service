@@ -1,3 +1,5 @@
+import contextlib
+
 import fakeredis
 import pytest
 
@@ -44,6 +46,7 @@ def flask_app():
             "HOSTNAME": "http://testhost",
             "FORWARDER_IP": "192.162.3.5",
             "ADVERTISED_REDIS_HOST": "my-redis.com",
+            "CONTAINER_SERVICE_ENABLED": False,
         }
     )
     app.secret_key = "Shhhhh"
@@ -65,3 +68,21 @@ def flask_request_ctx(flask_app, flask_app_ctx):
 @pytest.fixture
 def flask_test_client(flask_app, flask_app_ctx):
     return flask_app.test_client()
+
+
+@pytest.fixture
+def enable_mock_container_service(flask_app, mocker):
+    mock_container_service = mocker.Mock()
+    mock_container_service.get_version = mocker.Mock(return_value={"version": "3.14"})
+
+    @contextlib.contextmanager
+    def func():
+        flask_app.extensions["ContainerService"] = mock_container_service
+        flask_app.config["CONTAINER_SERVICE_ENABLED"] = True
+
+        yield
+
+        flask_app.extensions["ContainerService"] = None
+        flask_app.config["CONTAINER_SERVICE_ENABLED"] = False
+
+    return func
