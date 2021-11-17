@@ -95,6 +95,8 @@ def mock_redis(mocker, mock_redis_server):
 def flask_app():
     app = create_app(
         test_config={
+            "GLOBUS_CLIENT": "TEST_GLOBUS_CLIENT_ID",
+            "GLOBUS_KEY": "TEST_GLOBUS_CLIENT_SECRET",
             "REDIS_HOST": "localhost",
             "REDIS_PORT": 5000,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",

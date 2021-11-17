@@ -43,7 +43,7 @@ class AuthenticationState:
         if token:
             self._handle_token()
 
-    def _handle_token(self, token: str) -> None:
+    def _handle_token(self) -> None:
         """Given a token, flesh out the AuthenticationState."""
         self.introspect_data = introspect_token(self.token)
         self.username = self.introspect_data["username"]
@@ -56,13 +56,6 @@ class AuthenticationState:
             self._user_object = User.resolve_user(self.username)
         return self._user_object
 
-    def assert_has_scope(self, scope: str) -> None:
-        if scope not in self.scopes:
-            abort(403, "Missing Scopes")
-
-    def assert_has_default_scope(self) -> None:
-        self.assert_has_scope(self.funcx_all_scope)
-
     @property
     def is_authenticated(self):
         return self.identity_id is not None
@@ -74,6 +67,13 @@ class AuthenticationState:
         """
         if not self.is_authenticated:
             abort(401, "method requires token authenticated access")
+
+    def assert_has_scope(self, scope: str) -> None:
+        if scope not in self.scopes:
+            abort(403, "Missing Scopes")
+
+    def assert_has_default_scope(self) -> None:
+        self.assert_has_scope(self.funcx_all_scope)
 
 
 def get_auth_state():
