@@ -96,8 +96,12 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
         self.redis_client = redis_client
         self.task_id = task_id
         self.hname = f"task_{task_id}"
-        self.status = TaskState.WAITING_FOR_EP
-        self.internal_status = InternalTaskState.INCOMPLETE
+
+        # if required attributes are not yet set, initialize them to their defaults
+        if self.status is None:
+            self.status = TaskState.WAITING_FOR_EP
+        if self.internal_status is None:
+            self.internal_status = InternalTaskState.INCOMPLETE
 
         if user_id is not None:
             self.user_id = user_id
