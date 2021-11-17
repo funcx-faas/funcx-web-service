@@ -7,10 +7,12 @@ import fakeredis
 import flask
 import moto
 import pytest
+import responses
 
 from funcx_web_service import create_app
 from funcx_web_service.models.user import User
 
+TEST_FORWARDER_IP = "192.162.3.5"
 DEFAULT_FUNCX_SCOPE = (
     "https://auth.globus.org/scopes/facd7ccc-c5f4-42aa-916b-a0e270e2c2a9/all"
 )
@@ -24,7 +26,7 @@ class FakeAuthState:
         *,
         user: t.Optional[User],
         scope: t.Optional[str],
-        introspect_data: t.Optional[dict]
+        introspect_data: t.Optional[dict],
     ):
         self.is_authenticated = user is not None
         self.user_object = user
@@ -52,6 +54,12 @@ class FakeAuthState:
     def assert_has_default_scope(self):
         if DEFAULT_FUNCX_SCOPE not in self.scopes:
             flask.abort(403, "missing scope in FakeAuthState")
+
+
+@pytest.fixture
+def mocked_responses():
+    with responses.RequestsMock() as r:
+        yield r
 
 
 @pytest.fixture
@@ -92,7 +100,7 @@ def flask_app():
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "HOSTNAME": "http://testhost",
-            "FORWARDER_IP": "192.162.3.5",
+            "FORWARDER_IP": TEST_FORWARDER_IP,
             "ADVERTISED_REDIS_HOST": "my-redis.com",
             "CONTAINER_SERVICE_ENABLED": False,
         }
@@ -189,3 +197,22 @@ def in_mock_auth_state(mock_auth_state):
     """
     with mock_auth_state():
         yield
+
+
+@pytest.fixture
+def default_forwarder_responses(mocked_responses):
+    mocked_responses.add(
+        responses.GET,
+        f"http://{TEST_FORWARDER_IP}:8080/version",
+        json={
+            "forwarder": "0.3.5",
+            "min_ep_version": "0.0.1",
+        },
+        status=200,
+    )
+    mocked_responses.add(
+        responses.POST,
+        f"http://{TEST_FORWARDER_IP}:8080/register",
+        body="{}",
+        status=200,
+    )
