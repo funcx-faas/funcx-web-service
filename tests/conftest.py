@@ -10,6 +10,7 @@ import pytest
 import responses
 
 from funcx_web_service import create_app
+from funcx_web_service.models import db
 from funcx_web_service.models.user import User
 
 TEST_FORWARDER_IP = "192.162.3.5"
@@ -108,6 +109,11 @@ def flask_app():
         }
     )
     app.secret_key = "Shhhhh"
+
+    # do DB setup without waiting for first request, so that tests can use the DB
+    # outside of a request context
+    with app.test_request_context():
+        db.create_all()
     return app
 
 

@@ -68,6 +68,8 @@ class AuthenticationState:
         if not self.is_authenticated:
             abort(401, "method requires token authenticated access")
 
+    # TODO: determine if a 403 response is appropriate for incorrect scopes
+    # this should possibly be changed to a 401
     def assert_has_scope(self, scope: str) -> None:
         if scope not in self.scopes:
             abort(403, "Missing Scopes")

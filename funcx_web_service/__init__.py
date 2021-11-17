@@ -8,6 +8,7 @@ from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.container_service_adapter import ContainerServiceAdapter
 from funcx_web_service.error_responses import create_error_response
+from funcx_web_service.models import db, load_all_models
 from funcx_web_service.response import FuncxResponse
 from funcx_web_service.routes.container import container_api
 from funcx_web_service.routes.funcx import funcx_api
@@ -75,15 +76,11 @@ def create_app(test_config=None):
     # due to the CloudWatch max log size
     max_log_content_length = 100000
 
+    load_all_models()
+    db.init_app(application)
+
     @application.before_first_request
     def create_tables():
-        import funcx_web_service.models.auth_groups  # NOQA F401
-        import funcx_web_service.models.container  # NOQA F401
-        import funcx_web_service.models.function  # NOQA F401
-        import funcx_web_service.models.user  # NOQA F401
-        from funcx_web_service.models import db
-
-        db.init_app(application)
         db.create_all()
 
     # this is called before every request
