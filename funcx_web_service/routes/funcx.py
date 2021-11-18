@@ -49,7 +49,7 @@ from funcx_web_service.models.utils import (
 from funcx_web_service.version import MIN_SDK_VERSION, VERSION
 
 # Flask
-from ..models.container import Container, ContainerImage
+from ..models.container import Container
 from ..models.endpoint import Endpoint
 from ..models.function import Function, FunctionAuthGroup, FunctionContainer
 from ..models.serializer import deserialize_result, serialize_inputs
@@ -438,82 +438,6 @@ def batch_status(user: User):
     results = get_tasks_from_redis(request.json["task_ids"], user)
 
     return jsonify({"response": "batch", "results": results})
-
-
-@funcx_api.route("/containers/<container_id>/<container_type>", methods=["GET"])
-@authenticated
-def get_cont(user: User, container_id, container_type):
-    """Get the details of a container.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-    container_id : str
-        The id of the container
-    container_type : str
-        The type of containers to return: Docker, Singularity, Shifter, etc.
-
-    Returns
-    -------
-    dict
-        A dictionary of container details
-    """
-
-    app.logger.info(f"Getting container details: {container_id}")
-    container = Container.find_by_uuid_and_type(container_id, container_type)
-    app.logger.info(f"Got container: {container}")
-    return jsonify({"container": container.to_json()})
-
-
-@funcx_api.route("/containers", methods=["POST"])
-@authenticated
-def reg_container(user: User):
-    """Register a new container.
-
-    Parameters
-    ----------
-    user : User
-        The primary identity of the user
-
-    JSON Body
-    ---------
-        name: Str
-        description: Str
-        type: The type of containers that will be used (Singularity, Shifter, Docker)
-        location:  The location of the container (e.g., its docker url).
-
-    Returns
-    -------
-    dict
-        A dictionary of container details including its uuid
-    """
-
-    app.logger.debug("Creating container.")
-    post_req = request.json
-
-    try:
-        container_rec = Container(
-            author=user.id,
-            name=post_req["name"],
-            description=None
-            if not post_req["description"]
-            else post_req["description"],
-            container_uuid=str(uuid.uuid4()),
-        )
-        container_rec.images = [
-            ContainerImage(type=post_req["type"], location=post_req["location"])
-        ]
-
-        container_rec.save_to_db()
-
-        app.logger.info(f"Created container: {container_rec.container_uuid}")
-        return jsonify({"container_id": container_rec.container_uuid})
-    except KeyError as e:
-        raise RequestKeyError(str(e))
-
-    except Exception as e:
-        raise InternalError(f"error adding container - {e}")
 
 
 def register_with_hub(address, endpoint_id, endpoint_address):
