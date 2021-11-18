@@ -8,7 +8,7 @@ class TestRegisterContainer(AppTestBase):
     def test_register_container(self, mocker, mock_auth_client):
         client = self.client
         result = client.post(
-            "api/v1/containers",
+            "v2/containers",
             json={
                 "name": "myContainer",
                 "function_name": "test fun",
@@ -36,7 +36,7 @@ class TestRegisterContainer(AppTestBase):
     def test_register_container_invalid_spec(self, mocker, mock_auth_client):
         client = self.client
         result = client.post(
-            "api/v1/containers",
+            "v2/containers",
             json={
                 "type": "docker",
                 "location": "http://hub.docker.com/myContainer",
@@ -58,7 +58,7 @@ class TestRegisterContainer(AppTestBase):
 
         client = self.client
         result = client.get(
-            "api/v1/containers/1/docker", headers={"Authorization": "my_token"}
+            "v2/containers/1/docker", headers={"Authorization": "my_token"}
         )
 
         result_container = result.json["container"]
