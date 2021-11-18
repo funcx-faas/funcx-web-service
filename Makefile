@@ -1,6 +1,6 @@
 .PHONY: lint
 lint:
-	tox -e lint
+	tox -e lint,mypy
 
 .PHONY: test
 test:
