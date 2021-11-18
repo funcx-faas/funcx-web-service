@@ -130,9 +130,9 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
         self.redis_client.delete(self.hname)
 
     @classmethod
-    def exists(cls, redis_client: Redis, task_id: str):
+    def exists(cls, redis_client: Redis, task_id: str) -> bool:
         """Check if a given task_id exists in Redis"""
-        return redis_client.exists(f"task_{task_id}")
+        return bool(redis_client.exists(f"task_{task_id}"))
 
 
 class TaskGroup(metaclass=HasRedisFieldsMeta):
@@ -174,6 +174,6 @@ class TaskGroup(metaclass=HasRedisFieldsMeta):
         self.redis_client.delete(self.hname)
 
     @classmethod
-    def exists(cls, redis_client: Redis, task_group_id: str):
+    def exists(cls, redis_client: Redis, task_group_id: str) -> bool:
         """Check if a given task_group_id exists in Redis"""
-        return redis_client.exists(f"task_group_{task_group_id}")
+        return bool(redis_client.exists(f"task_group_{task_group_id}"))
