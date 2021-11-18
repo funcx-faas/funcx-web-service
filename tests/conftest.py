@@ -1,6 +1,8 @@
 import contextlib
 
+import boto3
 import fakeredis
+import moto
 import pytest
 
 from funcx_web_service import create_app
@@ -86,3 +88,13 @@ def enable_mock_container_service(flask_app, mocker):
         flask_app.config["CONTAINER_SERVICE_ENABLED"] = False
 
     return func
+
+
+@pytest.fixture
+def mock_s3_bucket(monkeypatch):
+    bucket = "funcx-web-service-test-bucket"
+    monkeypatch.setenv("FUNCX_S3_BUCKET_NAME", bucket)
+    with moto.mock_s3():
+        client = boto3.client("s3")
+        client.create_bucket(Bucket=bucket)
+        yield bucket

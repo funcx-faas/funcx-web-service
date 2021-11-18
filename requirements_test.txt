@@ -7,3 +7,4 @@ codecov==2.1.8
 pytest-mock==3.2.0
 responses==0.14.0
 fakeredis<2
+moto[s3]<3
