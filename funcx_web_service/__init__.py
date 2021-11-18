@@ -8,6 +8,7 @@ from pythonjsonlogger import jsonlogger
 
 from funcx_web_service.error_responses import create_error_response
 from funcx_web_service.response import FuncxResponse
+from funcx_web_service.routes.container import container_api
 from funcx_web_service.routes.funcx import funcx_api
 
 
@@ -157,6 +158,7 @@ def create_app(test_config=None):
 
     # Include the API blueprint
     application.register_blueprint(funcx_api, url_prefix="/v2")
+    application.register_blueprint(container_api, url_prefix="/v2")
     # Keeping these routes for backwards compatibility on tests.
     application.register_blueprint(funcx_api, url_prefix="/v1")
     application.register_blueprint(funcx_api, url_prefix="/api/v1")
