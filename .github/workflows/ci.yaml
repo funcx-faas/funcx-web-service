@@ -24,7 +24,7 @@ jobs:
     - name: Install tox
       run: python -m pip install tox
     - name: Lint
-      run: python -m tox -e lint
+      run: python -m tox -e lint,mypy
     - name: Safety Check
       run: python -m tox -e safety
     - name: Test

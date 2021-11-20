@@ -1,5 +1,6 @@
 import json
 import time
+import typing as t
 import uuid
 
 import requests
@@ -257,7 +258,11 @@ def submit(user: User):
             raise TaskGroupAccessForbidden(task_group_id)
 
     # this is a breaking change for old funcx sdk versions
-    results = {"response": "batch", "task_group_id": task_group_id, "results": []}
+    results: t.Dict[str, t.Any] = {
+        "response": "batch",
+        "task_group_id": task_group_id,
+        "results": [],
+    }
 
     final_http_status = 200
     success_count = 0
@@ -639,26 +644,42 @@ def get_ep_stats(user: User, endpoint_id):
 
     rc = g_redis_client()
 
-    status = {"status": "offline", "logs": []}
+    status: str = "offline"
+    status_logs: t.List[t.Dict[str, t.Any]] = []
     try:
         end = min(rc.llen(f"ep_status_{endpoint_id}"), last)
         print("Total len :", end)
         items = rc.lrange(f"ep_status_{endpoint_id}", 0, end)
         if items:
             for i in items:
-                status["logs"].append(json.loads(i))
+                dataitem = json.loads(i)
+                if not isinstance(dataitem, dict):
+                    raise EndpointStatsError(
+                        endpoint_id, "endpoint stats failed to load, nondict data"
+                    )
+                status_logs.append(dataitem)
 
             # timestamp is an epoch timestamp
-            logs = status["logs"]  # should have been json loaded already
-            newest_timestamp = logs[0]["timestamp"]
+            newest_timestamp = status_logs[0].get("timestamp")
+            if newest_timestamp is None or (
+                not isinstance(newest_timestamp, (int, float))
+            ):
+                raise EndpointStatsError(
+                    endpoint_id, "could not load latest timestamp from ep status info"
+                )
+
             now = time.time()
             if now - newest_timestamp < alive_threshold:
-                status["status"] = "online"
+                status = "online"
 
+    # FIXME: identify error conditions and remove this blanket error capture
     except Exception as e:
+        if isinstance(e, EndpointStatsError):
+            raise
         raise EndpointStatsError(endpoint_id, str(e))
 
-    return jsonify(status)
+    status_info = {"logs": status_logs, "status": status}
+    return jsonify(status_info)
 
 
 @funcx_api.route("/endpoints/<endpoint_id>", methods=["DELETE"])
@@ -832,9 +853,12 @@ def reg_function(user: User, user_uuid):
         raise RequestKeyError(str(key_error))
 
     except Exception as e:
+        function_name = (
+            function_rec.function_name if function_rec is not None else "<nullfunc>"
+        )
         message = (
-            f"Function registration failed for user:{user.username} "
-            f"function_name:{function_rec.function_name} due to {e}"
+            f"Function registration failed for user={user.username} , "
+            f"function_name={function_name} due to {e}"
         )
         app.logger.error(message)
         raise InternalError(message)
