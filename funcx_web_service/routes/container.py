@@ -18,6 +18,41 @@ from ..models.user import User
 container_api = Blueprint("container_routes", __name__)
 
 
+@container_api.route("/containers/build", methods=["POST"])
+@authenticated
+def build_container(user: User):
+    build_spec = request.json
+
+    if not build_spec:
+        raise RequestMalformed("No container spec found in request")
+
+    if "name" not in build_spec:
+        raise RequestKeyError("name")
+
+    apt_spec = build_spec.get("apt", None)
+    pip_spec = build_spec.get("pip", None)
+    conda_spec = build_spec.get("conda", None)
+
+    try:
+        container_rec = Container(
+            author=user.id,
+            name=build_spec["name"],
+            description=build_spec.get("description", None),
+            container_uuid=str(uuid.uuid4()),
+            build_status="submitted",
+        )
+
+        container_rec.save_to_db()
+
+        app.logger.info(
+            f"Container submitted for build: {container_rec.container_uuid}"
+        )
+        return jsonify({"container_id": container_rec.container_uuid})
+
+    except Exception as e:
+        raise InternalError(f"error adding container - {e}")
+
+
 @container_api.route("/containers/<container_id>/<container_type>", methods=["GET"])
 @authenticated
 def get_cont(user: User, container_id, container_type):
