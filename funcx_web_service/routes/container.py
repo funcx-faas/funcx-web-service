@@ -3,7 +3,12 @@ import uuid
 from flask import Blueprint
 from flask import current_app as app
 from flask import jsonify, request
-from funcx_common.response_errors import InternalError, RequestKeyError
+from funcx_common.response_errors import (
+    ContainerNotFound,
+    InternalError,
+    RequestKeyError,
+    RequestMalformed,
+)
 
 from funcx_web_service.authentication.auth import authenticated
 
@@ -35,8 +40,12 @@ def get_cont(user: User, container_id, container_type):
 
     app.logger.info(f"Getting container details: {container_id}")
     container = Container.find_by_uuid_and_type(container_id, container_type)
-    app.logger.info(f"Got container: {container}")
-    return jsonify({"container": container.to_json()})
+
+    if container:
+        app.logger.info(f"Got container: {container}")
+        return jsonify({"container": container.to_json()})
+    else:
+        raise ContainerNotFound(container_id)
 
 
 @container_api.route("/containers", methods=["POST"])
@@ -69,10 +78,9 @@ def reg_container(user: User):
         container_rec = Container(
             author=user.id,
             name=post_req["name"],
-            description=None
-            if not post_req["description"]
-            else post_req["description"],
+            description=post_req.get("description", None),
             container_uuid=str(uuid.uuid4()),
+            build_status=Container.BuildStates.provided,
         )
         container_rec.images = [
             ContainerImage(type=post_req["type"], location=post_req["location"])

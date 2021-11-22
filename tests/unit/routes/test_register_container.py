@@ -24,6 +24,7 @@ def test_register_container(flask_test_client, mocker, in_mock_auth_state):
     assert saved_container.name == "myContainer"
     assert saved_container.container_uuid == container_uuid
     assert saved_container.description == "this is a test"
+    assert saved_container.build_status == Container.BuildStates.provided
 
     assert saved_container.images
     assert len(saved_container.images) == 1
@@ -50,6 +51,7 @@ def test_get_container(flask_test_client, mocker, in_mock_auth_state):
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"
+    container.build_status = Container.BuildStates.provided
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid_and_type", return_value=container
     )
@@ -60,4 +62,5 @@ def test_get_container(flask_test_client, mocker, in_mock_auth_state):
 
     result_container = result.json["container"]
     assert result_container["container_uuid"] == "123-45-678"
+    assert result_container['build_status'] == 'provided'
     find_container_mock.assert_called_with("1", "docker")

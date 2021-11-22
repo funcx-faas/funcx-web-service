@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import relationship
@@ -8,6 +9,13 @@ from funcx_web_service.models import db
 
 
 class Container(db.Model):
+    class BuildStates(Enum):
+        provided = 1
+        submitted = 2
+        building = 3
+        ready = 4
+        failed = 5
+
     __tablename__ = "containers"
     id = db.Column(db.Integer, primary_key=True)
     author = db.Column(Integer, ForeignKey("users.id"))
@@ -16,7 +24,7 @@ class Container(db.Model):
     description = db.Column(db.Text)
     created_at = db.Column(DateTime, default=datetime.utcnow)
     modified_at = db.Column(DateTime, default=datetime.utcnow)
-
+    build_status = db.Column(db.Enum(BuildStates), nullable=True)
     images = relationship("ContainerImage")
     functions = relationship("FunctionContainer")
     user = relationship("User", back_populates="containers")
@@ -45,7 +53,11 @@ class Container(db.Model):
             return None
 
     def to_json(self):
-        result = {"container_uuid": self.container_uuid, "name": self.name}
+        result = {
+            "container_uuid": self.container_uuid,
+            "name": self.name,
+            "build_status": self.build_status.name,
+        }
 
         if self.images and len(self.images) == 1:
             result["type"] = self.images[0].type
