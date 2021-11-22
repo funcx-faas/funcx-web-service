@@ -55,6 +55,7 @@ from ..models.endpoint import Endpoint
 from ..models.function import Function, FunctionAuthGroup, FunctionContainer
 from ..models.serializer import deserialize_result, serialize_inputs
 from ..models.user import User
+from ..task_storage import get_task_result
 
 funcx_api = Blueprint("routes", __name__)
 
@@ -319,7 +320,7 @@ def get_tasks_from_redis(task_ids, user: User):
             continue
 
         task_status = task.status
-        task_result = task.result
+        task_result = get_task_result(task)
         task_exception = task.exception
         task_completion_t = task.completion_time
         if task_result or task_exception:
@@ -386,7 +387,7 @@ def status_and_result(user: User, task_id):
     authorize_task_or_404(task, user)
 
     task_status = task.status
-    task_result = task.result
+    task_result = get_task_result(task)
     task_exception = task.exception
     task_completion_t = task.completion_time
     if task_result or task_exception:
