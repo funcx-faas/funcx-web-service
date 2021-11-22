@@ -45,7 +45,7 @@ class AuthenticationState:
 
     def _handle_token(self) -> None:
         """Given a token, flesh out the AuthenticationState."""
-        self.introspect_data = introspect_token(self.token)
+        self.introspect_data = introspect_token(t.cast(str, self.token))
         self.username = self.introspect_data["username"]
         self.identity_id = self.introspect_data["sub"]
         self.scopes = set(self.introspect_data["scope"].split(" "))
