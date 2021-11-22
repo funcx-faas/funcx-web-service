@@ -27,7 +27,7 @@ def s3_bucket_name() -> t.Optional[str]:
     return os.getenv("FUNCX_S3_BUCKET_NAME")
 
 
-def redis_storage_threshold() -> t.Optional[str]:
+def redis_storage_threshold() -> int:
     val = os.getenv("FUNCX_REDIS_STORAGE_THRESHOLD")
     if val is not None:
         try:
