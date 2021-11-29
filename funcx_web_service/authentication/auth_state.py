@@ -68,9 +68,17 @@ class AuthenticationState:
         if not self.is_authenticated:
             abort(401, "method requires token authenticated access")
 
-    # TODO: determine if a 403 response is appropriate for incorrect scopes
-    # this should possibly be changed to a 401
     def assert_has_scope(self, scope: str) -> None:
+        # the user may be thought of as "not properly authorized" if they do not have
+        # required scopes
+        # this leaves a question of whether this should be a 401 (Unauthorized) or
+        # 403 (Forbidden)
+        #
+        # the answer is that it must be a 403
+        # this requirement is set by the OAuth2 spec
+        #
+        # for more detail, see
+        #   https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
         if scope not in self.scopes:
             abort(403, "Missing Scopes")
 
