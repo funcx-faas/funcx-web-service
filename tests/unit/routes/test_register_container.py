@@ -64,3 +64,35 @@ def test_get_container(flask_test_client, mocker, mock_auth_client):
     assert result_container["container_uuid"] == "123-45-678"
     assert result_container['build_status'] == 'provided'
     find_container_mock.assert_called_with("1", "docker")
+
+
+def test_get_container_build_status(flask_test_client, mocker, mock_auth_client):
+    container = Container()
+    container.container_uuid = "123-45-678"
+    container.name = "Docky"
+    container.build_status = Container.BuildStates.submitted
+    find_container_mock = mocker.patch.object(
+        Container, "find_by_uuid", return_value=container
+    )
+
+    result = flask_test_client.get(
+        "v2/containers/build/1", headers={"Authorization": "my_token"}
+    )
+
+    assert result.status_code == 200
+    result_status = result.json["status"]
+    assert result_status == 'submitted'
+    find_container_mock.assert_called_with('1')
+
+
+def test_get_container_build_status_not_found(flask_test_client, mocker, mock_auth_client):
+    find_container_mock = mocker.patch.object(
+        Container, "find_by_uuid", return_value=None
+    )
+
+    result = flask_test_client.get(
+        "v2/containers/build/1", headers={"Authorization": "my_token"}
+    )
+
+    assert result.status_code == 404
+    find_container_mock.assert_called_with('1')
