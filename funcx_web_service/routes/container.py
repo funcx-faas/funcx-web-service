@@ -53,6 +53,18 @@ def build_container(user: User):
         raise InternalError(f"error adding container - {e}")
 
 
+@container_api.route("/containers/build/<container_id>", methods=["GET"])
+@authenticated
+def container_build_status(user: User, container_id):
+    print(f"Get the status of {container_id}")
+    container = Container.find_by_uuid(container_id)
+    print(container)
+    if container:
+        return jsonify({"status": container.build_status.name})
+    else:
+        raise ContainerNotFound(container_id)
+
+
 @container_api.route("/containers/<container_id>/<container_type>", methods=["GET"])
 @authenticated
 def get_cont(user: User, container_id, container_type):
