@@ -12,9 +12,10 @@ class Container(db.Model):
     class BuildStates(Enum):
         provided = 1
         submitted = 2
-        building = 3
-        ready = 4
-        failed = 5
+        queued = 3
+        building = 4
+        ready = 5
+        failed = 6
 
     __tablename__ = "containers"
     id = db.Column(db.Integer, primary_key=True)
