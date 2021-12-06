@@ -24,6 +24,7 @@ from funcx_common.response_errors import (
     TaskNotFound,
     UserNotFound,
 )
+from funcx_common.task_storage import TaskStorage, get_default_task_storage
 from redis.client import Redis
 
 from funcx_web_service.authentication.auth import (
@@ -49,13 +50,11 @@ from funcx_web_service.models.utils import (
 )
 from funcx_web_service.version import MIN_SDK_VERSION, VERSION
 
-# Flask
 from ..models.container import Container
 from ..models.endpoint import Endpoint
 from ..models.function import Function, FunctionAuthGroup, FunctionContainer
 from ..models.serializer import deserialize_result, serialize_inputs
 from ..models.user import User
-from ..task_storage import get_task_result
 
 funcx_api = Blueprint("routes", __name__)
 
@@ -86,6 +85,12 @@ def g_redis_pubsub():
         g.redis_pubsub = FuncxRedisPubSub(redis_client=redis_client)
         g.redis_pubsub.redis_client.ping()
     return g.redis_pubsub
+
+
+def get_task_storage() -> TaskStorage:
+    if not hasattr(g, "task_storage"):
+        g.task_storage = get_default_task_storage()
+    return g.task_storage
 
 
 def auth_and_launch(
@@ -320,7 +325,7 @@ def get_tasks_from_redis(task_ids, user: User):
             continue
 
         task_status = task.status
-        task_result = get_task_result(task)
+        task_result = get_task_storage().get_result(task)
         task_exception = task.exception
         task_completion_t = task.completion_time
         if task_result or task_exception:
@@ -387,7 +392,7 @@ def status_and_result(user: User, task_id):
     authorize_task_or_404(task, user)
 
     task_status = task.status
-    task_result = get_task_result(task)
+    task_result = get_task_storage().get_result(task)
     task_exception = task.exception
     task_completion_t = task.completion_time
     if task_result or task_exception:
