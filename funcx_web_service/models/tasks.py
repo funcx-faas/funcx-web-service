@@ -126,7 +126,8 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
             self.recursive = recursive
         # check the header effect
         # Used to pass bits of information to EP
-        self.header = f"{self.task_id};{self.container};{self.data_url};{self.recursive}"
+        self.header = f"{self.task_id};{self.container};" \
+                      f"{self.data_url};{self.recursive}"
         self._set_expire()
 
     def _set_expire(self):
