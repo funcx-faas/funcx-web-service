@@ -93,6 +93,8 @@ def auth_and_launch(
     function_uuid,
     endpoint_uuid,
     input_data,
+    data_url,
+    recursive,
     app,
     token,
     task_group_id,
@@ -111,6 +113,10 @@ def auth_and_launch(
        endpoint uuid
     input_data : string_buffer
        input payload data
+    data_url: str
+       data url of remote data
+    recursive: boolean
+       whether the data url is a directory or not
     app : app object
     token : globus token
     serialize : bool
@@ -158,6 +164,8 @@ def auth_and_launch(
             user_id=user_id,
             function_id=function_uuid,
             container=container_uuid,
+            data_url=data_url,
+            recursive=str(recursive),
             payload=payload,
             task_group_id=task_group_id,
         )
@@ -268,11 +276,18 @@ def submit(user: User):
     final_http_status = 200
     success_count = 0
     for task in tasks:
+        data_url = None
+        recursive = False
+        if len(task) > 3:
+            data_url = task[3]
+            recursive = task[4]
         res = auth_and_launch(
             user_id,
             function_uuid=task[0],
             endpoint_uuid=task[1],
             input_data=task[2],
+            data_url=data_url,
+            recursive=recursive,
             app=app,
             token=token,
             task_group_id=task_group_id,
