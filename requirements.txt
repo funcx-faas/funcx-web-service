@@ -16,7 +16,7 @@ cffi==1.15.0
 charset-normalizer==2.0.9
 click==8.0.3
 cryptography==36.0.0
-funcx-common==0.0.10
+funcx-common[redis,boto3]==0.0.11-a0
 globus-nexus-client==0.3.0
 globus-sdk==2.0.1
 greenlet==1.1.2
