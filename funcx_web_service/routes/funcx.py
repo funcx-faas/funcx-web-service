@@ -180,6 +180,8 @@ def auth_and_launch(
             "endpoint_id": endpoint_uuid,
             "container_id": container_uuid,
             "log_type": "task_transition",
+            "data_url": data_url,
+            "recursive": str(recursive),
         }
         app.logger.info("received", extra=extra_logging)
 
