@@ -60,6 +60,9 @@ class RedisTask(TaskProtocol, metaclass=HasRedisFieldsMeta):
     endpoint = t.cast(str, RedisField())
     container = RedisField()
     payload = RedisField(serde=JSON_SERDE)
+    payload_reference = t.cast(
+        t.Optional[t.Dict[str, t.Any]], RedisField(serde=JSON_SERDE)
+    )
     result = RedisField()
     result_reference = t.cast(
         t.Optional[t.Dict[str, t.Any]], RedisField(serde=JSON_SERDE)
