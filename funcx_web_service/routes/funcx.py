@@ -163,7 +163,6 @@ def auth_and_launch(
             user_id=user_id,
             function_id=function_uuid,
             container=container_uuid,
-            # payload=payload,
             task_group_id=task_group_id,
         )
         get_task_storage().store_payload(task, payload)
