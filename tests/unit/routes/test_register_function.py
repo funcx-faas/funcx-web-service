@@ -5,7 +5,7 @@ from funcx_web_service.models.function import Function, FunctionAuthGroup
 from funcx_web_service.models.user import User
 
 
-def test_register_function(flask_test_client, mock_auth_client, mocker):
+def test_register_function(flask_test_client, in_mock_auth_state, mocker):
     mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
     result = flask_test_client.post(
         "api/v1/functions",
@@ -35,7 +35,7 @@ def test_register_function(flask_test_client, mock_auth_client, mocker):
     assert mock_ingest.call_args[0][2] == "123-456"
 
 
-def test_register_function_no_search(flask_test_client, mock_auth_client, mocker):
+def test_register_function_no_search(flask_test_client, in_mock_auth_state, mocker):
     mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
     mock_user = User(id=42, username="bob")
 
@@ -58,7 +58,9 @@ def test_register_function_no_search(flask_test_client, mock_auth_client, mocker
     assert mock_ingest.not_called
 
 
-def test_register_function_with_container(flask_test_client, mock_auth_client, mocker):
+def test_register_function_with_container(
+    flask_test_client, in_mock_auth_state, mocker
+):
     mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
     mock_user = User(id=42, username="bob")
     mocker.patch.object(User, "find_by_username", return_value=mock_user)
@@ -91,7 +93,9 @@ def test_register_function_with_container(flask_test_client, mock_auth_client, m
     assert saved_function.container.container_id == 44
 
 
-def test_register_function_with_group_auth(flask_test_client, mock_auth_client, mocker):
+def test_register_function_with_group_auth(
+    flask_test_client, in_mock_auth_state, mocker
+):
     mock_ingest = mocker.patch("funcx_web_service.routes.funcx.ingest_function")
     mock_user = User(id=42, username="bob")
     mocker.patch.object(User, "find_by_username", return_value=mock_user)
@@ -127,7 +131,7 @@ def test_register_function_with_group_auth(flask_test_client, mock_auth_client, 
     assert saved_function.auth_groups[0].id == 45
 
 
-def test_update_function(flask_test_client, mock_auth_client, mocker):
+def test_update_function(flask_test_client, in_mock_auth_state, mocker):
     mock_update = mocker.patch(
         "funcx_web_service.routes.funcx.update_function", return_value=302
     )
@@ -154,7 +158,7 @@ def test_update_function(flask_test_client, mock_auth_client, mocker):
     )
 
 
-def test_delete_function(flask_test_client, mock_auth_client, mock_user, mocker):
+def test_delete_function(flask_test_client, in_mock_auth_state, mock_user, mocker):
     mock_delete = mocker.patch(
         "funcx_web_service.routes.funcx.delete_function", return_value=302
     )

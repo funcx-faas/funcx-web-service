@@ -8,7 +8,7 @@ from funcx_web_service.models.endpoint import Endpoint
 
 
 @responses.activate
-def test_register_endpoint(flask_test_client, mocker, mock_auth_client, mock_user):
+def test_register_endpoint(flask_test_client, mocker, in_mock_auth_state, mock_user):
     responses.add(
         responses.GET,
         "http://192.162.3.5:8080/version",
@@ -55,7 +55,7 @@ def test_register_endpoint(flask_test_client, mocker, mock_auth_client, mock_use
 
 
 def test_register_endpoint_version_mismatch(
-    flask_test_client, mocker, mock_auth_client
+    flask_test_client, mocker, in_mock_auth_state
 ):
     get_forwarder_version = mocker.patch(
         "funcx_web_service.routes.funcx.get_forwarder_version",
@@ -74,7 +74,7 @@ def test_register_endpoint_version_mismatch(
     assert "Endpoint is out of date." in result.json["reason"]
 
 
-def test_register_endpoint_no_version(flask_test_client, mocker, mock_auth_client):
+def test_register_endpoint_no_version(flask_test_client, mocker, in_mock_auth_state):
     get_forwarder_version = mocker.patch(
         "funcx_web_service.routes.funcx.get_forwarder_version",
         return_value={"min_ep_version": "1.42.0"},
@@ -90,7 +90,7 @@ def test_register_endpoint_no_version(flask_test_client, mocker, mock_auth_clien
     assert "version must be passed in" in result.json["reason"]
 
 
-def test_register_endpoint_missing_keys(flask_test_client, mocker, mock_auth_client):
+def test_register_endpoint_missing_keys(flask_test_client, mocker, in_mock_auth_state):
     get_forwarder_version = mocker.patch(
         "funcx_web_service.routes.funcx.get_forwarder_version",
         return_value={"min_ep_version": "1.0.0"},
@@ -110,7 +110,7 @@ def test_register_endpoint_missing_keys(flask_test_client, mocker, mock_auth_cli
 
 
 def test_register_endpoint_already_registered(
-    flask_test_client, mocker, mock_auth_client, mock_endpoint
+    flask_test_client, mocker, in_mock_auth_state, mock_endpoint
 ):
     get_forwarder_version = mocker.patch(
         "funcx_web_service.routes.funcx.get_forwarder_version",
@@ -139,7 +139,7 @@ def test_register_endpoint_already_registered(
     )
 
 
-def test_register_endpoint_unknown_error(flask_test_client, mocker, mock_auth_client):
+def test_register_endpoint_unknown_error(flask_test_client, mocker, in_mock_auth_state):
     get_forwarder_version = mocker.patch(
         "funcx_web_service.routes.funcx.get_forwarder_version",
         return_value={"min_ep_version": "1.0.0"},
@@ -168,7 +168,7 @@ def test_register_endpoint_unknown_error(flask_test_client, mocker, mock_auth_cl
     assert result.json["reason"] == "An unknown error occurred: hello"
 
 
-def test_endpoint_status(flask_test_client, mocker, mock_auth_client, mock_redis):
+def test_endpoint_status(flask_test_client, mocker, in_mock_auth_state, mock_redis):
     mocker.patch("funcx_web_service.routes.funcx.authorize_endpoint", return_value=True)
 
     epid = 123
@@ -184,7 +184,7 @@ def test_endpoint_status(flask_test_client, mocker, mock_auth_client, mock_redis
     lrange_spy.assert_called_with("ep_status_123", 0, 1)
 
 
-def test_endpoint_delete(flask_test_client, mocker, mock_auth_client, mock_user):
+def test_endpoint_delete(flask_test_client, mocker, in_mock_auth_state, mock_user):
     mock_delete_endpoint = mocker.patch.object(
         Endpoint, "delete_endpoint", return_value="Ok"
     )
@@ -196,7 +196,7 @@ def test_endpoint_delete(flask_test_client, mocker, mock_auth_client, mock_user)
     mock_delete_endpoint.assert_called_with(mock_user, "123")
 
 
-def test_get_whitelist(flask_test_client, mocker, mock_auth_client, mock_user):
+def test_get_whitelist(flask_test_client, mocker, in_mock_auth_state, mock_user):
     get_ep_whitelist = mocker.patch(
         "funcx_web_service.routes.funcx.get_ep_whitelist",
         return_value={"status": "success", "functions": ["1", "2", "3"]},
@@ -211,7 +211,7 @@ def test_get_whitelist(flask_test_client, mocker, mock_auth_client, mock_user):
     get_ep_whitelist.assert_called_with(mock_user, "123")
 
 
-def test_add_whitelist(flask_test_client, mocker, mock_auth_client, mock_user):
+def test_add_whitelist(flask_test_client, mocker, in_mock_auth_state, mock_user):
     add_ep_whitelist = mocker.patch(
         "funcx_web_service.routes.funcx.add_ep_whitelist",
         return_value={"status": "success"},
@@ -227,7 +227,7 @@ def test_add_whitelist(flask_test_client, mocker, mock_auth_client, mock_user):
     add_ep_whitelist.assert_called_with(mock_user, "123", ["1", "2", "3"])
 
 
-def test_delete_whitelisted(flask_test_client, mocker, mock_auth_client, mock_user):
+def test_delete_whitelisted(flask_test_client, mocker, in_mock_auth_state, mock_user):
     delete_ep_whitelist = mocker.patch(
         "funcx_web_service.routes.funcx.delete_ep_whitelist",
         return_value={"status": "success"},

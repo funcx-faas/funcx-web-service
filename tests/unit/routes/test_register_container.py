@@ -3,7 +3,7 @@ from funcx_common.response_errors import ResponseErrorCode
 from funcx_web_service.models.container import Container
 
 
-def test_register_container(flask_test_client, mocker, mock_auth_client):
+def test_register_container(flask_test_client, mocker, in_mock_auth_state):
     result = flask_test_client.post(
         "v2/containers",
         json={
@@ -31,7 +31,7 @@ def test_register_container(flask_test_client, mocker, mock_auth_client):
     assert saved_container.images[0].location == "http://hub.docker.com/myContainer"
 
 
-def test_register_container_invalid_spec(flask_test_client, mocker, mock_auth_client):
+def test_register_container_invalid_spec(flask_test_client, mocker, in_mock_auth_state):
     result = flask_test_client.post(
         "v2/containers",
         json={
@@ -46,7 +46,7 @@ def test_register_container_invalid_spec(flask_test_client, mocker, mock_auth_cl
     assert result.json["reason"] == "Missing key in JSON request - 'name'"
 
 
-def test_get_container(flask_test_client, mocker, mock_auth_client):
+def test_get_container(flask_test_client, mocker, in_mock_auth_state):
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"

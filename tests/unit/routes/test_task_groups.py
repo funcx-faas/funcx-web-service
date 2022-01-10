@@ -2,7 +2,7 @@ from funcx_web_service.models.tasks import TaskGroup
 
 
 def test_get_batch_info(
-    flask_test_client, mocker, mock_user, mock_auth_client, mock_redis
+    flask_test_client, mocker, mock_user, in_mock_auth_state, mock_redis
 ):
     TaskGroup(mock_redis, "123", user_id=mock_user.id)
     exists_spy = mocker.spy(TaskGroup, "exists")
