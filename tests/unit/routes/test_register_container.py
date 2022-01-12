@@ -62,7 +62,7 @@ def test_get_container(flask_test_client, mocker, mock_auth_client):
 
     result_container = result.json["container"]
     assert result_container["container_uuid"] == "123-45-678"
-    assert result_container['build_status'] == 'provided'
+    assert result_container["build_status"] == "provided"
     find_container_mock.assert_called_with("1", "docker")
 
 
@@ -81,11 +81,13 @@ def test_get_container_build_status(flask_test_client, mocker, mock_auth_client)
 
     assert result.status_code == 200
     result_status = result.json["status"]
-    assert result_status == 'submitted'
-    find_container_mock.assert_called_with('1')
+    assert result_status == "submitted"
+    find_container_mock.assert_called_with("1")
 
 
-def test_get_container_build_status_not_found(flask_test_client, mocker, mock_auth_client):
+def test_get_container_build_status_not_found(
+    flask_test_client, mocker, mock_auth_client
+):
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid", return_value=None
     )
@@ -95,4 +97,4 @@ def test_get_container_build_status_not_found(flask_test_client, mocker, mock_au
     )
 
     assert result.status_code == 404
-    find_container_mock.assert_called_with('1')
+    find_container_mock.assert_called_with("1")
