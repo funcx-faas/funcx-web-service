@@ -5,15 +5,14 @@ Revises: v0.2.0
 Create Date: 2021-11-22 11:44:40.777670
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 from sqlalchemy import Column, String
 
-revision = '0.4.0'
-down_revision = 'v0.2.0'
+revision = "0.4.0"
+down_revision = "v0.2.0"
 branch_labels = None
 depends_on = None
 
@@ -25,4 +24,3 @@ def upgrade():
 
 def downgrade():
     op.drop_column("containers", "build_status")
-

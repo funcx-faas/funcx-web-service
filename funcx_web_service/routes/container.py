@@ -29,10 +29,6 @@ def build_container(user: User):
     if "name" not in build_spec:
         raise RequestKeyError("name")
 
-    apt_spec = build_spec.get("apt", None)
-    pip_spec = build_spec.get("pip", None)
-    conda_spec = build_spec.get("conda", None)
-
     try:
         container_rec = Container(
             author=user.id,
@@ -46,8 +42,9 @@ def build_container(user: User):
 
         if app.extensions["ContainerService"]:
             print(build_spec)
-            app.extensions["ContainerService"].submit_build(container_rec.container_uuid,
-                                                            build_spec)
+            app.extensions["ContainerService"].submit_build(
+                container_rec.container_uuid, build_spec
+            )
         else:
             raise InternalError("Container building not available")
 
@@ -79,7 +76,7 @@ def update_container_build_status(container_id):
     print(f"New Status {build_spec}")
     container = Container.find_by_uuid(container_id)
     if container:
-        container.build_status = build_spec['build_status']
+        container.build_status = build_spec["build_status"]
         container.save_to_db()
         return jsonify({"status": container.build_status.name})
     else:
