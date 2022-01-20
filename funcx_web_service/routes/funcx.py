@@ -494,9 +494,15 @@ def register_with_hub(address, endpoint_id, endpoint_address):
 
 
 def get_forwarder_version():
-    forwarder_ip = app.config["FORWARDER_IP"]
-    r = requests.get(f"http://{forwarder_ip}:8080/version", timeout=2)
-    return r.json()
+    if "FORWARDER_IP" in app.config:
+        forwarder_ip = app.config["FORWARDER_IP"]
+        r = requests.get(f"http://{forwarder_ip}:8080/version", timeout=2)
+        return r.json()
+    else:
+        return{
+            "forwarder": "Not Available",
+            "min_ep_version": "Not Available"
+        }
 
 
 @funcx_api.route("/version", methods=["GET"])
