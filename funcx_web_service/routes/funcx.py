@@ -502,10 +502,7 @@ def get_forwarder_version():
         r = requests.get(f"http://{forwarder_ip}:8080/version", timeout=2)
         return r.json()
     else:
-        return{
-            "forwarder": "Not Available",
-            "min_ep_version": "Not Available"
-        }
+        return {"forwarder": "Not Available", "min_ep_version": "Not Available"}
 
 
 @funcx_api.route("/version", methods=["GET"])
