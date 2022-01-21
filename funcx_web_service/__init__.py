@@ -2,7 +2,7 @@ import logging
 import os
 from distutils.util import strtobool
 
-from flask import Flask, request
+from flask import Flask
 from flask.logging import default_handler
 from pythonjsonlogger import jsonlogger
 
@@ -72,17 +72,12 @@ def create_app(test_config=None):
     else:
         application.extensions["ContainerService"] = None
 
-    # 100,000 Bytes is the max content length we will log for request/response JSON
-    # due to the CloudWatch max log size
-    max_log_content_length = 100000
-
     load_all_models()
     db.init_app(application)
 
     @application.before_first_request
     def create_tables():
         db.create_all()
-
 
     @application.errorhandler(Exception)
     def handle_exception(e):
