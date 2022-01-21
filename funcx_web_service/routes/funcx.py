@@ -862,10 +862,10 @@ def reg_function(user: User, user_uuid):
             f"Function registration failed for user={user.username} , "
             f"function_name={function_name} due to {e}"
         )
-        app.logger.error("function_registration_fail",
-                         extra={"user_id": user_uuid,
-                                "function_name": function_name}
-                         )
+        app.logger.error(
+            "function_registration_fail",
+            extra={"user_id": user_uuid, "function_name": function_name},
+        )
         raise InternalError(message)
 
     try:
@@ -875,11 +875,10 @@ def reg_function(user: User, user_uuid):
             f"Function ingest to search failed for user:{user.username} "
             f"function_name:{function_rec.function_name} due to {e}"
         )
-        app.logger.error("function_ingest_failed",
-                         extra={"user_id": user_uuid,
-                                "function_name": function_rec.function_name
-                                }
-                         )
+        app.logger.error(
+            "function_ingest_failed",
+            extra={"user_id": user_uuid, "function_name": function_rec.function_name},
+        )
         raise InternalError(message)
 
     return response
