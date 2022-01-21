@@ -451,7 +451,7 @@ def batch_status(user: User):
     json
         The status of the task
     """
-    app.logger.debug(f"request : {request.json}")
+    app.logger.debug("batch_status_request", extra=request.json)
     results = get_tasks_from_redis(request.json["task_ids"], user)
 
     return jsonify({"response": "batch", "results": results})
@@ -469,7 +469,6 @@ def register_with_hub(address, endpoint_id, endpoint_address):
        Address of the forwarder service of the form http://<IP_Address>:<Port>
 
     """
-    print(address + "/register")
     try:
         r = requests.post(
             address + "/register",
@@ -545,8 +544,7 @@ def reg_endpoint(user: User, user_uuid: str):
     json
         A dict containing the endpoint details
     """
-    app.logger.debug("register_endpoint triggered")
-    app.logger.info(request.json)
+    app.logger.info("register_endpoint triggered", extra=request.json)
 
     v_info = get_forwarder_version()
     min_ep_version = v_info["min_ep_version"]
@@ -569,7 +567,6 @@ def reg_endpoint(user: User, user_uuid: str):
     # always return the jsonified error response as soon as it is available below
     # to prevent further registration steps being taken after an error
     try:
-        app.logger.debug(request.json["endpoint_name"])
         app.logger.info(f"requesting registration for {request.json}")
         endpoint_uuid = register_endpoint(
             user,
@@ -865,7 +862,10 @@ def reg_function(user: User, user_uuid):
             f"Function registration failed for user={user.username} , "
             f"function_name={function_name} due to {e}"
         )
-        app.logger.error(message)
+        app.logger.error("function_registration_fail",
+                         extra={"user_id": user_uuid,
+                                "function_name": function_name}
+                         )
         raise InternalError(message)
 
     try:
@@ -875,7 +875,11 @@ def reg_function(user: User, user_uuid):
             f"Function ingest to search failed for user:{user.username} "
             f"function_name:{function_rec.function_name} due to {e}"
         )
-        app.logger.error(message)
+        app.logger.error("function_ingest_failed",
+                         extra={"user_id": user_uuid,
+                                "function_name": function_rec.function_name
+                                }
+                         )
         raise InternalError(message)
 
     return response
