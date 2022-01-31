@@ -1,5 +1,6 @@
 from flask import jsonify
 from funcx_common.response_errors import FuncxResponseError
+from werkzeug.exceptions import HTTPException
 
 
 def create_error_response(exception, jsonify_response=False):
@@ -28,6 +29,17 @@ def create_error_response(exception, jsonify_response=False):
         response = exception.pack()
         status_code = int(exception.http_status_code)
     else:
+        status_code = None
+        # if there is an HTTPException (e.g. due to calling of Flask abort())
+        # we can grab the status code from the exception
+        if isinstance(exception, HTTPException):
+            status_code = exception.code
+            reason = str(exception)
+        else:
+            reason = f"An unknown error occurred: {exception}"
+
+        if status_code is None:
+            status_code = 500
         # if the error is not recognized as a FuncxResponseError, a generic
         # response of the same format will be sent back, indicating an
         # internal server error
@@ -35,10 +47,9 @@ def create_error_response(exception, jsonify_response=False):
             "status": "Failed",
             "code": 0,
             "error_args": [],
-            "reason": f"An unknown error occurred: {exception}",
-            "http_status_code": 500,
+            "reason": reason,
+            "http_status_code": status_code,
         }
-        status_code = 500
 
     if jsonify_response:
         response = jsonify(response)
