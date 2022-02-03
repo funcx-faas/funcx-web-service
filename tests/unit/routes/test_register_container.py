@@ -66,7 +66,7 @@ def test_get_container(flask_test_client, mocker, in_mock_auth_state):
     find_container_mock.assert_called_with("1", "docker")
 
 
-def test_get_container_build_status(flask_test_client, mocker, mock_auth_client):
+def test_get_container_build_status(flask_test_client, mocker, in_mock_auth_state):
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"
@@ -86,7 +86,7 @@ def test_get_container_build_status(flask_test_client, mocker, mock_auth_client)
 
 
 def test_get_container_build_status_not_found(
-    flask_test_client, mocker, mock_auth_client
+    flask_test_client, in_mock_auth_state, mocker
 ):
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid", return_value=None
