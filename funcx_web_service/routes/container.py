@@ -41,7 +41,6 @@ def build_container(user: User):
         container_rec.save_to_db()
 
         if app.extensions["ContainerService"]:
-            print(build_spec)
             app.extensions["ContainerService"].submit_build(
                 container_rec.container_uuid, build_spec
             )
@@ -60,9 +59,7 @@ def build_container(user: User):
 @container_api.route("/containers/build/<container_id>", methods=["GET"])
 @authenticated
 def container_build_status(user: User, container_id):
-    print(f"Get the status of {container_id}")
     container = Container.find_by_uuid(container_id)
-    print(container)
     if container:
         return jsonify({"status": container.build_status.name})
     else:
@@ -71,9 +68,7 @@ def container_build_status(user: User, container_id):
 
 @container_api.route("/containers/build/<container_id>", methods=["PUT"])
 def update_container_build_status(container_id):
-    print(f"Update the status of {container_id}")
     build_spec = request.json
-    print(f"New Status {build_spec}")
     container = Container.find_by_uuid(container_id)
     if container:
         container.build_status = build_spec["build_status"]
