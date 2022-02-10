@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Text
 
 revision = "0.4.0"
 down_revision = "v0.2.0"
@@ -18,9 +18,11 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("containers", Column("build_status", String(9)))
-    op.execute("UPDATE containers SET build_status = 'provided'")
+    op.add_column("container_images", Column("build_status", String(9)))
+    op.execute("UPDATE container_images SET build_status = 'provided'")
+    op.add_column("container_images", Column("build_stderr", Text))
 
 
 def downgrade():
-    op.drop_column("containers", "build_status")
+    op.drop_column("container_images", "build_status")
+    op.drop_column("container_images", "build_stderr")

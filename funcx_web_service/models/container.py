@@ -9,13 +9,6 @@ from funcx_web_service.models import db
 
 
 class Container(db.Model):
-    class BuildStates(Enum):
-        provided = 1
-        submitted = 2
-        queued = 3
-        building = 4
-        ready = 5
-        failed = 6
 
     __tablename__ = "containers"
     id = db.Column(db.Integer, primary_key=True)
@@ -25,7 +18,6 @@ class Container(db.Model):
     description = db.Column(db.Text)
     created_at = db.Column(DateTime, default=datetime.utcnow)
     modified_at = db.Column(DateTime, default=datetime.utcnow)
-    build_status = db.Column(db.Enum(BuildStates), nullable=True)
     images = relationship("ContainerImage")
     functions = relationship("FunctionContainer")
     user = relationship("User", back_populates="containers")
@@ -56,22 +48,33 @@ class Container(db.Model):
     def to_json(self):
         result = {
             "container_uuid": self.container_uuid,
-            "name": self.name,
-            "build_status": self.build_status.name,
+            "name": self.name
         }
 
         if self.images and len(self.images) == 1:
             result["type"] = self.images[0].type
             result["location"] = self.images[0].location
+            result['build_status'] = self.images[0].build_status.name
+            result['build_stderr'] = self.images[0].build_stderr
 
         return result
 
 
 class ContainerImage(db.Model):
+    class BuildStates(Enum):
+        provided = 1
+        submitted = 2
+        queued = 3
+        building = 4
+        ready = 5
+        failed = 6
+
     __tablename__ = "container_images"
     id = db.Column(db.Integer, primary_key=True)
     container_id = db.Column(Integer, ForeignKey("containers.id"))
     type = db.Column(db.String(256))
     location = db.Column(db.String(1024))
+    build_status = db.Column(db.Enum(BuildStates), nullable=True)
+    build_stderr = db.Column(db.Text, nullable=True)
     created_at = db.Column(DateTime, default=datetime.utcnow)
     modified_at = db.Column(DateTime, default=datetime.utcnow)

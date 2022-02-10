@@ -1,6 +1,6 @@
 from funcx_common.response_errors import ResponseErrorCode
 
-from funcx_web_service.models.container import Container
+from funcx_web_service.models.container import Container, ContainerImage
 
 
 def test_register_container(flask_test_client, mocker, in_mock_auth_state):
@@ -24,12 +24,12 @@ def test_register_container(flask_test_client, mocker, in_mock_auth_state):
     assert saved_container.name == "myContainer"
     assert saved_container.container_uuid == container_uuid
     assert saved_container.description == "this is a test"
-    assert saved_container.build_status == Container.BuildStates.provided
 
     assert saved_container.images
     assert len(saved_container.images) == 1
     assert saved_container.images[0].type == "docker"
     assert saved_container.images[0].location == "http://hub.docker.com/myContainer"
+    assert saved_container.images[0].build_status == ContainerImage.BuildStates.provided
 
 
 def test_register_container_invalid_spec(flask_test_client, mocker, in_mock_auth_state):
@@ -51,7 +51,7 @@ def test_get_container(flask_test_client, mocker, in_mock_auth_state):
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"
-    container.build_status = Container.BuildStates.provided
+    container.images = [ContainerImage(build_status=ContainerImage.BuildStates.provided)]
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid_and_type", return_value=container
     )
@@ -70,7 +70,7 @@ def test_get_container_build_status(flask_test_client, mocker, in_mock_auth_stat
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"
-    container.build_status = Container.BuildStates.submitted
+    container.build_status = ContainerImage.BuildStates.submitted
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid", return_value=container
     )

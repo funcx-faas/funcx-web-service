@@ -35,8 +35,13 @@ def build_container(user: User):
             name=build_spec["name"],
             description=build_spec.get("description", None),
             container_uuid=str(uuid.uuid4()),
-            build_status="submitted",
         )
+
+        container_rec.images = [
+            ContainerImage(type="docker",
+                           location="pending",
+                           build_status=ContainerImage.BuildStates.submitted)
+        ]
 
         container_rec.save_to_db()
 
@@ -59,21 +64,38 @@ def build_container(user: User):
 @container_api.route("/containers/build/<container_id>", methods=["GET"])
 @authenticated
 def container_build_status(user: User, container_id):
-    container = Container.find_by_uuid(container_id)
-    if container:
-        return jsonify({"status": container.build_status.name})
+    container = Container.find_by_uuid_and_type(container_id, "docker")
+    if container and len(container.images) == 1:
+        return jsonify({"status": container.images[0].build_status.name})
     else:
         raise ContainerNotFound(container_id)
 
 
-@container_api.route("/containers/build/<container_id>", methods=["PUT"])
+@container_api.route("/containers/<container_id>/status", methods=["PUT"])
 def update_container_build_status(container_id):
+    def _parse_registry(location_url):
+        if location_url == 'https://index.docker.io/v1/':
+            return "docker.io"
+        else:
+            return "unknown"
+
     build_spec = request.json
-    container = Container.find_by_uuid(container_id)
-    if container:
-        container.build_status = build_spec["build_status"]
+    container = Container.find_by_uuid_and_type(container_id, "docker")
+    if container and len(container.images) == 1:
+        print("Build Status -----> ", build_spec)
+
+        docker_rec = container.images[0]
+        docker_rec.build_status = build_spec["build_status"]
+        if build_spec['build_status'] == ContainerImage.BuildStates.ready.name:
+            registry = _parse_registry(build_spec['registry_url'])
+            organization = build_spec['registry_user']
+            repository = build_spec['registry_repository']
+            docker_rec.location = f"{registry}/{organization}/{repository}:latest"
+
+            docker_rec.build_stderr = build_spec['repo2docker_stderr']
+
         container.save_to_db()
-        return jsonify({"status": container.build_status.name})
+        return jsonify({"status": container.images[0].build_status.name})
     else:
         raise ContainerNotFound(container_id)
 
@@ -139,11 +161,13 @@ def reg_container(user: User):
             author=user.id,
             name=post_req["name"],
             description=post_req.get("description", None),
-            container_uuid=str(uuid.uuid4()),
-            build_status=Container.BuildStates.provided,
+            container_uuid=str(uuid.uuid4())
         )
         container_rec.images = [
-            ContainerImage(type=post_req["type"], location=post_req["location"])
+            ContainerImage(type=post_req["type"],
+                           location=post_req["location"],
+                           build_status=ContainerImage.BuildStates.provided,
+                           )
         ]
 
         container_rec.save_to_db()
