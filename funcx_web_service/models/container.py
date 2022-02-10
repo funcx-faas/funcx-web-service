@@ -46,16 +46,13 @@ class Container(db.Model):
             return None
 
     def to_json(self):
-        result = {
-            "container_uuid": self.container_uuid,
-            "name": self.name
-        }
+        result = {"container_uuid": self.container_uuid, "name": self.name}
 
         if self.images and len(self.images) == 1:
             result["type"] = self.images[0].type
             result["location"] = self.images[0].location
-            result['build_status'] = self.images[0].build_status.name
-            result['build_stderr'] = self.images[0].build_stderr
+            result["build_status"] = self.images[0].build_status.name
+            result["build_stderr"] = self.images[0].build_stderr
 
         return result
 

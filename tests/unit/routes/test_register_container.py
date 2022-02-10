@@ -51,7 +51,9 @@ def test_get_container(flask_test_client, mocker, in_mock_auth_state):
     container = Container()
     container.container_uuid = "123-45-678"
     container.name = "Docky"
-    container.images = [ContainerImage(build_status=ContainerImage.BuildStates.provided)]
+    container.images = [
+        ContainerImage(build_status=ContainerImage.BuildStates.provided)
+    ]
     find_container_mock = mocker.patch.object(
         Container, "find_by_uuid_and_type", return_value=container
     )

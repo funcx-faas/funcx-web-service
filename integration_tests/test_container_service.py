@@ -28,7 +28,7 @@ print(f"Building {container_uuid}")
 while True:
     status = fxc.get_container_build_status(container_uuid)
     print(f"status is {status}")
-    if status == 'ready':
+    if status == "ready":
         break
     sleep(5)
 
