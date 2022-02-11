@@ -84,7 +84,6 @@ def update_container_build_status(container_id):
     build_spec = request.json
     container = Container.find_by_uuid_and_type(container_id, "docker")
     if container and len(container.images) == 1:
-        print("Build Status -----> ", build_spec)
 
         docker_rec = container.images[0]
         docker_rec.build_status = build_spec["build_status"]
